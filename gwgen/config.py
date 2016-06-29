@@ -206,6 +206,7 @@ class Config(object):
         self.conf_dir = get_configdir(name)
         self._exp_file = osp.join(self.conf_dir, 'experiments.yml')
         self._model_file = osp.join(self.conf_dir, 'models.yml')
+        self._globals_file = osp.join(self.conf_dir, 'globals.yml')
 
     experiments = _config_prop(
         'experiments', '_exp_file', "The full meta data for all the runs")
@@ -214,10 +215,14 @@ class Config(object):
         'models', '_model_file',
         "A mapping from the model names to their directories")
 
+    global_config = _config_prop(
+        'global_config', '_globals_file',
+        "The global settings for the experiments")
+
     def save(self):
         self._store = True
         try:
-            for attr in ['experiments', 'models']:
+            for attr in ['experiments', 'models', 'global_config']:
                 setattr(self, attr, getattr(self, attr))
         except:
             raise

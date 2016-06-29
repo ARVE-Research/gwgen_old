@@ -13,7 +13,7 @@ integer :: month
 
 character(4) :: variable
 
-character(100), intent(in) :: infile
+character(300), intent(in) :: infile
 integer, intent(in) :: ndays
 
 ! returns

@@ -1,5 +1,10 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages
+from numpy.distutils.core import Extension, setup
 import sys
+import os.path as osp
+
+parseghcnrow = Extension(
+    name='gwgen._parseghcnrow', sources=['gwgen/mo_parseghcnrow.f90'])
 
 needs_pytest = {'pytest', 'test', 'ptr'}.intersection(sys.argv)
 pytest_runner = ['pytest-runner'] if needs_pytest else []
@@ -8,6 +13,21 @@ pytest_runner = ['pytest-runner'] if needs_pytest else []
 def readme():
     with open('README.rst') as f:
         return f.read()
+
+
+def configuration(parent_package='', top_path=None):
+    from numpy.distutils.misc_util import Configuration
+
+    config = Configuration(None, parent_package, top_path)
+    config.set_options(ignore_setup_xxx_py=True,
+                       assume_default_configuration=True,
+                       delegate_options_to_subpackages=True,
+                       quiet=True)
+
+    config.add_subpackage('gwgen')
+    config.add_data_dir(osp.join('gwgen', 'src'))
+
+    return config
 
 
 setup(name='gwgen',
@@ -42,9 +62,13 @@ setup(name='gwgen',
           'numpy',
           'PyYAML'
       ],
-      package_data={'gwgen': ['gwgen/src/*.f90']},
+      package_data={'gwgen': [
+          'gwgen/src/*',
+          ]},
       include_package_data=True,
       setup_requires=pytest_runner,
       tests_require=['pytest'],
       entry_points={'console_scripts': ['gwgen=gwgen.main:main']},
-      zip_safe=False)
+      zip_safe=False,
+      ext_modules=[parseghcnrow],
+      configuration=configuration)
