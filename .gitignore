@@ -4,6 +4,7 @@ __pycache__/
 
 # C extensions
 *.so
+*.so.dSYM/
 
 # Distribution / packaging
 .Python
@@ -66,3 +67,6 @@ target/
 # Fortran
 *.mod
 *.o
+
+# test files
+tests/eecra

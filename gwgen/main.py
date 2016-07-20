@@ -4,6 +4,7 @@ import os.path as osp
 import six
 from shutil import copyfile, rmtree
 import re
+import yaml
 import sys
 import datetime as dt
 from itertools import groupby, chain
@@ -14,6 +15,10 @@ from psyplot.compat.pycompat import OrderedDict
 from gwgen.config import Config, ordered_yaml_dump
 import gwgen.utils as utils
 from gwgen.utils import docstrings
+
+
+if six.PY2:
+    input = raw_input
 
 
 class FuncArgParser(ArgumentParser):
@@ -128,8 +133,20 @@ class FuncArgParser(ArgumentParser):
         return ret
 
     def add_subparsers(self, *args, **kwargs):
+        """
+        Add subparsers to this parser
+
+        Parameters
+        ----------
+        ``*args, **kwargs``
+            As specified by the original
+            :meth:`argparse.ArgumentParser.add_subparsers` method
+        chain: bool
+            Default: False. If True, It is enabled to chain subparsers"""
+        chain = kwargs.pop('chain', None)
         ret = super(FuncArgParser, self).add_subparsers(*args, **kwargs)
-        self.__subparsers = ret
+        if chain:
+            self.__subparsers = ret
         return ret
 
     def parse_known_args(self, args=None, namespace=None):
@@ -153,13 +170,22 @@ class FuncArgParser(ArgumentParser):
                     choices_d[cmd], remainders[cmd] = super(
                         FuncArgParser, self).parse_known_args(
                             main_args + list(subargs))
-            main_ns, remainders[None] = super(
-                    FuncArgParser, self).parse_known_args(main_args)
+            main_ns, remainders[None] = self.__parse_main(main_args)
             for key, val in vars(main_ns).items():
                 choices_d[key] = val
             return Namespace(**choices_d), list(chain(*remainders.values()))
         # otherwise, use the default behaviour
         return super(FuncArgParser, self).parse_known_args(args, namespace)
+
+    def __parse_main(self, args):
+        """Parse the main arguments only. This is a work around for python 2.7
+        because argparse does not allow to parse arguments without subparsers
+        """
+        if six.PY2:
+            self.__subparsers.add_parser("dummy")
+            return super(FuncArgParser, self).parse_known_args(
+                list(args) + ['dummy'])
+        return super(FuncArgParser, self).parse_known_args(args)
 
 
 def _param_worker(kwargs):
@@ -185,7 +211,8 @@ class ModelOrganizer(object):
     parser = None
 
     #: list of str. The keys describing paths for the model
-    paths = ['expdir', 'src', 'data', 'param_stations']
+    paths = ['expdir', 'src', 'data', 'param_stations', 'nc_file', 
+             'project_file', 'plot_file']
 
     _modelname = None
     _experiment = None
@@ -221,6 +248,21 @@ class ModelOrganizer(object):
     def experiment(self, value):
         if value is not None:
             self._experiment = value
+
+    @property
+    def exp_config(self):
+        """The configuration settings of the current experiment"""
+        return self.config.experiments[self.experiment]
+
+    @property
+    def model_config(self):
+        """The configuration settings of the current model of the experiment"""
+        return self.config.models[self.modelname]
+
+    @property
+    def global_config(self):
+        """The global configuration settings"""
+        return self.config.global_config
 
     @property
     def logger(self):
@@ -280,8 +322,8 @@ class ModelOrganizer(object):
             self.experiment = None
         elif new and self.config.experiments:
             self.experiment = self._get_next_name(self.experiment)
-        elif experiment:
-            self.experiment = experiment
+        else:
+            self._experiment = experiment
         if verbose:
             verbose = logging.DEBUG
         elif verbosity_level:
@@ -394,6 +436,7 @@ class ModelOrganizer(object):
             os.symlink(osp.relpath(osp.join(src_dir, f), bin_dir), target)
         spr.call(['make', '-C', bin_dir, 'all'])
 
+    @docstrings.dedent
     def configure(self, global_config=False, model_config=False,
                   update_nml=None, serial=False, nprocs=None,
                   max_stations=None, datadir=None, user=None, host=None,
@@ -432,7 +475,9 @@ class ModelOrganizer(object):
         port: int
             The port to use to log into the the database
         ``**kwargs``
-            Other keywords for the :meth:`main` method"""
+            Other keywords for the :meth:`main` method or a mapping from
+            parameterization task name to yaml configuration files with 
+            formatoptions for that task"""
         if global_config:
             d = self.config.global_config
         elif model_config:
@@ -448,26 +493,27 @@ class ModelOrganizer(object):
             nml2use = d.setdefault('namelist', OrderedDict())
             for key, nml in ref_nml.items():
                 nml2use.setdefault(key, OrderedDict()).update(dict(nml))
-        global_config = self.config.global_config
+        gconf = self.config.global_config
         if serial:
-            global_config['serial'] = True
+            gconf['serial'] = True
         elif nprocs:
-            global_config['serial'] = False
-            global_config['processes'] = nprocs
+            nprocs = int(nprocs) if nprocs != 'all' else nprocs
+            gconf['serial'] = False
+            gconf['nprocs'] = nprocs
         if max_stations:
-            global_config['max_stations'] = max_stations
+            gconf['max_stations'] = max_stations
         if datadir:
             datadir = osp.abspath(datadir)
             if global_config:
-                global_config['data'] = datadir
+                d['data'] = datadir
             else:
                 self.config.models[self.modelname].setdefault('data', datadir)
         if user is not None:
-            global_config['user'] = user
+            gconf['user'] = user
         if port is not None:
-            global_config['port'] = port
+            gconf['port'] = port
         if host is not None:
-            global_config['host'] = '127.0.0.1'
+            gconf['host'] = '127.0.0.1'
 
     def _modify_configure(self, parser):
         parser.update_arg('global_config', short='g', long='globally',
@@ -483,8 +529,7 @@ class ModelOrganizer(object):
     docstrings.keep_params('ModelOrganizer.main.parameters', 'experiment')
 
     @docstrings.dedent
-    def init(self, modelname=None, description=None,
-             **kwargs):
+    def init(self, modelname=None, description=None, **kwargs):
         """
         Initialize a new experiment
 
@@ -509,6 +554,7 @@ class ModelOrganizer(object):
             experiment = self.name + '_exp0'
         elif experiment is None:
             experiment = self._get_next_name(self.experiment)
+        self.experiment = experiment
         modelname = self.modelname
         self.logger.info("Initializing experiment %s of model %s",
                          experiment, modelname)
@@ -561,13 +607,15 @@ class ModelOrganizer(object):
             base = self.config.models
             current = modelname or self.modelname
         else:
+            current = self.experiment
             if modelname is None:
                 base = self.config.experiments
+                base[current]['id'] = current
+                base[current].move_to_end('id', last=False)
             else:
                 base = OrderedDict(filter(lambda t: t[1]['model'] == modelname,
                                           self.config.experiments.items()))
                 complete = True
-            current = self.experiment
         if not complete:
             base = base[current]
             if not no_fix:
@@ -578,7 +626,7 @@ class ModelOrganizer(object):
         print(ordered_yaml_dump(base, default_flow_style=False))
         sys.exit(0)
 
-    def fix_paths(self, d):
+    def fix_paths(self, d, root=None, model=None):
         """Fix the paths in the given dictionary to get absolute paths
 
         Paramteres
@@ -594,11 +642,38 @@ class ModelOrganizer(object):
         Notes
         -----
         d is modified in place!"""
-        root = d.get('root')
-        model = d.get('model')
-        for key in self.paths:
-            if key in d:
+        root = root or d.get('root')
+        model = model or d.get('model')
+        for key, val in d.items():
+            if isinstance(val, dict):
+                d[key] = self.fix_paths(val, root, model)
+            elif key in self.paths:
                 d[key] = self.abspath(d[key], model, root)
+        return d
+        
+    def rel_paths(self, d, root=None, model=None):
+        """Fix the paths in the given dictionary to get absolute paths
+
+        Paramteres
+        ----------
+        d: dict
+            One experiment configuration dictionary
+
+        Returns
+        -------
+        dict
+            The modified `d`
+
+        Notes
+        -----
+        d is modified in place!"""
+        root = root or d.get('root')
+        model = model or d.get('model')
+        for key, val in d.items():
+            if isinstance(val, dict):
+                d[key] = self.rel_paths(val, root, model)
+            elif key in self.paths and osp.isabs(val):
+                d[key] = self.relpath(d[key], model)
         return d
 
     def _modify_info(self, parser):
@@ -725,7 +800,7 @@ class ModelOrganizer(object):
                     if key not in task_names}
         self.main(**main_kws)
         experiment = self.experiment
-        exp_dict = self.config.experiments[experiment]
+        exp_dict = self.fix_paths(self.config.experiments[experiment])
         param_dir = osp.join(exp_dict['expdir'], 'parameterization')
         if not osp.exists(param_dir):
             os.makedirs(param_dir)
@@ -790,7 +865,7 @@ class ModelOrganizer(object):
             for key, val in parameterizer_kws.items()}
         # initialize the tasks
         Parameterizer.initialize_parameterization(
-            stations=stations, logger=logger, **base_kws)
+            stations=stations, logger=logger, task_kws=base_kws)
         if not global_conf.get('serial'):
             # parallel processing
             import multiprocessing as mp
@@ -814,10 +889,11 @@ class ModelOrganizer(object):
         else:
             # serial processing
             tasks = [Parameterizer.process_data(
-                stations=stations, logger=self.logger, **base_kws)]
+                stations=stations, logger=self.logger, task_kws=base_kws)]
         # update experiment namelist and configuration
         exp_nml = exp_dict.setdefault('namelist', OrderedDict())
         param_info = exp_dict.setdefault('parameterization', OrderedDict())
+        ret = []
         for i, task in enumerate(tasks[0]):
             kws = parameterizer_kws[task.name]
             task = task.setup_from_instances([
@@ -826,12 +902,16 @@ class ModelOrganizer(object):
                 task.write2file()
             if kws.get('to_db'):
                 task.write2db()
-            task_nml, task_info = task.run()
-            if task_nml:
-                for key, val in task_nml.items():
-                    exp_nml.setdefault(key).update(val)
-            if task_info:
-                param_info[task.name] = task_info
+            if task.has_run:
+                run_kws = task.get_run_kws(kws)
+                task_nml, task_info = task.run(**run_kws)
+                if task_nml:
+                    for key, val in task_nml.items():
+                        exp_nml.setdefault(key, OrderedDict()).update(val)
+                if task_info:
+                    param_info[task.name] = task_info
+            ret.append(task)
+        return ret
 
     def _modify_param(self, parser):
         from gwgen.parameterization import Parameterizer
@@ -852,7 +932,7 @@ class ModelOrganizer(object):
         tasks = utils.unique_everseen(
             Parameterizer.sort_by_requirement(Parameterizer._registry[::-1]),
             lambda t: t.name)
-        sps = parser.add_subparsers(title='Parameterization tasks')
+        sps = parser.add_subparsers(title='Parameterization tasks', chain=True)
         for task in tasks:
             sp = sps.add_parser(task.name, help=task.summary)
             fname = task._datafile
@@ -869,6 +949,10 @@ class ModelOrganizer(object):
             if fname:
                 sp.add_argument('-to_csv', action='store_true',
                                 help=fname_doc + ' ' + fname)
+            if task.has_run:
+                sp.setup_args(task.run)
+                task._modify_parser(sp)
+                sp.create_arguments()
 
     def _update_model_with_globals(self, d):
         datadir = self.config.global_config.get('data')
@@ -927,7 +1011,7 @@ class ModelOrganizer(object):
         if subparsers is None:
             if parser is None:
                 parser = FuncArgParser(self.name)
-            subparsers = parser.add_subparsers()
+            subparsers = parser.add_subparsers(chain=True)
 
         ret = {}
         for cmd in commands:
@@ -980,6 +1064,11 @@ class ModelOrganizer(object):
             modelname = self.modelname
             ts.update(self.config.models[modelname]['timestamps'])
             self.config.experiments[exp]['timestamps'].update(ts)
+        try:
+            self.rel_paths(self.exp_config)
+            self.rel_paths(self.model_config)
+        except IndexError:
+            pass
         self.config.save()
 
 

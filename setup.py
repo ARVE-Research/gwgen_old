@@ -4,7 +4,11 @@ import sys
 import os.path as osp
 
 parseghcnrow = Extension(
-    name='gwgen._parseghcnrow', sources=['gwgen/mo_parseghcnrow.f90'])
+    name='gwgen._parseghcnrow', sources=[
+        osp.join('gwgen', 'mo_parseghcnrow.f90')])
+parseeecra = Extension(
+    name='gwgen._parseeecra', sources=[osp.join('gwgen', 'mo_parseeecra.f90')],
+    f2py_options=['only:', 'parse_file', ':'])
 
 needs_pytest = {'pytest', 'test', 'ptr'}.intersection(sys.argv)
 pytest_runner = ['pytest-runner'] if needs_pytest else []
@@ -26,6 +30,7 @@ def configuration(parent_package='', top_path=None):
 
     config.add_subpackage('gwgen')
     config.add_data_dir(osp.join('gwgen', 'src'))
+    config.add_data_dir(osp.join('gwgen', 'data'))
 
     return config
 
@@ -64,11 +69,12 @@ setup(name='gwgen',
       ],
       package_data={'gwgen': [
           'gwgen/src/*',
+          'gwgen/data/*',
           ]},
       include_package_data=True,
       setup_requires=pytest_runner,
       tests_require=['pytest'],
       entry_points={'console_scripts': ['gwgen=gwgen.main:main']},
       zip_safe=False,
-      ext_modules=[parseghcnrow],
+      ext_modules=[parseghcnrow, parseeecra],
       configuration=configuration)

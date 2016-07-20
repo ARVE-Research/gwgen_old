@@ -2,7 +2,7 @@ import os
 import os.path as osp
 import shutil
 import unittest
-from gwgen.main import ModelOrganizer
+from gwgen.main import ModelOrganizer, FuncArgParser, docstrings
 import gwgen
 import glob
 
@@ -57,25 +57,160 @@ class OrganizerTest(unittest.TestCase):
         self.organizer.setup(self.test_dir)
         modelname = self.organizer.modelname
         self.organizer.compile()
-        self.assertTrue(osp.exists(osp.join(
-            self.test_dir, modelname, 'bin', 'gwgen')))
+        binpath = osp.join(self.test_dir, modelname, 'bin', 'weathergen')
+        self.assertTrue(osp.exists(binpath),
+                        msg='binary %s does not exist!' % binpath)
 
     def test_init(self):
         """Test the intialization of a new experiment"""
         self.organizer.setup(self.test_dir)
         modelname = self.organizer.modelname
-        self.organizer.init('testexp0')
-        self.assertTrue(osp.exists(osp.join(
-            self.test_dir, modelname, 'experiments', 'testexp0')))
+        self.organizer.init(experiment='testexp0')
+        expdir = osp.join(self.test_dir, modelname, 'experiments', 'testexp0')
+        self.assertTrue(osp.exists(expdir),
+                        msg='Experiment directory %s does not exist!' % expdir)
         self.assertIn('testexp0', self.organizer.config.experiments)
 
         # test without argument
         self.organizer.setup(self.test_dir)
         modelname = self.organizer.modelname
-        self.organizer.init()
-        self.assertTrue(osp.exists(osp.join(
-            self.test_dir, modelname, 'experiments', 'testexp1')))
+        self.organizer.init(experiment=None)
+        expdir = osp.join(self.test_dir, modelname, 'experiments', 'testexp1')
+        self.assertTrue(osp.exists(expdir),
+                        msg='Experiment directory %s does not exist!' % expdir)
         self.assertIn('testexp1', self.organizer.config.experiments)
+
+
+class ParserTest(unittest.TestCase):
+    """Class to test the :class:`gwgen.main.FuncArgParser` class"""
+
+    def test_positional(self):
+        """Test whether positional arguments are captured correctly"""
+        def test_positional(name):
+            pass
+        parser = FuncArgParser()
+        dtype = 'str'
+        help = 'Just a dummy name'
+        doc = docstrings.dedents("""
+            Test function for positional argument
+
+            Parameters
+            ----------
+            name: %s
+                %s""" % (dtype, help))
+        test_positional.__doc__ = doc
+        parser.setup_args(test_positional)
+        action = parser.create_arguments()[0]
+        self.assertEqual(action.help.strip(), help)
+        self.assertEqual(action.metavar, dtype)
+        self.assertEqual(action.dest, 'name')
+        self.assertTrue(action.required)
+
+    def test_optional(self):
+        """Test whether positional arguments are captured correctly"""
+        default = 'test'
+
+        def test_optional(name=default):
+            pass
+
+        parser = FuncArgParser()
+        dtype = 'str'
+        help = 'Just a dummy name'
+        doc = docstrings.dedents("""
+            Test function for positional argument
+
+            Parameters
+            ----------
+            name: %s
+                %s""" % (dtype, help))
+        test_optional.__doc__ = doc
+        parser.setup_args(test_optional)
+        action = parser.create_arguments()[0]
+        self.assertEqual(action.help.strip(), help)
+        self.assertEqual(action.metavar, dtype)
+        self.assertEqual(action.dest, 'name')
+        self.assertTrue(action.default, default)
+
+    def test_switch(self):
+        """Test whether switches are captured correctly"""
+        def test_switch(name=False):
+            pass
+        parser = FuncArgParser()
+        dtype = 'bool'
+        help = 'Just a dummy name'
+        doc = docstrings.dedents("""
+            Test function for positional argument
+
+            Parameters
+            ----------
+            name: %s
+                %s""" % (dtype, help))
+        test_switch.__doc__ = doc
+        parser.setup_args(test_switch)
+        action = parser.create_arguments()[0]
+        self.assertEqual(action.help.strip(), help)
+        self.assertIsNone(action.metavar)
+        self.assertEqual(action.dest, 'name')
+        self.assertFalse(action.default)
+        self.assertTrue(action.const)
+
+    def test_subparser_chain(self):
+        '''Test whether the subparser chaining works'''
+        parser = FuncArgParser()
+        parser.add_argument('-a')
+        sps = parser.add_subparsers(chain=True)
+        # first subparser
+        sp1 = sps.add_parser('sp1')
+        sp1.add_argument('-t', action='store_false')
+        sps1 = sp1.add_subparsers(chain=True)
+
+        # subparsers of first subparser (second level)
+        sp11 = sps1.add_parser('sp11')
+        sp11.add_argument('-b')
+        sp12 = sps1.add_parser('sp12')
+        sp12.add_argument('-c', action='store_true')
+
+        # second subparser
+        sp2 = sps.add_parser('sp2')
+        sp2.add_argument('-t', action='store_false')
+
+        args = parser.parse_args(
+            '-a test sp1 -t sp11 -b okay sp12 -c sp2'.split())
+        # first level test
+        self.assertTrue(args.a, 'test')
+        self.assertTrue(args.sp1.a, 'test')
+        self.assertTrue(args.sp2.a, 'test')
+        self.assertFalse(args.sp1.t)
+        self.assertTrue(args.sp2.t)
+
+        # second level test
+        self.assertFalse(args.sp1.sp11.t)
+        self.assertFalse(args.sp1.sp12.t)
+        self.assertEqual(args.sp1.sp11.b, 'okay')
+        self.assertTrue(args.sp1.sp12.c)
+
+    def test_argument_modification(self):
+        """Test the modification of arguments"""
+
+        def test(name='okay', to_delete=True):
+            '''
+            That's a test function
+
+            Parameters
+            ----------
+            name: str
+                Just a test
+            to_delete: bool
+                A parameter that will be deleted
+
+            Returns
+            -------
+            NoneType
+                Nothing'''
+        parser = FuncArgParser()
+        parser.setup_args(test)
+        parser.update_arg('name', help='replaced', metavar='replaced')
+
 
 if __name__ == '__main__':
     unittest.main()

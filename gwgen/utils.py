@@ -1,3 +1,5 @@
+import inspect
+import os.path as osp
 import six
 import logging
 from psyplot.docstring import DocStringProcessor
@@ -105,3 +107,17 @@ def get_postgres_engine(database, user=None, host='127.0.0.1', port=None):
         conn.close()
     logger.debug('Done.')
     return engine, engine_str
+
+    
+
+def file_len(fname):
+    """Get the number of lines in `fname`"""
+    with open(fname) as f:
+        for i, l in enumerate(f):
+            pass
+    return i + 1
+    
+
+def get_module_path(mod):
+    """Convenience method to get the directory of a given python module"""
+    return osp.dirname(inspect.getabsfile(mod))
