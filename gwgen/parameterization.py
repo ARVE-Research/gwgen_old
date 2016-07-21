@@ -7,7 +7,11 @@ import six
 import abc
 import inspect
 import subprocess as spr
-from itertools import chain, product, starmap, filterfalse
+from itertools import chain, product, starmap
+try:
+    from itertools import filterfalse
+except ImportError:
+    from itertools import ifilterfalse as filterfalse
 import logging
 import pandas as pd
 import numpy as np
