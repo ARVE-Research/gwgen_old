@@ -1443,7 +1443,7 @@ class HourlyCloud(CloudParameterizerBase):
     @property
     def src_files(self):
         src_dir = osp.join(self.data_srcdir, 'stations')
-        return [osp.join(src_dir, s + '.csv') for s in self.eecra_stations]
+        return [osp.join(src_dir, str(s) + '.csv') for s in self.eecra_stations]
 
     @classmethod 
     @docstrings.get_sectionsf('HourlyCloud.eecra_fname')
