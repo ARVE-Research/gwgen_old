@@ -1369,7 +1369,7 @@ class CloudParameterizerBase(Parameterizer):
         Norig = len(stations)
         df_map = self.eecra_ghcn_map().loc[stations].dropna()
         self._stations = df_map.index.values
-        self.eecra_stations = df_map.station_id.values
+        self.eecra_stations = df_map.station_id.values.astype(int)
         self.logger.debug('Using %i cloud stations in the %i given stations',
                           len(df_map), Norig)
     
@@ -1431,10 +1431,15 @@ class HourlyCloud(CloudParameterizerBase):
         return osp.join(super(HourlyCloud, self).data_srcdir, 'eecra')
     
     @property
-    def src_files(self):
-        src_dir = self.data_srcdir
+    def raw_src_files(self):
+        src_dir = osp.join(self.data_srcdir, 'raw')
         return {yrmon: osp.join(src_dir, self.eecra_fname(*yrmon)) 
                 for yrmon in product(range(1971, 2010), range(1, 13))}
+
+    @property
+    def src_files(self):
+        src_dir = osp.join(self.data_srcdir, 'stations')
+        return [osp.join(src_dir, s + '.csv') for s in self.eecra_stations]
 
     @classmethod 
     @docstrings.get_sectionsf('HourlyCloud.eecra_fname')
@@ -1465,16 +1470,6 @@ class HourlyCloud(CloudParameterizerBase):
         for (d0, d1), url in cls.urls.items():
             if (year, mon) >= d0 and (year, mon) <= d1:
                 return url + cls.eecra_fname(year, mon, '.Z')
-                
-    def _parse_files(self, q):
-        """Worker method to parse the files in the given queue q"""
-        from gwgen.parse_eecra import parse_file
-        while self._continue:
-            yrmon, uncompressed_fname = q.get()
-            parse_file(uncompressed_fname, yrmon[0]).to_csv(
-                uncompressed_fname + '.csv', index=False)
-            os.remove(uncompressed_fname)
-            q.task_done()
             
     def _download_worker(self, qin, qout):
         while self._continue:
@@ -1490,49 +1485,20 @@ class HourlyCloud(CloudParameterizerBase):
         logger.debug('Initializing %s', self.name)
         stations = self.stations
         logger.debug('Reading data for %s stations', len(stations))
-        src_dir = self.data_srcdir
-        if not osp.isdir(src_dir):
-            os.makedirs(src_dir)
+        raw_dir = osp.join(self.data_srcdir, 'raw')
+        stations_dir = osp.join(self.data_srcdir, 'stations')
+        if not osp.isdir(raw_dir):
+            os.makedirs(raw_dir)
+        if not osp.isdir(stations_dir):
+            os.makedirs(stations_dir)
         src_files = self.src_files
-        logger.debug('    Expected data source: %s', src_dir)
-        src_files = self.src_files
-        existing = os.listdir(src_dir)
-        missing = {yrmon: fname for yrmon, fname in six.iteritems(src_files) 
-                   if osp.basename(fname) not in existing}
-        logger.debug('%i files are missing', len(missing))
+        eecra_stations = self.eecra_stations
+        missing = [station_id for station_id, fname in zip(
+            eecra_stations, src_files) if not osp.exists(fname)]
         if missing:
-            from threading import Thread
-            try:
-                from queue import Queue
-            except ImportError:
-                from Queue import Queue
-            self._continue = True  # makes sure the threads are running
-            q = Queue()
-            download_q = Queue()
-            threads = [Thread(
-                target=self._parse_files, args=(q, )) for _ in range(20)]
-            threads.append(Thread(
-                    target=self._download_worker, args=(download_q, q)))
-            for thread in threads:
-                thread.setDaemon(True)
-            for thread in threads:
-                thread.start()
-        for yrmon, fname in six.iteritems(missing):
-            compressed_fname = osp.splitext(fname)[0] + '.Z'
-            uncompressed_fname = osp.splitext(fname)[0]
-            if not osp.exists(uncompressed_fname):
-                if not osp.exists(compressed_fname):
-                    download_q.put((yrmon, compressed_fname))
-                else:
-                    spr.call(['gzip', '-d', compressed_fname])
-                    q.put((yrmon, uncompressed_fname))
-            else:
-                q.put((yrmon, uncompressed_fname))
-        if missing:
-            download_q.join()
-            q.join()
-            self._continue = False  # stops the threads
-            logger.debug('Done')
+            from gwgen.parse_eecra import exctract_data
+            self.download_src(raw_dir)
+            exctract_data(missing, raw_dir, stations_dir)
                 
     def get_data_from_files(self, files):
         def save_loc(fname):
@@ -1544,11 +1510,25 @@ class HourlyCloud(CloudParameterizerBase):
         station_ids = self.eecra_stations
         self.logger.debug('Extracting data for %i stations from %i files',
                           len(station_ids), len(files))
-        ret = pd.concat(
+        return pd.concat(
             list(map(save_loc, files)), ignore_index=False, copy=False)
-        ret.set_index(['id', 'year', 'month', 'day', 'hour'], 
-                      inplace=True).sort_index(inplace=True)
-        return ret
+        
+    def download_src(self, src_dir):
+        """Download the source files from the EECRA ftp server"""
+        logger = self.logger
+        logger.debug('    Expected data source: %s', src_dir)
+        files = self.raw_src_files
+        existing = os.listdir(src_dir)
+        missing = {yrmon: fname for yrmon, fname in six.iteritems(files) 
+                   if osp.basename(fname) not in existing}
+        logger.debug('%i files are missing', len(missing))
+        for yrmon, fname in six.iteritems(missing):
+            compressed_fname = osp.splitext(fname)[0] + '.Z'
+            uncompressed_fname = osp.splitext(fname)[0]
+            if not osp.exists(uncompressed_fname):
+                if not osp.exists(compressed_fname):
+                    utils.download_file(self.get_eecra_url(*yrmon), fname)
+                spr.call(['gzip', '-d', fname])
             
     def setup_from_file(self, *args, **kwargs):
         kwargs['index_col'] = ['id', 'year', 'month', 'day', 'hour']
@@ -1561,7 +1541,11 @@ class HourlyCloud(CloudParameterizerBase):
     def setup_from_scratch(self):
         """Set up the data"""
         files = self.src_files
-        self.data = self.get_data_from_files(files.values())
+        self.data = pd.concat(
+            [pd.read_csv(fname).merge(df_map, on='station_id', how='inner') 
+             for fname in files.values()], ignore_index=False, copy=False)
+        self.data.set_index(['id', 'year', 'month', 'day', 'hour'], 
+                            inplace=True).sort_index(inplace=True)
         
 
 class DailyCloud(CloudParameterizerBase):
@@ -1863,3 +1847,4 @@ class CloudParameterizer(MonthlyCloud):
         
         
 cr.pickle(Parameterizer, Parameterizer._get_copy_reg)
+cr.pickle(HourlyCloud, HourlyCloud._get_copy_reg)

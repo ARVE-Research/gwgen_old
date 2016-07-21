@@ -8,7 +8,8 @@ parseghcnrow = Extension(
         osp.join('gwgen', 'mo_parseghcnrow.f90')])
 parseeecra = Extension(
     name='gwgen._parseeecra', sources=[osp.join('gwgen', 'mo_parseeecra.f90')],
-    f2py_options=['only:', 'parse_file', ':'])
+    f2py_options=['only:', 'parse_file', 'extract_data', ':'],
+    extra_f90_compile_args = ["-fopenmp"], extra_link_args = ["-lgomp"])
 
 needs_pytest = {'pytest', 'test', 'ptr'}.intersection(sys.argv)
 pytest_runner = ['pytest-runner'] if needs_pytest else []

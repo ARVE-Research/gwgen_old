@@ -1,5 +1,7 @@
 module parseeecra
 
+use omp_lib
+
 contains
 
 subroutine parse_file( &
@@ -182,5 +184,216 @@ subroutine parse_file( &
     end do
 
 end subroutine parse_file
+
+subroutine extract_data(ids, src_dir, odir)
+
+    implicit none
+    
+    integer, intent(in), dimension(:) :: ids
+    character*300, intent(in) :: src_dir, odir
+    
+    INTEGER :: &
+        yr,mn,dy,hr,      & !   year,month,day,hour          yr,mn,dy,hr    8   51120100  96113021    none
+        IB,               & !   sky brightness indicator        IB          1          0         1    none
+        LAT,              & !   latitude  x100                  LAT         5      -9000      9000    none
+        LON,              & !   longitude x100                  LON         5          0     36000    none
+        station_id,       & !   land: station number            ID          5      01000     98999    none
+                            !   ship: source deck, ship type                        1100      9999  none,9
+        LO,               & !   land/ocean indicator            LO          1          1         2    none
+        ww,               & !   present weather                 ww          2          0        99      -1
+        N,                & !   total cloud cover               N           1          0         8    none
+        Nh,               & !   lower cloud amount              Nh          2         -1         8      -1
+        h,                & !   lower cloud base height         h           2         -1         9      -1
+        CL,               & !   low cloud type                  CL          2         -1        11      -1
+        CM,               & !   middle cloud type               CM          2         -1        12      -1
+        CH,               & !   high cloud type                 CH          2         -1         9      -1
+        AM,               & !   middle cloud amount x100        AM          3          0       800     900
+        AH,               & !   high cloud amount x100          AH          3          0       800     900
+        UM,               & !   middle cloud amount           UM          1          0         8       9
+        UH,               & !   high cloud amount             UH          1          0         8       9
+        IC,               & !   change code                     IC          2          0         9    none
+        SA,               & !   solar altitude (deg x10)        SA          4       -900       900    none
+        RI,               & !   relative lunar illuminance x100 RI          4       -110       117    none
+        SLP,              & !   sea level pressure (mb x10)     SLP         5       9000,L   10999,L    -1
+        WS,               & !   wind speed (ms-1 x10)           WS          3          0       999      -1
+        WD,               & !   wind direction (degrees)        WD          3          0       361      -1
+        AT,               & !   air temperature (C x10)         AT          4       -949,L     599,L   900
+        DD,               & !   dew point depression (C x10)    DD          3          0       700     900
+        EL,               & !   Land: station elevation (m)     EL          4       -350      4877    9000
+        IW,               & !   wind speed indicator            IW          1          0         1       9
+        IP                  !  Land: sea level pressure flag   IP          1          0         2       9
+    
+    integer(kind = OMP_lock_kind) :: lck = 0
+    integer(kind = OMP_lock_kind), dimension(size(ids)) :: locks
+    integer :: ID
+    integer :: j = 0, i = 0, nids = 0, keep = 0, old_id = 0, year = 0, &
+               imonth = 0
+    integer, dimension(size(ids)) :: ounits
+    integer, dimension(100) :: inunits = 0
+    character(:), allocatable :: cfmt
+    character*300 :: all_cfmt
+    character*350 :: fname
+    character*10 :: cid
+    character*2 :: cyear
+    character(len=3), dimension(12) :: months = (/ &
+        'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', &
+        'NOV', 'DEC' /)
+    logical :: file_exists
+    
+    !       mn,dy,hr,IB,la,lo,id,LO,ww,N ,Nh,h ,CL,CM,CH,AM,AH,UM,UH,IC,SA,RI,SLP,WS,WD,AT,DD,EL,IW,IP
+    cfmt = 'i2,i2,i2,i1,i5,i5,i5,i1,i2,i1,i2,i2,i2,i2,i2,i3,i3,i1,i1,i2,i4,i4,i5,i3 ,i3,i4,i3,i4,i1,i1'
+    
+    
+    ! output format
+    25 format(i4,a,i0.2,a,i0.2,a,i0.2, & ! yr,mn,dy,hr
+              a,           &
+              i1,          & ! IB
+              a,           &
+              f6.2,        & ! LAT
+              a,           &
+              f6.2,        & ! LON
+              a,           &
+              i5,          & ! station_id
+              a,           &
+              i1,          & ! LO
+              a,           &
+              i2,          & ! ww
+              a,           &
+              i1,          & ! N
+              a,           &
+              i2,          & ! Nh
+              a,           &
+              i2,          & ! h
+              a,           &
+              i2,          & ! CL
+              a,           &
+              i2,          & ! CM
+              a,           &
+              i2,          & ! CH
+              a,           &
+              f4.2,        & ! AM
+              a,           &
+              f5.2,        & ! AH
+              a,           &
+              i1,          & ! UM
+              a,           &
+              i1,          & ! UH
+              a,           &
+              i2,          & ! IC
+              a,           &
+              f5.1,        & ! SA
+              a,           &
+              f5.2,        & ! RI
+              a,           &
+              f6.1,        & ! SLP
+              a,           &
+              f4.1,        & ! WS
+              a,           &
+              i3,          & ! WD
+              a,           &
+              f5.1,        & ! AT
+              a,           &
+              f4.1,        & ! DD
+              a,           &
+              i4,          & ! EL
+              a,           &
+              i1,          & ! IW
+              a,           &
+              i1)            ! IP
+
+nids = size(ids)
+
+j = 11
+do i = 1, nids
+    locks(i) = i
+    call OMP_init_lock(locks(i))
+    write(cid, '(I10)') ids(i)
+    fname = trim(odir)//trim(adjustl(cid))//'.csv'
+    ounits(i) = j + 1000
+    open(10, file=fname, status='unknown',action='write')
+    write(10,*) 'year,month,day,hour,IB,lat,lon,station_id,LO,ww,N,Nh,h,CL,CM,CH,AM,AH,UM,UH,IC,SA,RI,SLP,WS,WD,AT,DD,EL,IW,IP'
+    j = j + 1
+    close(10, status='keep')
+end do
+
+call OMP_init_lock(lck)
+
+do i = 1,size(inunits)
+    inunits(i) = i + 50
+end do
+
+all_cfmt = '(i2,'//cfmt//')'
+
+!$OMP PARALLEL DO SHARED(lck,locks,src_dir,odir,nids,ids,months,inunits,ounits,cfmt), & 
+!$OMP FIRSTPRIVATE(old_id,keep,all_cfmt), &
+!$OMP& PRIVATE(yr,mn,dy,hr,IB,LAT,LON,station_id,LO,ww,N,Nh, h,CL,CM,CH,AM,AH, &
+!$OMP& UM,UH,IC,SA,RI,SLP,WS,WD,AT, DD,EL,IW,IP,fname,cid,i,ID,imonth,cyear,year)
+do year = 1971,2009
+    if (year < 1997) then
+        all_cfmt = '(i2,'//cfmt//')'
+    else
+        all_cfmt = '(i4,'//cfmt//')'
+    endif
+    ID = OMP_get_thread_num() + 1
+    call OMP_set_lock(lck)
+    write(*,*) "My thread is ", ID
+    call OMP_unset_lock(lck)
+    do imonth = 1,12
+        write(cyear,'(I0.2)') mod(year, 100)
+        fname = trim(src_dir)//months(imonth)//cyear//'L'
+        inquire(file=fname,EXIST=file_exists)
+        if (.not. file_exists) goto 99
+        open(inunits(ID), file=fname, status='old', action='read')
+        do
+            read(inunits(ID),trim(all_cfmt),end=99) yr,mn,dy,hr,IB,LAT,LON,station_id,LO,ww,N,Nh, &
+                               h,CL,CM,CH,AM,AH,UM,UH,IC,SA,RI,SLP,WS,WD,AT, &
+                               DD,EL,IW,IP
+            if (year < 1997) yr = yr + 1900
+            if (old_id /= station_id) then
+                if (keep /= 0) then
+                    close(ounits(keep))
+                    call OMP_unset_lock(locks(keep))
+                endif
+                keep = 0
+                do i = 1, nids
+                    if (station_id == ids(i)) then
+                        keep = i
+                        call OMP_set_lock(locks(keep))
+                        write(cid, '(I10)') ids(i)
+                        fname = trim(odir)//trim(adjustl(cid))//'.csv'
+                        open(ounits(keep), file=fname, status='old',access='append', &
+                             action='write')
+                    endif
+                end do
+                old_id = station_id
+            endif
+            if (keep > 0) then
+                if (LON > 18000) LON = LON - 36000
+                write(ounits(keep),25) yr,',',mn,',',dy,',',hr,',',IB,',', &
+                             0.01*LAT,',',0.01*LON,',',station_id,',', &
+                             LO,',',ww,',',N,',',Nh,',',h,',',CL,',', &
+                             CM,',',CH,',',0.01*AM,',',0.01*AH,',',UM, &
+                             ',',UH,',',IC,',',0.1*SA,',',0.01*RI,',', &
+                             0.1*SLP,',',0.1*WS,',',WD,',',0.1*AT,',', &
+                             0.1*DD,',',EL,',',IW,',',IP
+            end if
+            
+        end do
+99 continue
+    close(inunits(ID))
+    if (keep /= 0) then
+        close(ounits(keep))
+        call OMP_unset_lock(locks(keep))
+        keep = 0
+    endif
+    end do
+end do
+!$OMP END PARALLEL DO
+
+call OMP_destroy_lock(lck)
+do i=1,nids
+    call OMP_destroy_lock(locks(i))
+end do
+end subroutine extract_data
 
 end module parseeecra
