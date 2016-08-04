@@ -2,7 +2,7 @@ FC = gfortran
 
 #FCFLAGS = -warn all #-traceback -g -check -check noarg_temp_created -fpe0 #debugging
 
-OBJS = parametersmod.o geohashmod.o randomdistmod.o weathergenmod.o main.o
+OBJS = parametersmod.o geohashmod.o randomdistmod.o weathergenmod.o csv_file.o main.o
 
 #LDFLAGS = -L/Volumes/arve/users/jkaplan/tools/dcdflib/lib
 #LIBS = -ldcdflib
