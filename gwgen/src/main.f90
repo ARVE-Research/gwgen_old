@@ -1,7 +1,6 @@
 program weathergen_precip
 
-!very simple version of the weather generator just for precipitation
-
+use csv_file,      only : csv_write
 use parametersmod, only : sp
 use weathergenmod, only : metvars_in, metvars_out, weathergen, init_weathergen, &
                           rmsmooth
@@ -47,7 +46,7 @@ integer :: i_consecutives(n_tot - 1)
 ! pointers to the tmin, tmax and cloud values of the current month
 real(sp), pointer :: mtmin_curr(:), mtmax_curr(:), mcloud_curr(:)
 
-integer  :: mwetd_sim
+integer  :: mwetd_sim, wet_day
 real(sp) :: mprec_sim
 
 integer :: pdaydiff
@@ -86,7 +85,7 @@ namelist / main_ctl / seed, use_geohash
 
 open(101,file='weathergen.nml',status='old')
 read(101, main_ctl)
-call init_weathergen()
+call init_weathergen(101)
 close(101)
 
 !initialize random state
@@ -96,13 +95,15 @@ call getarg(1,infile)
 call getarg(2,output)
 
 open(10,file=infile,status='old')
+! consume header
+read(10,*)
 
 ! read in the first n months and calculate the wet days
 
 
 if (use_geohash) then
   do i=n_curr,n_tot-1
-
+    
     read(10,*)stationid(i),lon(i),lat(i),year(i), month(i),mtmin(i),mtmax(i), &
                mcloud(i),mprec(i),mwet(i)
     ndm(i) = ndaymonth(year(i), month(i))
@@ -120,9 +121,10 @@ else
 endif
 
 ! open the output file
-dailyfile = trim(output)//'_daily.txt'
+dailyfile = trim(output)
 
 open(30,file=dailyfile,status='unknown')
+write(30,'(a)') "id,year,month,day,tmin,tmax,mean_cloud,prcp,wet_day"
 
 do  !read the input file until the end
 
@@ -274,9 +276,22 @@ do  !read the input file until the end
   !write out final results for this station/year/month combo and
 
   do d = 1,ndm(n_curr)
-    write(30,'(a,3i5,2f10.1,f10.4,f10.1)')stationid(n_curr),year(n_curr),month(n_curr),&
-        d,month_met(d)%tmin,month_met(d)%tmax,month_met(d)%cldf,month_met(d)%prec
-
+!    write(30,'(a,3i5,2f10.1,f10.4,f10.1)')stationid(n_curr),year(n_curr),month(n_curr),&
+!        d,month_met(d)%tmin,month_met(d)%tmax,month_met(d)%cldf,month_met(d)%prec
+    if (month_met(d)%prec > 0) then
+        wet_day = 1 
+    else 
+        wet_day = 0 
+    end if
+    call csv_write(30,stationid(n_curr),advance=.false.)
+    call csv_write(30,year(n_curr),advance=.false.)
+    call csv_write(30,month(n_curr),advance=.false.)
+    call csv_write(30,d,advance=.false.)
+    call csv_write(30,month_met(d)%tmin,advance=.false.)
+    call csv_write(30,month_met(d)%tmax,advance=.false.)
+    call csv_write(30,month_met(d)%cldf,advance=.false.)
+    call csv_write(30,month_met(d)%prec,advance=.false.)
+    call csv_write(30,wet_day,advance=.true.)
   end do
 
   ! set boundary conditions for next timestep
