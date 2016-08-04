@@ -121,3 +121,6 @@ def file_len(fname):
 def get_module_path(mod):
     """Convenience method to get the directory of a given python module"""
     return osp.dirname(inspect.getabsfile(mod))
+    
+def get_toplevel_module(mod):
+    return mod.__name__.split('.')[0]
