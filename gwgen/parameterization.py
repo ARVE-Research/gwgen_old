@@ -45,7 +45,22 @@ class ParameterizerMeta(abc.ABCMeta):
             new_cls._registry.append(new_cls)
         for requirement in new_cls.requires:
             setattr(new_cls, requirement, _requirement_property(requirement))
+        cr.pickle(new_cls, new_cls._get_copy_reg)
         return new_cls
+        
+        
+def _param_worker(kwargs):
+    from gwgen.parameterization import Parameterizer
+    return Parameterizer.process_data(
+        db_locks=_db_locks, file_locks=_file_locks, **kwargs)
+    
+    
+def init_locks(db_locks, file_locks):
+    _db_locks.update(db_locks)
+    _file_locks.update(file_locks)
+    
+_db_locks = {}
+_file_locks = {}
 
 
 @six.add_metaclass(ParameterizerMeta)
@@ -115,17 +130,23 @@ class Parameterizer(object):
     #: bool. Boolean that is True if there is a run method for this 
     #: parameterization task
     has_run = False
+    
+    #: :class:`threading.Thread` objects that are started during the setup.
+    #: It will be waited for them to finish before continuing with another
+    #: process
+    threads = []
 
     @property
-    def data_srcdir(self):
+    def data_dir(self):
         """str. Path to the directory where the source data of the model
         is located"""
         return self.model_config['data']
 
     @property
-    def data_dir(self):
+    def param_dir(self):
         """str. Path to the directory were the processed data is stored"""
-        ret = osp.join(self.config['expdir'], 'parameterization')
+        ret = self.config.setdefault('paramdir', osp.join(
+            self.config['expdir'], 'parameterization'))
         if not osp.exists(ret):
             try:
                 os.makedirs(ret)
@@ -138,22 +159,22 @@ class Parameterizer(object):
         """str. The path to the csv file where the data is stored by the
         :meth:`Parameterizer.write2file` method and read by the
         :meth:`Parameterizer.setup_from_file`"""
-        return osp.join(self.data_dir, self._datafile)
+        return osp.join(self.param_dir, self._datafile)
     
     @property
     def nc_file(self):
         """NetCDF file for the project"""
-        return osp.join(self.data_dir, self.name + '.nc')
+        return osp.join(self.param_dir, self.name + '.nc')
         
     @property
     def project_file(self):
         """Pickle file for the project"""
-        return osp.join(self.data_dir, self.name + '.pkl')
+        return osp.join(self.param_dir, self.name + '.pkl')
         
     @property
     def pdf_file(self):
         """pdf file with figures the project"""
-        return osp.join(self.data_dir, self.name + '.pdf')
+        return osp.join(self.param_dir, self.name + '.pdf')
 
     @property
     def engine(self):
@@ -173,7 +194,8 @@ class Parameterizer(object):
             'tmax': sqlalchemy.REAL, 'mean_cloud': sqlalchemy.REAL,
             'wet_day': sqlalchemy.SMALLINT, 'ndaymon': sqlalchemy.SMALLINT,
             'year': sqlalchemy.SMALLINT, 'month': sqlalchemy.SMALLINT,
-            'day': sqlalchemy.SMALLINT}
+            'day': sqlalchemy.SMALLINT, 'hour': sqlalchemy.SMALLINT,
+            'wind': sqlalchemy.REAL}
         names = list(chain(self.data.columns, self.data.index.names))
         return {key: val for key, val in dtype.items() if key in names}
 
@@ -193,11 +215,12 @@ class Parameterizer(object):
             engine = parameterizer.engine.url 
         return parameterizer.__class__, (
             parameterizer.stations, parameterizer.config, 
-            parameterizer.model_config, parameterizer.logger.name, engine)
+            parameterizer.model_config, parameterizer.logger.name, engine,
+            parameterizer.data)
 
     @docstrings.get_sectionsf('Parameterizer')
     def __init__(self, stations, config, model_config, logger=None,
-                 engine=None):
+                 engine=None, data=None):
         """
         Parameters
         ----------
@@ -211,9 +234,8 @@ class Parameterizer(object):
             The logger to use for this parameterizer
         engine: sqlalchemy.Engine
             The sqlalchemy engine to use to access the database
-        ``**requirements``
-            Initialization keywords a defined through the :attr:`requires`
-            attribute
+        data: pandas.DataFrame
+            The data to use. If None, use the :meth:`setup` method
         """
         self.stations = stations
         self.config = config
@@ -224,6 +246,7 @@ class Parameterizer(object):
         self._engine = engine
         # overwrite the class attribute of the formatoptions
         self.fmt = self.fmt.copy()
+        self.data = data
 
     def set_requirements(self, **requirements):
         missing = set(self.requires).difference(requirements)
@@ -276,14 +299,17 @@ class Parameterizer(object):
         if self.requires and self._requirements is None:
             raise ValueError('set_requirements method has not been called!')
         setup_from = setup_from or self._get_setup()
-        args = (self._engine, ) if setup_from == 'db' else ()
-        return getattr(self, method + '_from_' + setup_from)(*args)
+        self.logger.debug('%s from %s', method, setup_from)
+        ret = getattr(self, method + '_from_' + setup_from)()
+        self.logger.debug('Done.')
+        return ret
 
     docstrings.keep_params('Parameterizer._setup_or_init.parameters',
                            'setup_from')
 
     @docstrings.dedent
-    def init_task(self, *args, **kwargs):
+    def init_task(self, db_locks=None, file_locks=None, to_csv=False, 
+                  to_db=False, *args, **kwargs):
         """
         Method that is called on the I/O-Processor to initialize the
         parameterization
@@ -294,15 +320,29 @@ class Parameterizer(object):
         return self._setup_or_init('init', *args, **kwargs)
 
     @docstrings.dedent
-    def setup(self, *args, **kwargs):
+    def setup(self, db_locks=None, file_locks=None, to_csv=False, to_db=False, 
+              *args, **kwargs):
         """Set up the database for this parameterizer
 
         Parameters
         ----------
         %(Parameterizer._setup_or_init.parameters.setup_from)s
         """
-        return self._setup_or_init('setup', *args, **kwargs)
-
+        from threading import Thread
+        ret = self._setup_or_init('setup', *args, **kwargs)
+        if to_csv:
+            l = file_locks[self.name] if file_locks is not None else None
+            thread = Thread(target=self._write, args=('file', l))
+            thread.start()
+            self.threads.append(thread)
+        if to_db:
+            l = db_locks[self.name] if db_locks is not None else None
+            thread = Thread(target=self._write, args=('db', l))
+            thread.start()
+            self.threads.append(thread)
+        return ret
+        
+            
     def init_from_file(self):
         """Initialize the parameterization from already stored files"""
         pass
@@ -317,14 +357,18 @@ class Parameterizer(object):
 
     def setup_from_file(self, **kwargs):
         """Set up the parameterizer from already stored files"""
+        
         all_data = pd.read_csv(self.datafile, **kwargs)
         if 'id' in all_data.columns:
             all_data.set_index('id', inplace=True)
+        stations = list(self.stations)
+        if len(stations) == 1:
+            stations = slice(stations[0], stations[0])
         if len(all_data.index.names) == 1:
-            self.data = all_data.loc[list(self.stations)]
+            self.data = all_data.loc[stations]
         else:
             i = all_data.index.names.index('id')
-            self.data = all_data.sort_index().loc(axis=i)[list(self.stations)]
+            self.data = all_data.sort_index().loc(axis=i)[stations]
 
     def setup_from_db(self, **kwargs):
         """Set up the parameterizer from datatables already created"""
@@ -338,9 +382,10 @@ class Parameterizer(object):
         """Combine multiple parameterization instances into one instance"""
         base = instances[0]
         kwargs.setdefault('engine', base._engine)
+        if kwargs.get('data') is None:
+            kwargs['data'] = pd.concat([ini.data for ini in instances])
         obj = cls(np.concatenate(tuple(ini.stations for ini in instances)),
                   base.config, base.model_config, **kwargs)
-        obj.data = pd.concat([ini.data for ini in instances])
         return obj
 
     @abc.abstractmethod
@@ -375,7 +420,96 @@ class Parameterizer(object):
             The dictionary with the configuration settings for the namelist
         dict
             The dictionary holding additional meta information"""
-        return {}, {}
+        self.logger.info('Calculating %s parameterization', self.name)
+        ret_nml = {}
+        ret_info = OrderedDict()
+
+        # ---- file names
+        nc_output = nc_output or self.nc_file
+        plot_output = plot_output or self.pdf_file
+        project_output = project_output or self.project_file
+        ret_info['nc_file'] = nc_output
+        ret_info['plot_file'] = plot_output
+        ret_info['project_file'] = project_output
+
+        # ---- open dataset
+        ds = self.ds
+        
+        # ---- create project
+        if not new_project and osp.exists(project or project_output):
+            import psyplot.project as psy
+            self.logger.debug('    Loading existing project %s', 
+                              project or project_output)
+            sp = psy.Project.load_project(
+                project or project_output, datasets=[ds])
+        else:
+            self.logger.debug('    Creating project...')
+            sp = self.create_project(ds)
+        
+        # ---- save data and project
+        pdf = sp.export(plot_output, tight=True, close_pdf=False)
+        self.logger.debug('    Saving project to %s', project_output)
+        sp.save_project(project_output, use_rel_paths=True, 
+                        paths=[nc_output])
+        
+        # ---- make plots not covered by psyplot
+        self.plot_additionals(pdf)
+
+        # ---- configure the experiment
+        self.make_run_config(sp, ret_nml, ret_info)
+
+        # ---- export the figures
+        self.logger.debug('    Saving plots to %s', plot_output)
+        pdf.close()
+        
+        # ---- close the project
+        sp.close(True, True)
+        self.logger.debug('Done.')
+        
+        return ret_nml, ret_info
+
+    @docstrings.get_sectionsf('Parameterizer.create_project')
+    @docstrings.dedent
+    def create_project(self, ds):
+        """
+        To be reimplemented for each parameterization task
+        
+        Parameters
+        ----------
+        ds: xarray.Dataset
+            The dataset to plot"""
+        import psyplot.project as psy
+        return psy.gcp()
+        
+    @docstrings.get_sectionsf('Parameterizer.make_run_config')
+    @docstrings.dedent
+    def make_run_config(self, sp, full_nml, info):
+        """
+        Method to be reimplemented to manipulate the namelist
+        
+        Parameters
+        ----------
+        sp: psyplot.project.Project
+            The project of the data
+        full_nml: dict
+            The dictionary with all the namelists
+        info: dict
+            The dictionary for saving additional information of the 
+            parameterization task"""
+        return
+        
+    @docstrings.get_sectionsf('Parameterizer.plot_additionals')
+    @docstrings.dedent
+    def plot_additionals(self, pdf):
+        """
+        Method to be reimplemented to make additional plots (if necessary)
+        
+        Parameters
+        ----------
+        pdf: matplotlib.backends.backend_pdf.PdfPages
+            The PdfPages instance which can be used to save the figure
+        """
+        return
 
     @classmethod    
     def _modify_parser(cls, parser):
@@ -405,14 +539,32 @@ class Parameterizer(object):
         else:
             kwargs.setdefault('dtype', dtype)
         dbname = self.dbname
-        self.logger.info('Writing data to data table %s', dbname)
+        self.logger.info('Writing %s lines to data table %s', len(data), 
+                          dbname)
         data.to_sql(dbname, self.engine, if_exists='append', **kwargs)
+        self.logger.info('Done')
 
     def write2file(self):
         """Write the database to a file"""
         datafile = self.datafile
-        self.logger.info('Writing data to %s', datafile)
-        self.data.to_csv(datafile)
+        exists = osp.exists(datafile)
+        self.logger.debug('Writing data to %sexisting file %s', 
+                          'not ' if not exists else '', datafile)
+        if exists:
+            idx_names = self.data.index.names
+            order = [col for col in pd.read_csv(datafile, nrows=1).columns
+                     if col not in idx_names]
+        else:
+            order = list(self.data.columns)
+        self.data[order].to_csv(datafile, mode='a', header=not exists)
+        self.logger.debug('Done')
+        
+    def _write(self, target, lock=None):
+        if lock is not None:
+            lock.acquire()
+        getattr(self, 'write2' + target)()
+        if lock is not None:
+            lock.release()
 
     @classmethod
     def get_parameterizer(cls, identifier):
@@ -432,13 +584,15 @@ class Parameterizer(object):
             if para_cls.name == identifier)
 
     @classmethod
-    def get_requirements(cls, identifier):
+    def get_requirements(cls, identifier, all_requirements=True):
         """Return the required parameterization classes for this task
 
         Parameters
         ----------
         identifier: str
             The :attr:`name` attribute of the :class:`Parameterizer` subclass
+        all_requirements: bool
+            If True, all requirements are searched recursively
 
         Returns
         -------
@@ -449,7 +603,8 @@ class Parameterizer(object):
             for identifier in parameter_cls.requires:
                 req_cls = cls.get_parameterizer(identifier)
                 ret.append(req_cls)
-                get_requirements(req_cls)
+                if all_requirements:
+                    get_requirements(req_cls)
         ret = []
         get_requirements(cls.get_parameterizer(identifier))
         return ret
@@ -477,6 +632,8 @@ class Parameterizer(object):
         while remaining:
             get_requirements(remaining.pop(next(iter(remaining))))
         return ret
+        
+    docstrings.keep_params('Parameterizer.parameters', 'stations', 'logger')
 
     @classmethod
     @docstrings.get_sectionsf('Parameterizer._get_tasks')
@@ -490,7 +647,7 @@ class Parameterizer(object):
 
         Parameters
         ----------
-        %(Parameterizer.parameters)s
+        %(Parameterizer.parameters.stations|logger)s
         task_kws: dict
             Keywords can be valid identifiers of the :class:`Parameterizer`
             instances, dictionaries may be mappings for their
@@ -523,7 +680,7 @@ class Parameterizer(object):
                 if kws.get('setup_from') is None:
                     kws['setup_from'] = task._get_setup()
                 if kws['setup_from'] == 'scratch':
-                    for req_task in cls.get_requirements(key):
+                    for req_task in cls.get_requirements(key, False):
                         if req_task.name not in tasks:
                             checked_requirements = False
                             tasks[req_task.name] = init_parameterizer(
@@ -561,10 +718,53 @@ class Parameterizer(object):
         for instance in sorted_tasks:
             instance.init_task(**task_kws.get(instance.name, {}))
         return
+        
+    @classmethod
+    def setup_tasks(cls, stations, base_kws, global_conf={}, logger=None):
+        """Set up the parameterization tasks
+        
+        This classmethod can be used to setup the parameterization tasks either
+        in paralallel or serail"""
+        # initialize the tasks
+        cls.initialize_parameterization(
+            stations=stations, logger=logger, task_kws=base_kws)
+        if not global_conf.get('serial'):
+            # parallel processing
+            import multiprocessing as mp
+            db_locks = {key: mp.Lock() for key in base_kws}
+            file_locks = {key: mp.Lock() for key in base_kws}
+            nprocs = global_conf.get('nprocs', 'all')
+            if nprocs == 'all':
+                nprocs = mp.cpu_count()
+            pool = mp.Pool(nprocs, initializer=init_locks, 
+                           initargs=(db_locks, file_locks))
+            max_stations = min(int(np.ceil(len(stations) / nprocs)),
+                               global_conf.get('max_stations', 500))
+            if len(stations) > max_stations:
+                stations = np.split(stations, np.arange(
+                    max_stations, len(stations), max_stations, dtype=int))
+            else:
+                stations = [stations]
+            args = [{'task_kws': base_kws.copy()} for arr in stations]
+            for i, (arr, kws) in enumerate(zip(stations, args)):
+                kws['stations'] = arr
+                kws['logger'] = logger.getChild('param.%i' % i).name
+            res = pool.map_async(_param_worker, args)
+            tasks = res.get()
+            _db_locks.clear()
+            _file_locks.clear()
+        else:
+            # serial processing
+            tasks = [cls.process_data(
+                stations=stations, logger=logger, task_kws=base_kws)]
+        return [
+            task.setup_from_instances([proc_tasks[i] for proc_tasks in tasks]) 
+            for i, task in enumerate(tasks[0])]
 
     @classmethod
     @docstrings.dedent
-    def process_data(cls, stations, logger=None, task_kws={}):
+    def process_data(cls, stations, logger=None, task_kws={},
+                     db_locks=None, file_locks=None):
         """
         Process the given stations
 
@@ -584,13 +784,17 @@ class Parameterizer(object):
         # sort the tasks for their requirements
         sorted_tasks = cls._get_tasks(stations, logger, task_kws)
         for instance in sorted_tasks:
-            instance.setup(**task_kws.get(instance.name, {}))
+            instance.setup(db_locks=db_locks, file_locks=file_locks,
+                           **task_kws.get(instance.name, {}))
             # the logger cannot be pickled and makes problems in
             # multiprocessing. Therefore we delete it
             try:
                 del instance._logger
             except AttributeError:
                 pass
+        for task in sorted_tasks:
+            for thread in task.threads:
+                thread.join()
         return list(filter(lambda ini: ini.name in task_kws, sorted_tasks))
 
 
@@ -608,8 +812,8 @@ class DailyGHCNData(Parameterizer):
     http_source = 'ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/ghcnd_all.tar.gz'
     
     @property
-    def data_srcdir(self):
-        return osp.join(super(HourlyCloud, self).data_srcdir, 
+    def data_dir(self):
+        return osp.join(super(DailyGHCNData, self).data_dir, 
                         'ghcn', 'ghcnd_all')
 
     @property
@@ -625,17 +829,17 @@ class DailyGHCNData(Parameterizer):
         kwargs['index_col'] = ['id', 'year', 'month', 'day']
         kwargs['dtype'] = {
             'prcp': np.float64,
-            'prcp_m': object,
-            'prcp_q': object,
-            'prcp_s': object,
+            'prcp_m': str,
+            'prcp_q': str,
+            'prcp_s': str,
             'tmax': np.float64,
-            'tmax_m': object,
-            'tmax_q': object,
-            'tmax_s': object,
+            'tmax_m': str,
+            'tmax_q': str,
+            'tmax_s': str,
             'tmin': np.float64,
-            'tmin_m': object,
-            'tmin_q': object,
-            'tmin_s': object}
+            'tmin_m': str,
+            'tmin_q': str,
+            'tmin_s': str}
         return super(DailyGHCNData, self).setup_from_file(*args, **kwargs)
 
     def setup_from_db(self, *args, **kwargs):
@@ -647,7 +851,7 @@ class DailyGHCNData(Parameterizer):
         logger = self.logger
         stations = self.stations
         logger.debug('Reading daily ghcn data for %s stations', len(stations))
-        src_dir = self.data_srcdir
+        src_dir = self.data_dir
         logger.debug('    Data source: %s', src_dir)
         files = list(map(lambda s: osp.join(src_dir, s + '.dly'), stations))
         self.data = pd.concat(
@@ -661,7 +865,7 @@ class DailyGHCNData(Parameterizer):
         logger.debug('Initializing %s', self.name)
         stations = self.stations
         logger.debug('Reading data for %s stations', len(stations))
-        src_dir = self.data_srcdir
+        src_dir = self.data_dir
         logger.debug('    Expected data source: %s', src_dir)
         files = list(map(lambda s: osp.join(src_dir, s + '.dly'), stations))
         if not all(map(osp.exists, files)):
@@ -694,6 +898,16 @@ class MonthlyGHCNData(Parameterizer):
     dbname = 'ghcn_monthly'
 
     summary = "Calculate monthly means from the daily GHCN data"
+    
+    @property
+    def sql_dtypes(self):
+        import sqlalchemy
+        ret = super(MonthlyGHCNData, self).sql_dtypes
+        for flag in {'tmin_complete', 'prcp_complete', 'tmax_complete'}:
+            ret[flag] = sqlalchemy.BOOLEAN
+        for flag in {'tmin_abs', 'tmax_abs', 'trange', 'prcpmax'}:
+            ret[flag] = sqlalchemy.REAL
+        return ret
 
     def setup_from_file(self, *args, **kwargs):
         kwargs['index_col'] = ['id', 'year', 'month']
@@ -706,14 +920,15 @@ class MonthlyGHCNData(Parameterizer):
     @staticmethod
     def monthly_summary(df):
         n = calendar.monthrange(df.index[0][1], df.index[0][2])[1]
-        return pd.DataFrame.from_dict(
-            {'tmin': [df.tmin.mean()], 'tmax': [df.tmax.mean()],
-             'trange': [(df.tmax - df.tmin).mean()],
-             'prcp': [df.prcp.sum()], 'tmin_abs': [df.tmin.min()],
-             'tmax_abs': [df.tmax.max()], 'prcpmax': [df.prcp.max()],
-             'tmin_complete': [df.tmin.count() == n],
-             'tmax_complete': [df.tmax.count() == n],
-             'prcp_complete': [df.prcp.count() == n]})
+        return pd.DataFrame.from_dict(OrderedDict([
+            ('tmin', [df.tmin.mean()]), ('tmax', [df.tmax.mean()]),
+            ('trange', [(df.tmax - df.tmin).mean()]),
+            ('prcp', [df.prcp.sum()]), ('tmin_abs', [df.tmin.min()]),
+            ('tmax_abs', [df.tmax.max()]), ('prcpmax', [df.prcp.max()]),
+            ('tmin_complete', [df.tmin.count() == n]),
+            ('tmax_complete', [df.tmax.count() == n]),
+            ('prcp_complete', [df.prcp.count() == n]),
+            ('wet_day', [df.prcp[df.prcp.notnull() & (df.prcp > 0)].size])]))
 
     def setup_from_scratch(self):
         data = self.day.data.groupby(level=['id', 'year', 'month']).apply(
@@ -800,8 +1015,19 @@ class PrcpDistParams(Parameterizer):
         legendlabels=['$\\theta$ = %(slope)1.4f * $\\bar{{p}}_d$'],
         bounds=['minmax', 11, 0, 99],
         cbar='',
-        bins=100,
+        bins=10,
         )
+    
+    @property
+    def sql_dtypes(self):
+        import sqlalchemy
+        ret = super(PrcpDistParams, self).sql_dtypes
+        for flag in {'gshape', 'pscale', 'gscale', 'pscale_orig', 'mean_wet', 
+                     'thresh', 'pshape'}:
+            ret[flag] = sqlalchemy.REAL
+        for flag in {'n', 'ngamma', 'ngp'}:
+            ret[flag] = sqlalchemy.BIGINT
+        return ret
     
     def setup_from_file(self, *args, **kwargs):
         kwargs['index_col'] = ['id', 'month']
@@ -843,12 +1069,14 @@ class PrcpDistParams(Parameterizer):
                     pscale[i] = (1 - stats.gamma.cdf(
                         thresh, gshape, scale=gscale))/stats.gamma.pdf(
                             thresh, gshape, scale=gscale)
-        return pd.DataFrame.from_dict(
-            {'n': np.repeat(n, N), 'ngamma': np.repeat(ngamma, N),
-             'mean_wet': np.repeat(vals.mean(), N),
-             'ngp': ngp, 'thresh': threshs, 'gshape': np.repeat(gshape, N),
-             'gscale': np.repeat(gscale, N), 'pshape': pshape,
-             'pscale': pscale, 'pscale_orig': pscale_orig}).set_index('thresh')
+        return pd.DataFrame.from_dict(OrderedDict([
+            ('n', np.repeat(n, N)), ('ngamma', np.repeat(ngamma, N)),
+            ('mean_wet', np.repeat(vals.mean(), N)),
+            ('ngp', ngp), ('thresh', threshs), 
+            ('gshape', np.repeat(gshape, N)),
+            ('gscale', np.repeat(gscale, N)), ('pshape', pshape),
+            ('pscale', pscale), 
+            ('pscale_orig', pscale_orig)])).set_index('thresh')
         
     def setup_from_scratch(self):
         self.logger.debug('Calculating precipitation parameters.')
@@ -856,70 +1084,94 @@ class PrcpDistParams(Parameterizer):
         self.data = df.groupby(level=['id', 'month']).apply(
             self.prcp_dist_params)
         self.logger.debug('Done.')
-        
-    @docstrings.dedent
-    def run(self, plot_output=None, nc_output=None, project_output=None,
-            new_project=False, project=None):
-        """
-        Run the parameterization
-        
-        Parameters
-        ----------
-        %(Parameterizer.run.parameters)s
-        
-        Returns
-        -------
-        %(Parameterizer.run.returns)s
-        """
-        self.logger.info('Calculating %s parameterization', self.name)
-        ret_nml, ret_info, pdf = self._run_gscale(
-            False, plot_output, nc_output, project_output, new_project,
-            project)
-        nml, info = self._run_gpshape(pdf)
-        ret_nml['weathergen'].update(nml)
-        ret_info.update(info)
-        pdf.close()
-        return ret_nml, ret_info
-        
-    def _run_gscale(self, close_pdf=True, plot_output=None, nc_output=None, 
-                    project_output=None, new_project=False, project=None):
-        import psyplot.project as psy
+          
+    @property
+    def ds(self):
+        """The dataset of the :attr:`data` dataframe"""
         import xarray as xr
-        ret_nml = {}
-        ret_info = OrderedDict()
-        ret_nml['weathergen'] = nml = {}
-        # ---- open dataset
         ds = xr.Dataset.from_dataframe(
             self.data.set_index('mean_wet')[['gscale']])
         ds.mean_wet.attrs['long_name'] = 'Mean precip. on wet days'
         ds.mean_wet.attrs['units'] = 'mm'
         ds.gscale.attrs['long_name'] = 'Gamma scale parameter'
         ds.gscale.attrs['units'] = 'mm'
-        # ---- file names
-        nc_output = nc_output or self.nc_file
-        plot_output = plot_output or self.pdf_file
-        project_output = project_output or self.project_file
-        ret_info['nc_file'] = nc_output
-        ret_info['plot_file'] = plot_output
-        ret_info['project_file'] = project_output
-        # ---- create project
-        if not new_project and osp.exists(project or project_output):
-            sp = psy.Project.load_project(
-                project or project_output, datasets=[ds])
-        else:
-            sp = psy.plot.densityreg(ds, name='gscale', fmt=self.fmt)
+        return ds
+        
+    def create_project(self, ds):
+        """Make the gamma shape - number of wet days plot
+        
+        Parameters
+        ----------
+        %(Parameterizer.create_project.parameters)s
+        """
+        import seaborn as sns
+        import psyplot.project as psy
+        sns.set_style("white")
+        return psy.plot.densityreg(ds, name='gscale', fmt=self.fmt)
+        
+    def make_run_config(self, sp, full_nml, info):
+        """
+        Configure the experiment with information on gamma scale and GP shape
+        
+        Parameters
+        ----------
+        %(Parameterizer.make_run_config.parameters)s"""
+        full_nml['weathergen_ctl'] = nml = {}
         for key in ['rsquared', 'slope', 'intercept']:
-            ret_info[key] = float(sp.plotters[0].plot_data[1].attrs[key])
+            info[key] = float(sp.plotters[0].plot_data[1].attrs[key])
         nml['g_scale_coeff'] = float(
             sp.plotters[0].plot_data[1].attrs['slope'])
-        # ---- save data and project
-        pdf = sp.export(plot_output, tight=True, close_pdf=close_pdf)
-        sp.save_project(project_output, use_rel_paths=True, 
-                        paths=[nc_output])
-        sp.close(True, True)
-        return ret_nml, ret_info, pdf
+        nml.update(self._gp_nml)
+        info.update(self._gp_info)
         
-    def _run_gpshape(self, pdf=None):
+#        
+#    def _run_gscale(self, close_pdf=True, plot_output=None, nc_output=None, 
+#                    project_output=None, new_project=False, project=None):
+#        import psyplot.project as psy
+#        import xarray as xr
+#        ret_nml = {}
+#        ret_info = OrderedDict()
+#        ret_nml['weathergen'] = nml = {}
+#        # ---- open dataset
+#        ds = xr.Dataset.from_dataframe(
+#            self.data.set_index('mean_wet')[['gscale']])
+#        ds.mean_wet.attrs['long_name'] = 'Mean precip. on wet days'
+#        ds.mean_wet.attrs['units'] = 'mm'
+#        ds.gscale.attrs['long_name'] = 'Gamma scale parameter'
+#        ds.gscale.attrs['units'] = 'mm'
+#        # ---- file names
+#        nc_output = nc_output or self.nc_file
+#        plot_output = plot_output or self.pdf_file
+#        project_output = project_output or self.project_file
+#        ret_info['nc_file'] = nc_output
+#        ret_info['plot_file'] = plot_output
+#        ret_info['project_file'] = project_output
+#        # ---- create project
+#        if not new_project and osp.exists(project or project_output):
+#            sp = psy.Project.load_project(
+#                project or project_output, datasets=[ds])
+#        else:
+#            sp = psy.plot.densityreg(ds, name='gscale', fmt=self.fmt)
+#        for key in ['rsquared', 'slope', 'intercept']:
+#            ret_info[key] = float(sp.plotters[0].plot_data[1].attrs[key])
+#        nml['g_scale_coeff'] = float(
+#            sp.plotters[0].plot_data[1].attrs['slope'])
+#        # ---- save data and project
+#        pdf = sp.export(plot_output, tight=True, close_pdf=close_pdf)
+#        sp.save_project(project_output, use_rel_paths=True, 
+#                        paths=[nc_output])
+#        sp.close(True, True)
+#        return ret_nml, ret_info, pdf
+        
+    @docstrings.dedent
+    def plot_additionals(self, pdf=None):
+        """
+        Plot the histogram of GP shape
+        
+        Parameters
+        ----------
+        %(Parameterizer.plot_additionals.parameters)s
+        """
         import seaborn as sns
         import matplotlib.pyplot as plt
         sns.set_style('darkgrid')
@@ -955,11 +1207,9 @@ class PrcpDistParams(Parameterizer):
         else:
             plt.savefig(self.pdf_file, bbox_inches='tight')
         
-        nml = dict(gp_shape=mean)
+        self._gp_nml = dict(gp_shape=mean)
         
-        info = dict(gpshape_mean=mean, gpshape_median=median, std=std)
-        
-        return nml, info
+        self._gp_info = dict(gpshape_mean=mean, gpshape_median=median, std=std)
         
 
 class MarkovChain(Parameterizer):
@@ -984,14 +1234,20 @@ class MarkovChain(Parameterizer):
         xlim=(0, 1),
         ylim=(0, 1),
         fix=0,
-        bins=100,
+        bins=10,
         bounds=['minmax', 11, 0, 99],
         cbar='',
         ci=None,
         legendlabels=['$%(symbol)s$ = %(slope)1.4f * %(xname)s'],
         )
     
-    
+    @property
+    def sql_dtypes(self):
+        import sqlalchemy
+        ret = super(MarkovChain, self).sql_dtypes
+        for flag in {'p11', 'p001', 'wetf', 'p101', 'p01'}:
+            ret[flag] = sqlalchemy.REAL
+        return ret
     
     def setup_from_file(self, *args, **kwargs):
         kwargs['index_col'] = ['id', 'month']
@@ -1048,14 +1304,14 @@ class MarkovChain(Parameterizer):
         g = df.groupby(level=['year', 'month'])
         if g.ngroups > 10:
             dfs = g.apply(cls.calc_ndays).sum()
-            return pd.DataFrame.from_dict(
-                {'p11': [dfs.np11 / dfs.nwet if dfs.nwet > 0 else 0],
-                 'p01': [dfs.np01 / dfs.ndry if dfs.ndry > 0 else 0],
-                 'p001': [dfs.np001 / dfs.np001_denom 
-                          if dfs.np001_denom > 0 else 0],
-                 'p101': [dfs.np101 / dfs.np101_denom 
-                          if dfs.np101_denom > 0 else 0],
-                 'wetf': [dfs.nwet / dfs.n if dfs.n > 0 else 0]})
+            return pd.DataFrame.from_dict(OrderedDict([
+                ('p11', [dfs.np11 / dfs.nwet if dfs.nwet > 0 else 0]),
+                ('p01', [dfs.np01 / dfs.ndry if dfs.ndry > 0 else 0]),
+                ('p001', [dfs.np001 / dfs.np001_denom 
+                          if dfs.np001_denom > 0 else 0]),
+                ('p101', [dfs.np101 / dfs.np101_denom 
+                          if dfs.np101_denom > 0 else 0]),
+                ('wetf', [dfs.nwet / dfs.n if dfs.n > 0 else 0])]))
         else:
             return pd.DataFrame.from_dict(
                 {'p11': [], 'p01': [], 'p001': [], 'p101': [], 'wetf': []})
@@ -1068,40 +1324,11 @@ class MarkovChain(Parameterizer):
         data.index = data.index.droplevel(-1)
         self.data = data
         self.logger.debug('Done.')
-        
-    @docstrings.dedent
-    def run(self, plot_output=None, nc_output=None, project_output=None,
-            new_project=False, project=None):
-        """
-        Run the parameterization
-        
-        Parameters
-        ----------
-        %(Parameterizer.run.parameters)s
-        
-        Returns
-        -------
-        %(Parameterizer.run.returns)s
-        """
-        import seaborn as sns
+    
+    @property
+    def ds(self):
+        """The dataset of the :attr:`data` DataFrame"""
         import xarray as xr
-        import psyplot.project as psy
-        import matplotlib.pyplot as plt
-        
-        self.logger.info('Calculating %s parameterization', self.name)
-        
-        ret_nml = {}
-        ret_info = OrderedDict()
-        ret_nml['weathergen'] = nml = {}
-
-        # ---- file names
-        nc_output = nc_output or self.nc_file
-        plot_output = plot_output or self.pdf_file
-        project_output = project_output or self.project_file
-        ret_info['nc_file'] = nc_output
-        ret_info['plot_file'] = plot_output
-        ret_info['project_file'] = project_output
-        
         ds = xr.Dataset.from_dataframe(self.data.set_index('wetf'))
         ds.wetf.attrs['long_name'] = 'Fraction of wet days'
         ds.p11.attrs['long_name'] = 'Prob. Wet then Wet'
@@ -1110,40 +1337,49 @@ class MarkovChain(Parameterizer):
         ds.p11.attrs['symbol'] = 'p_{11}'
         ds.p101.attrs['symbol'] = 'p_{101}'
         ds.p001.attrs['symbol'] = 'p_{001}'
+        return ds
         
-        sns.set_style("white")
-        # ---- create project
-        if not new_project and osp.exists(project or project_output):
-            sp = psy.Project.load_project(project or project_output, 
-                                          datasets=[ds])
-        else:
-            new_project = True
-            fig, axes = plt.subplots(3, 1, figsize=(10, 12))
-            axes = axes.ravel()
-            sp = psy.plot.densityreg(
-                ds, name=['p11', 'p101', 'p001'], fmt=self.fmt, ax=axes.ravel(),
-                share='xlim')
-            sp(name='p11').update(
-                fix=[(1., 1.)], legendlabels=[
-                    '$%(symbol)s$ = %(intercept)1.4f + '
-                    '%(slope)1.4f * %(xname)s'])
-            sp(ax=axes[-1]).update(xlabel='%(long_name)s',)
-       
+    @docstrings.dedent
+    def create_project(self, ds):
+        """
+        Create the project of the plots of the transition probabilities
+        
+        Parameters
+        ----------
+        %(Parameterizer.create_project.parameters)s"""
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+        import psyplot.project as psy
+        sns.set_style('white')
+        fig, axes = plt.subplots(3, 1, figsize=(10, 12))
+        axes = axes.ravel()
+        sp = psy.plot.densityreg(
+            ds, name=['p11', 'p101', 'p001'], fmt=self.fmt, ax=axes.ravel(),
+            share='xlim')
+        sp(name='p11').update(
+            fix=[(1., 1.)], legendlabels=[
+                '$%(symbol)s$ = %(intercept)1.4f + '
+                '%(slope)1.4f * %(xname)s'])
+        sp(ax=axes[-1]).update(xlabel='%(long_name)s')
+        return sp
+        
+    @docstrings.dedent
+    def make_run_config(self, sp, full_nml, info):
+        """
+        Configure the experiment with the MarkovChain relationships
+        
+        Parameters
+        ----------
+        %(Parameterizer.make_run_config.parameters)s"""
+        full_nml['weathergen_ctl'] = nml = {}
         for key in ['rsquared', 'slope', 'intercept']:
-            ret_info[key] = float(sp.plotters[0].plot_data[1].attrs[key])
+            info[key] = float(sp.plotters[0].plot_data[1].attrs[key])
         for plotter in sp.plotters:
             name = plotter.data.name
             nml[name + '_1'] = float(plotter.plot_data[1].attrs.get(
                 'intercept', 0))
             nml[name + '_2'] = float(plotter.plot_data[1].attrs.get('slope'))
-        # ---- save data and project
-        sp.export(plot_output, tight=True)
-        sp.save_project(project_output, 
-                        use_rel_paths=True, paths=[nc_output])
-        sp.close(True, True)        
-        
-        return ret_nml, ret_info
-        
+             
         
 class TemperatureParameterizer(Parameterizer):
     """Parameterizer to correlate the monthly mean and standard deviation on
@@ -1171,9 +1407,17 @@ class TemperatureParameterizer(Parameterizer):
             '$%(symbol)s$ = %(intercept)1.4f + %(slope)1.4f * $%(xsymbol)s$'],
         bounds=['minmax', 11, 0, 99],
         cbar='',
-        bins=100,
+        bins=10,
         xlabel='on %(state)s days'
         )
+    
+    @property
+    def sql_dtypes(self):
+        import sqlalchemy
+        ret = super(TemperatureParameterizer, self).sql_dtypes
+        for col in set(self.data.columns).difference(ret):
+            ret[col] = sqlalchemy.REAL
+        return ret
     
     @property
     def ds(self):
@@ -1276,89 +1520,63 @@ class TemperatureParameterizer(Parameterizer):
     def setup_from_scratch(self):
         self.data = self.cday.data.groupby(level=['id', 'month']).apply(
             self.calculate_probabilities)
-    
-    @docstrings.dedent
-    def run(self, plot_output=None, nc_output=None, project_output=None,
-            new_project=False, project=None):
+        
+    def create_project(self, ds):
         """
-        Run the parameterization
+        Create the plots of the wet/dry - mean relationships
         
         Parameters
         ----------
-        %(Parameterizer.run.parameters)s
-        
-        Returns
-        -------
-        %(Parameterizer.run.returns)s
-        """
+        %(Parameterizer.create_project)s"""
+        import matplotlib.pyplot as plt
         import seaborn as sns
         import psyplot.project as psy
-        import matplotlib.pyplot as plt
-        self.logger.info('Calculating %s parameterization', self.name)
-        
-        sns.set_style("white")
-        
-        ds = self.ds
-        
-        ret_nml = {}
-        ret_info = OrderedDict()
-        ret_nml['weathergen'] = nml = {}
-        
-        # ---- file names
-        nc_output = nc_output or self.nc_file
-        plot_output = plot_output or self.pdf_file
-        project_output = project_output or self.project_file
-        ret_info['nc_file'] = nc_output
-        ret_info['plot_file'] = plot_output
-        ret_info['project_file'] = project_output
+        sns.set_style('white')
+        axes = np.concatenate([
+                plt.subplots(1, 2, figsize=(12, 4))[1] for _ in range(4)])
+        for fig in set(ax.get_figure() for ax in axes):
+            fig.subplots_adjust(bottom=0.25)
+        middle = (
+            axes[0].get_position().x0 + axes[1].get_position().x1) / 2.
+        axes = iter(axes)
+        variables = ['tmin', 'tmax']
+        types = ['', 'stddev']
+        for v, t in product(variables, types):
+            psy.plot.densityreg(
+                ds, name='%s%s_wet' % (v, t), ax=next(axes), 
+                ylabel='%(long_name)s\non %(state)s days',
+                text=[(middle, 0.03, '%(long_name)s', 'fig', dict(
+                     weight='bold', ha='center'))], fmt=self.fmt)
+            psy.plot.densityreg(
+                ds, name='%s%s_dry' % (v, t), ax=next(axes),
+                ylabel='on %(state)s days', fmt=self.fmt)
+        return psy.gcp(True)[:]
 
-        sns.set_style("white")
+    @docstrings.dedent    
+    def make_run_config(self, sp, full_nml, info):
+        """
+        Configure the experiment with the correlations of wet/dry temperature
+        to mean temperature
+        
+        Parameters
+        ----------
+        %(Parameterizer.make_run_config.parameters)s
+        """
         variables = ['tmin', 'tmax']
         states = ['wet' ,'dry']
         types = ['', 'stddev']
-        # ---- create project
-        if not new_project and osp.exists(project or project_output):
-            sp = psy.Project.load_project(project or project_output, 
-                                          datasets=[ds])
-        else:
-            axes = np.concatenate([
-                plt.subplots(1, 2, figsize=(12, 4))[1] for _ in range(4)])
-            for fig in set(ax.get_figure() for ax in axes):
-                fig.subplots_adjust(bottom=0.25)
-            middle = (
-                axes[0].get_position().x0 + axes[1].get_position().x1) / 2.
-            axes = iter(axes)
-            for v, t in product(variables, types):
-                psy.plot.densityreg(
-                    ds, name='%s%s_wet' % (v, t), ax=next(axes), 
-                    ylabel='%(long_name)s\non %(state)s days',
-                    text=[(middle, 0.03, '%(long_name)s', 'fig', dict(
-                         weight='bold', ha='center'))], fmt=self.fmt)
-                psy.plot.densityreg(
-                    ds, name='%s%s_dry' % (v, t), ax=next(axes),
-                    ylabel='on %(state)s days', fmt=self.fmt)
-            sp = psy.gcp(True)[:]
-        
+        full_nml['weathergen_ctl'] = nml = {}
         for v, t, state, key in product(
                 variables, types, states, ['rsquared', 'slope', 'intercept']):
             vname = '%s%s_%s' % (v, t, state)
             nml_name = v + ('_sd' if t else '') + '_' + state[0]
-            ret_info[vname] = vinfo = {}
-            vinfo[key] = float(sp.plotters[0].plot_data[1].attrs[key])
+            vinfo = info.setdefault(vname, {})
             plotter = sp(name=vname).plotters[0]
+            vinfo[key] = float(plotter.plot_data[1].attrs[key])
             nml[nml_name + '1'] = float(
                 plotter.plot_data[1].attrs.get('intercept', 0))
             nml[nml_name + '2'] = float(
                 plotter.plot_data[1].attrs.get('slope'))
-        
-        
-        # ---- save data and project
-        sp.export(plot_output, tight=True)
-        sp.save_project(project_output, 
-                        use_rel_paths=True, paths=[nc_output])
-        sp.close(True, True)  
-        
-        return ret_nml, ret_info
         
         
 class CloudParameterizerBase(Parameterizer):
@@ -1431,24 +1649,57 @@ class HourlyCloud(CloudParameterizerBase):
     _continue = False
     
     @property
-    def data_srcdir(self):
-        return osp.join(super(HourlyCloud, self).data_srcdir, 'eecra')
+    def sql_dtypes(self):
+        import sqlalchemy
+        ret = super(HourlyCloud, self).sql_dtypes
+        ret.update({"IB": sqlalchemy.SMALLINT,
+                    "lat": sqlalchemy.REAL,
+                    "lon": sqlalchemy.REAL,
+                    "station_id": sqlalchemy.INTEGER,
+                    "LO": sqlalchemy.SMALLINT,
+                    "ww": sqlalchemy.SMALLINT,
+                    "N": sqlalchemy.SMALLINT,
+                    "Nh": sqlalchemy.SMALLINT,
+                    "h": sqlalchemy.SMALLINT,
+                    "CL": sqlalchemy.SMALLINT,
+                    "CM": sqlalchemy.SMALLINT,
+                    "CH": sqlalchemy.SMALLINT,
+                    "AM": sqlalchemy.REAL,
+                    "AH": sqlalchemy.REAL,
+                    "UM": sqlalchemy.SMALLINT,
+                    "UH": sqlalchemy.SMALLINT,
+                    "IC": sqlalchemy.SMALLINT,
+                    "SA": sqlalchemy.REAL,
+                    "RI": sqlalchemy.REAL,
+                    "SLP": sqlalchemy.REAL,
+                    "WS": sqlalchemy.REAL,
+                    "WD": sqlalchemy.SMALLINT,
+                    "AT": sqlalchemy.REAL,
+                    "DD": sqlalchemy.REAL,
+                    "EL": sqlalchemy.SMALLINT,
+                    "IW": sqlalchemy.SMALLINT,
+                    "IP": sqlalchemy.SMALLINT})
+        return ret
+    
+    @property
+    def data_dir(self):
+        return osp.join(super(HourlyCloud, self).data_dir, 'eecra')
     
     @property
     def raw_src_files(self):
-        src_dir = osp.join(self.data_srcdir, 'raw')
+        src_dir = osp.join(self.data_dir, 'raw')
         return {yrmon: osp.join(src_dir, self.eecra_fname(*yrmon)) 
                 for yrmon in product(range(1971, 2010), range(1, 13))}
 
     @property
     def src_files(self):
-        src_dir = osp.join(self.data_srcdir, 'stations')
+        src_dir = osp.join(self.data_dir, 'stations')
         return [osp.join(src_dir, str(s) + '.csv') for s in self.eecra_stations]
 
     @classmethod 
     @docstrings.get_sectionsf('HourlyCloud.eecra_fname')
     @docstrings.dedent
-    def eecra_fname(cls, year, mon, ext='.csv'):
+    def eecra_fname(cls, year, mon, ext=''):
         """The the name of the eecra file
         
         Parameters
@@ -1489,8 +1740,8 @@ class HourlyCloud(CloudParameterizerBase):
         logger.debug('Initializing %s', self.name)
         stations = self.stations
         logger.debug('Reading data for %s stations', len(stations))
-        raw_dir = osp.join(self.data_srcdir, 'raw')
-        stations_dir = osp.join(self.data_srcdir, 'stations')
+        raw_dir = osp.join(self.data_dir, 'raw')
+        stations_dir = osp.join(self.data_dir, 'stations')
         if not osp.isdir(raw_dir):
             os.makedirs(raw_dir)
         if not osp.isdir(stations_dir):
@@ -1500,9 +1751,13 @@ class HourlyCloud(CloudParameterizerBase):
         missing = [station_id for station_id, fname in zip(
             eecra_stations, src_files) if not osp.exists(fname)]
         if missing:
+            logger.debug(
+                'files for %i stations are missing. Start extraction...', 
+                len(missing))
             from gwgen.parse_eecra import exctract_data
             self.download_src(raw_dir)
             exctract_data(missing, raw_dir, stations_dir)
+            logger.debug('Done')
                 
     def get_data_from_files(self, files):
         def save_loc(fname):
@@ -1522,34 +1777,36 @@ class HourlyCloud(CloudParameterizerBase):
         logger = self.logger
         logger.debug('    Expected data source: %s', src_dir)
         files = self.raw_src_files
-        existing = os.listdir(src_dir)
         missing = {yrmon: fname for yrmon, fname in six.iteritems(files) 
-                   if osp.basename(fname) not in existing}
-        logger.debug('%i files are missing', len(missing))
+                   if not osp.exists(fname)}
         for yrmon, fname in six.iteritems(missing):
-            compressed_fname = osp.splitext(fname)[0] + '.Z'
-            uncompressed_fname = osp.splitext(fname)[0]
-            if not osp.exists(uncompressed_fname):
-                if not osp.exists(compressed_fname):
-                    utils.download_file(self.get_eecra_url(*yrmon), fname)
-                spr.call(['gzip', '-d', fname])
+            logger.debug('%i raw source files are missing. Start download...', 
+                         len(missing))
+            compressed_fname = fname + '.Z'
+            if not osp.exists(compressed_fname):
+                utils.download_file(self.get_eecra_url(*yrmon), fname)
+            spr.call(['gzip', '-d', fname])
             
     def setup_from_file(self, *args, **kwargs):
         kwargs['index_col'] = ['id', 'year', 'month', 'day', 'hour']
-        return super(MonthlyGHCNData, self).setup_from_file(*args, **kwargs)
+        return super(HourlyCloud, self).setup_from_file(*args, **kwargs)
 
     def setup_from_db(self, *args, **kwargs):
         kwargs['index_col'] = ['id', 'year', 'month', 'day', 'hour']
-        return super(MonthlyGHCNData, self).setup_from_db(*args, **kwargs)
+        return super(HourlyCloud, self).setup_from_db(*args, **kwargs)
     
     def setup_from_scratch(self):
         """Set up the data"""
         files = self.src_files
+        df_map = pd.DataFrame(
+            np.vstack([self.stations, self.eecra_stations]).T, 
+            columns=['id', 'station_id'])
         self.data = pd.concat(
             [pd.read_csv(fname).merge(df_map, on='station_id', how='inner') 
-             for fname in files.values()], ignore_index=False, copy=False)
+             for fname in files], ignore_index=False, copy=False)
         self.data.set_index(['id', 'year', 'month', 'day', 'hour'], 
-                            inplace=True).sort_index(inplace=True)
+                            inplace=True)
+        self.data.sort_index(inplace=True)
         
 
 class DailyCloud(CloudParameterizerBase):
@@ -1568,26 +1825,28 @@ class DailyCloud(CloudParameterizerBase):
 
     @staticmethod
     def calculate_daily(df):
+        ww = df.ww.values
+        at = df.AT
         return pd.DataFrame.from_dict(OrderedDict([
             ('wet_day', [(
-                (df.ww >= 50 and df.ww <= 75) or
-                df.ww == 75 or
-                df.ww == 77 or
-                df.ww == 79 or
-                (df.ww >= 80 and df.ww <= 99)).any()]),
-            ('tmin', [df.AT.min()]),
-            ('tmax', [df.AT.max()]),
+                ((ww >= 50) & (ww <= 75)) |
+                (ww == 75) |
+                (ww == 77) |
+                (ww == 79) |
+                ((ww >= 80) & (ww <= 99))).any().astype(int)]),
+            ('tmin', [at.min()]),
+            ('tmax', [at.max()]),
             ('mean_cloud', [df.N.mean() / 8.]),
             ('wind', [df.WS.mean()])
             ]))
             
     def setup_from_file(self, *args, **kwargs):
         kwargs['index_col'] = ['id', 'year', 'month', 'day']
-        return super(MonthlyGHCNData, self).setup_from_file(*args, **kwargs)
+        return super(DailyCloud, self).setup_from_file(*args, **kwargs)
 
     def setup_from_db(self, *args, **kwargs):
         kwargs['index_col'] = ['id', 'year', 'month', 'day']
-        return super(MonthlyGHCNData, self).setup_from_db(*args, **kwargs)
+        return super(DailyCloud, self).setup_from_db(*args, **kwargs)
     
     def setup_from_scratch(self):
         df = self.hourly_cloud.data
@@ -1610,10 +1869,21 @@ class MonthlyCloud(CloudParameterizerBase):
     
     requires = ['daily_cloud']
 
+    @property
+    def sql_dtypes(self):
+        import sqlalchemy
+        ret = super(MonthlyCloud, self).sql_dtypes
+        for col in set(self.data.columns).difference(ret):
+            if col.endswith('complete'):
+                ret[col] = sqlalchemy.BOOLEAN
+            else:
+                ret[col] = sqlalchemy.REAL
+        return ret
+
     @staticmethod
     def calculate_monthly(df):
         return pd.DataFrame.from_dict(OrderedDict([
-            ('wet_days', [df.wet_day.sum()]),
+            ('wet_day', [df.wet_day.sum()]),
             ('mean_cloud_wet', [df.mean_cloud[df.wet_day].mean()]),
             ('mean_cloud_dry', [df.mean_cloud[~df.wet_day].mean()]),
             ('mean_cloud', [df.mean_cloud.mean()]),
@@ -1624,11 +1894,11 @@ class MonthlyCloud(CloudParameterizerBase):
         
     def setup_from_file(self, *args, **kwargs):
         kwargs['index_col'] = ['id', 'year', 'month']
-        return super(MonthlyGHCNData, self).setup_from_file(*args, **kwargs)
+        return super(MonthlyCloud, self).setup_from_file(*args, **kwargs)
 
     def setup_from_db(self, *args, **kwargs):
         kwargs['index_col'] = ['id', 'year', 'month']
-        return super(MonthlyGHCNData, self).setup_from_db(*args, **kwargs)
+        return super(MonthlyCloud, self).setup_from_db(*args, **kwargs)
 
     def setup_from_scratch(self):
         df = self.daily_cloud.data
@@ -1636,44 +1906,17 @@ class MonthlyCloud(CloudParameterizerBase):
         data = g.apply(self.calculate_monthly)
         data.index = data.index.droplevel(-1)
         # number of records per month
-        df_nums = g.count().reset_index()
+        df_nums = g.count()
         df_nums['day'] = 1
-        s = pd.to_datetime(df_nums[['year', 'month', 'day']])
+        s = pd.to_datetime(df_nums.reset_index()[['year', 'month', 'day']])
         df_nums['ndays'] = ((s + pd.datetools.thisMonthEnd)[0] - s[0]).days + 1
         cols = ['wet_day', 'tmin', 'tmax', 'mean_cloud']
         complete_cols = [col + '_complete' for col in cols]
         for col, tcol in zip(cols, complete_cols):
             df_nums[tcol] = df_nums[col] == df_nums.ndays
         df_nums.drop('day', 1, inplace=True)
-        self.data = data.merge(
-            df_nums[complete_cols], left_index=True, right_index=True)
-        
-class CompleteDailyCloud(DailyCloud):
-    """The parameterizer that calculates the days in complete months of cloud
-    data"""
-
-    name = 'cdaily_cloud'
-
-    requires = ['daily_cloud', 'monthly_cloud']
-
-    _datafile = "complete_daily_cloud.csv"
-
-    dbname = 'complete_daily_cloud'
-
-    summary = "Get the days of the complete daily cloud months"
-    
-    def init_from_scratch(self):
-        pass
-
-    def setup_from_scratch(self):
-        monthly = self.monthly_cloud.data
-        cols = ['wet_day', 'tmin', 'tmax', 'mean_cloud']
-        complete_cols = [col + '_complete' for col in cols]
-        self.data = self.daily_cloud.data.reset_index().merge(
-            monthly[
-                monthly[complete_cols].values.all(axis=1)][[]].reset_index(),
-            how='inner', on=['id', 'year', 'month'], copy=False).set_index(
-                ['id', 'year', 'month', 'day'])
+        self.data = pd.merge(data, df_nums[complete_cols], 
+                             left_index=True, right_index=True)
         
 
 def cloud_func(x, a):
@@ -1715,140 +1958,228 @@ def cloud_sd_func(x, a):
 class CompleteMonthlyCloud(MonthlyCloud):
      """Parameterizer to extract the months with complete clouds"""
      
+     name = 'cmonthly_cloud'
+
+     requires = ['monthly_cloud']
+
+     dbname = 'complete_monthly_cloud'
+     
+     _datafile = 'complete_monthly_cloud.csv'
+     
      def setup_from_scratch(self):
-        cols = ['wet_day', 'tmin', 'tmax', 'mean_cloud']
+        cols = ['wet_day', 'mean_cloud']  # not 'tmin', 'tmax'
         complete_cols = [col + '_complete' for col in cols]
         self.data = self.monthly_cloud.data[
             self.monthly_cloud.data[complete_cols].values.all(axis=1)]
         
         
-class CloudParameterizer(MonthlyCloud):
+class CloudParameterizer(CompleteMonthlyCloud):
     """Parameterizer to extract the months with complete clouds"""
     
     name = 'cloud'
     
     summary = 'Parameterize the cloud data'
     
-    requires =['monthly_cloud']
+    requires =['cmonthly_cloud']
 
-    _datafile = 'complete_monthly_cloud.csv'
+    _datafile = 'cloud_correlation.csv'
     
-    dbname = 'complete_monthly_cloud'
+    dbname = 'cloud_correlation'
     
     fmt = dict(
         legend={'loc': 'upper left'},
         cmap='w_Reds',
-        precision=0.1,
-        xrange=(0, ['rounded', 95]),
-        yrange=(0, ['rounded', 95]),
+        xrange=(0, 1),
+        yrange=(0, 1),
         legendlabels=['std. error of a: %(a_err)1.4f'],
         bounds=['minmax', 11, 0, 99],
         cbar='',
-        bins=100,
-        xlabel='on %(state)s days'
+        bins=10,
+        xlabel='on %(state)s days',
+        xlim=(0, 1),
+        ylim=(0, 1),
         )
+    
+    has_run = True
+    
+    def setup_from_file(self, *args, **kwargs):
+        kwargs['index_col'] = ['id', 'month']
+        return Parameterizer.setup_from_file(self, *args, **kwargs)
+
+    def setup_from_db(self, *args, **kwargs):
+        kwargs['index_col'] = ['id', 'month']
+        return super(CloudParameterizer, self).setup_from_db(*args, **kwargs)
 
     @property
     def ds(self):
         """The dataframe of this parameterization task converted to a dataset
         """
         import xarray as xr
-        ds = xr.Dataset.from_dataframe(self.data)
+        ds = xr.Dataset.from_dataframe(self.data.set_index('mean_cloud'))
         for state in ['wet', 'dry', 'all']:
             name = 'cloud' + (('_' + state) if state != 'all' else '')
-            ds['mean_' + name].attrs['long_name'] = 'mean cloud fraction'
-            ds['mean_' + name].attrs['state'] = state
-            ds['sd_' + name].attrs['long_name'] = 'std. dev. of cloud fraction'
-            ds['sd_' + name].attrs['state'] = state
+            mean = 'mean_' + name
+            sd = 'sd_' + name
+            # set attributes
+            ds[mean].attrs['long_name'] = 'mean cloud fraction'
+            ds[mean].attrs['state'] = state
+            ds[mean].attrs['symbol'] = 'c'
+            ds[sd].attrs['long_name'] = 'std. dev. of cloud fraction'
+            ds[sd].attrs['state'] = state
+            ds[sd].attrs['symbol'] = 'c_\mathrm{std}'
+            # set mean on wet/dry days as coordinate for std on wet/dry days
+            if state != 'all':
+                coord = 'c_' + mean
+                ds[coord] = ds[mean].rename({'mean_cloud': coord})
+                ds[sd] = ds[sd].rename({'mean_cloud': coord}).variable
         return ds
-    
+        
+    def setup_from_scratch(self):
+        g = self.cmonthly_cloud.data.groupby(level=['id', 'month'])
+        data = g.mean()
+        cols = [col for col in data.columns if not col.endswith('_complete')]
+        self.data = data[cols]
 
     @docstrings.dedent
-    def run(self, plot_output=None, nc_output=None, project_output=None,
-            new_project=False, project=None):
+    def create_project(self, ds):
         """
-        Run the parameterization
+        Plot the relationship wet/dry cloud - mean cloud
         
         Parameters
         ----------
-        %(Parameterizer.run.parameters)s
-        
-        Returns
-        -------
-        %(Parameterizer.run.returns)s
-        """
+        %(Parameterizer.create_project.parameters)s"""
+        import matplotlib.pyplot as plt
         import seaborn as sns
         import psyplot.project as psy
-        import matplotlib.pyplot as plt
-        self.logger.info('Calculating %s parameterization', self.name)
         
-        sns.set_style("white")
+        sns.set_style('white')
         
-        ds = self.ds
+        types = ['mean', 'sd']
         
-        ret_nml = {}
-        ret_info = OrderedDict()
-        ret_nml['weathergen'] = nml = {}
-        
-        # ---- file names
-        nc_output = nc_output or self.nc_file
-        plot_output = plot_output or self.pdf_file
-        project_output = project_output or self.project_file
-        ret_info['nc_file'] = nc_output
-        ret_info['plot_file'] = plot_output
-        ret_info['project_file'] = project_output
+        axes = np.concatenate([
+            plt.subplots(1, 2, figsize=(12, 4))[1] for _ in range(2)])
+        for fig in set(ax.get_figure() for ax in axes):
+            fig.subplots_adjust(bottom=0.25)
+        middle = (
+            axes[0].get_position().x0 + axes[1].get_position().x1) / 2.
+        axes = iter(axes)
+        fit_funcs = {'mean': cloud_func, 'sd': cloud_sd_func}
+        for t in types:
+            psy.plot.densityreg(
+                ds, name='%s_cloud_wet' % (t), ax=next(axes), 
+                ylabel='%(long_name)s\non %(state)s days',
+                text=[(middle, 0.03, '%(long_name)s', 'fig', dict(
+                     weight='bold', ha='center'))], fmt=self.fmt,
+                fit=fit_funcs[t])
+            psy.plot.densityreg(
+                ds, name='%s_cloud_dry' % (t), ax=next(axes),
+                ylabel='on %(state)s days', fmt=self.fmt,
+                fit=fit_funcs[t])
+        return psy.gcp(True)[:]
 
-        sns.set_style("white")
-        variables = ['cloud']
+    @docstrings.dedent
+    def make_run_config(self, sp, full_nml, info):
+        """
+        Configure with the wet/dry cloud - mean cloud correlation
+        
+        Parameters
+        ----------
+        %(Parameterizer.make_run_config.parameters)s
+        """
+        full_nml['weathergen_ctl'] = nml = {}
         states = ['wet' ,'dry']
         types = ['mean', 'sd']
-        fit_funcs = {'mean': cloud_func, 'sd': cloud_sd_func}
-        # ---- create project
-        if not new_project and osp.exists(project or project_output):
-            sp = psy.Project.load_project(project or project_output, 
-                                          datasets=[ds])
-        else:
-            axes = np.concatenate([
-                plt.subplots(1, 2, figsize=(12, 4))[1] for _ in range(2)])
-            for fig in set(ax.get_figure() for ax in axes):
-                fig.subplots_adjust(bottom=0.25)
-            middle = (
-                axes[0].get_position().x0 + axes[1].get_position().x1) / 2.
-            axes = iter(axes)
-            for v, t in product(variables, types):
-                psy.plot.densityreg(
-                    ds, name='%s_%s_wet' % (t, v), ax=next(axes), 
-                    ylabel='%(long_name)s\non %(state)s days',
-                    text=[(middle, 0.03, '%(long_name)s', 'fig', dict(
-                         weight='bold', ha='center'))], fmt=self.fmt,
-                    fit=fit_funcs[t])
-                psy.plot.densityreg(
-                    ds, name='%s_%s_dry' % (t, v), ax=next(axes),
-                    ylabel='on %(state)s days', fmt=self.fmt,
-                    fit=fit_funcs[t])
-            sp = psy.gcp(True)[:]
-        
-        for v, t, state, key in product(
-                variables, types, states, ['rsquared', 'slope', 'intercept']):
-            vname = '%s%s_%s' % (v, t, state)
-            nml_name = v + ('_sd' if t else '') + '_' + state[0]
-            ret_info[vname] = vinfo = {}
-            vinfo[key] = float(sp.plotters[0].plot_data[1].attrs[key])
+        for t, state, key in product(
+                types, states, ['a', 'a_err']):
+            vname = '%s_cloud_%s' % (t, state)
+            nml_name = 'cldf%s_%s' % ("_sd" if t == 'sd' else '', state[:1])
+            info[vname] = vinfo = {}
             plotter = sp(name=vname).plotters[0]
-            nml[nml_name + '1'] = float(
-                plotter.plot_data[1].attrs.get('intercept', 0))
-            nml[nml_name + '2'] = float(
-                plotter.plot_data[1].attrs.get('slope'))
+            vinfo[key] = float(plotter.plot_data[1].attrs[key])
+            nml[nml_name] = float(
+                plotter.plot_data[1].attrs.get('a', 0))
         
         
-        # ---- save data and project
-        sp.export(plot_output, tight=True)
-        sp.save_project(project_output, 
-                        use_rel_paths=True, paths=[nc_output])
-        sp.close(True, True)  
+class CompleteDailyCloud(DailyCloud):
+    """The parameterizer that calculates the days in complete months of cloud
+    data"""
+
+    name = 'cdaily_cloud'
+
+    requires = ['daily_cloud', 'monthly_cloud']
+
+    _datafile = "complete_daily_cloud.csv"
+
+    dbname = 'complete_daily_cloud'
+
+    summary = "Get the days of the complete daily cloud months"
+    
+    def init_from_scratch(self):
+        pass
+
+    def setup_from_scratch(self):
+        monthly = self.monthly_cloud.data
+        cols = ['wet_day', 'tmin', 'tmax', 'mean_cloud']
+        complete_cols = [col + '_complete' for col in cols]
+        self.data = self.daily_cloud.data.reset_index().merge(
+            monthly[
+                monthly[complete_cols].values.all(axis=1)][[]].reset_index(),
+            how='inner', on=['id', 'year', 'month'], copy=False).set_index(
+                ['id', 'year', 'month', 'day'])
+
         
+class CrossCorrelation(Parameterizer):
+    """Class to calculate the cross correlation between the variables"""
+    
+    name = 'corr'
+    
+    summary = 'Cross corellation between temperature and cloudiness'
+    
+    _datafile = 'cross_correlation.csv'
+    
+    dbname = 'cross_correlation'
+    
+    requires = ['cdaily_cloud']
+
+    cols = ['tmin', 'tmax', 'mean_cloud']
+
+    def setup_from_file(self, **kwargs):
+        """Set up the parameterizer from already stored files"""
+        kwargs.setdefault('index_col', 0)
+        self.data = pd.read_csv(self.datafile, **kwargs)
+
+    def setup_from_db(self, **kwargs):
+        """Set up the parameterizer from datatables already created"""
+        kwargs.setdefault('index_col', 'variable')
+        self.data = pd.read_sql_table(self.dbname, self.engine, **kwargs)
+    
+    def setup_from_scratch(self):
+        df = self.cdaily_cloud.data
+        cols = self.cols
+        self.data = final = df[cols].corr()
+        final.index.name = 'variable'
+        df['date'] = vals = pd.to_datetime(df[[]].reset_index().drop('id', 1))
+        # make sure that the index is ignored
+        df['date'].values[:] = vals
+        df = df.set_index('date')
+        shifted = df.shift(freq=pd.datetools.day)
+        for col in cols:
+            final[col + '1'] = 0
+            for col2 in cols:
+                final.loc[col2, col + '1']  = df[col].corr(shifted[col2])
+        
+    def run(self):
+        cols = self.cols
+        lag1_cols = [col + '1' for col in cols]
+        ret_nml, ret_info = {}, {}
+        nml = ret_nml['weathergen'] = {}
+        m0 = self.data[cols]
+        m1 = self.data[lag1_cols].rename(columns=dict(zip(lag1_cols, cols)))
+        m0i = np.linalg.inv(m0)
+        nml['A'] = np.dot(m1, m0i).tolist()
+        nml['B'] = np.linalg.cholesky(
+            m0 - np.dot(np.dot(m1. m0i), m1.T)).T.tolist()
+        ret_info['M0'] = m0.tolist()
+        ret_info['M1'] = m1.tolist()
         return ret_nml, ret_info
         
-        
-cr.pickle(Parameterizer, Parameterizer._get_copy_reg)
-cr.pickle(HourlyCloud, HourlyCloud._get_copy_reg)

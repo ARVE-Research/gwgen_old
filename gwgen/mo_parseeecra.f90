@@ -230,6 +230,7 @@ subroutine extract_data(ids, src_dir, odir)
                imonth = 0
     integer, dimension(size(ids)) :: ounits
     integer, dimension(100) :: inunits = 0
+    character*350, dimension(size(ids)) :: ofiles
     character(:), allocatable :: cfmt
     character*300 :: all_cfmt
     character*350 :: fname
@@ -242,7 +243,6 @@ subroutine extract_data(ids, src_dir, odir)
     
     !       mn,dy,hr,IB,la,lo,id,LO,ww,N ,Nh,h ,CL,CM,CH,AM,AH,UM,UH,IC,SA,RI,SLP,WS,WD,AT,DD,EL,IW,IP
     cfmt = 'i2,i2,i2,i1,i5,i5,i5,i1,i2,i1,i2,i2,i2,i2,i2,i3,i3,i1,i1,i2,i4,i4,i5,i3 ,i3,i4,i3,i4,i1,i1'
-    
     
     ! output format
     25 format(i4,a,i0.2,a,i0.2,a,i0.2, & ! yr,mn,dy,hr
@@ -308,10 +308,10 @@ do i = 1, nids
     locks(i) = i
     call OMP_init_lock(locks(i))
     write(cid, '(I10)') ids(i)
-    fname = trim(odir)//trim(adjustl(cid))//'.csv'
+    ofiles(i) = trim(odir)//trim(adjustl(cid))//'.csv'
     ounits(i) = j + 1000
-    open(10, file=fname, status='unknown',action='write')
-    write(10,*) 'year,month,day,hour,IB,lat,lon,station_id,LO,ww,N,Nh,h,CL,CM,CH,AM,AH,UM,UH,IC,SA,RI,SLP,WS,WD,AT,DD,EL,IW,IP'
+    open(10, file=trim(ofiles(i)), status='unknown',action='write')
+    write(10,'a') 'year,month,day,hour,IB,lat,lon,station_id,LO,ww,N,Nh,h,CL,CM,CH,AM,AH,UM,UH,IC,SA,RI,SLP,WS,WD,AT,DD,EL,IW,IP'
     j = j + 1
     close(10, status='keep')
 end do
@@ -322,32 +322,33 @@ do i = 1,size(inunits)
     inunits(i) = i + 50
 end do
 
-all_cfmt = '(i2,'//cfmt//')'
-
-!$OMP PARALLEL DO SHARED(lck,locks,src_dir,odir,nids,ids,months,inunits,ounits,cfmt), & 
-!$OMP FIRSTPRIVATE(old_id,keep,all_cfmt), &
+!$OMP PARALLEL DO SHARED(lck,locks,src_dir,odir,nids,ids,months,inunits,ounits, &
+!$OMP&                  ofiles,cfmt), &
+!$OMP FIRSTPRIVATE(old_id,keep), &
 !$OMP& PRIVATE(yr,mn,dy,hr,IB,LAT,LON,station_id,LO,ww,N,Nh, h,CL,CM,CH,AM,AH, &
-!$OMP& UM,UH,IC,SA,RI,SLP,WS,WD,AT, DD,EL,IW,IP,fname,cid,i,ID,imonth,cyear,year)
+!$OMP&         UM,UH,IC,SA,RI,SLP,WS,WD,AT, DD,EL,IW,IP,fname,cid,i,ID,imonth, &
+!$OMP&         cyear,year,all_cfmt)
 do year = 1971,2009
+    ID = OMP_get_thread_num() + 1
+    call OMP_set_lock(lck)
+    write(*,*) "My thread is ", ID, '. Processing year ', year
+    call OMP_unset_lock(lck)
     if (year < 1997) then
         all_cfmt = '(i2,'//cfmt//')'
     else
         all_cfmt = '(i4,'//cfmt//')'
     endif
-    ID = OMP_get_thread_num() + 1
-    call OMP_set_lock(lck)
-    write(*,*) "My thread is ", ID
-    call OMP_unset_lock(lck)
     do imonth = 1,12
         write(cyear,'(I0.2)') mod(year, 100)
         fname = trim(src_dir)//months(imonth)//cyear//'L'
         inquire(file=fname,EXIST=file_exists)
         if (.not. file_exists) goto 99
         open(inunits(ID), file=fname, status='old', action='read')
+        j = 1
         do
-            read(inunits(ID),trim(all_cfmt),end=99) yr,mn,dy,hr,IB,LAT,LON,station_id,LO,ww,N,Nh, &
-                               h,CL,CM,CH,AM,AH,UM,UH,IC,SA,RI,SLP,WS,WD,AT, &
-                               DD,EL,IW,IP
+            read(inunits(ID),all_cfmt,end=99,err=98) yr,mn,dy,hr,IB,LAT,LON, &
+                               station_id,LO,ww,N,Nh,h,CL,CM,CH,AM,AH,UM,UH, &
+                               IC,SA,RI,SLP,WS,WD,AT,DD,EL,IW,IP
             if (year < 1997) yr = yr + 1900
             if (old_id /= station_id) then
                 if (keep /= 0) then
@@ -360,9 +361,8 @@ do year = 1971,2009
                         keep = i
                         call OMP_set_lock(locks(keep))
                         write(cid, '(I10)') ids(i)
-                        fname = trim(odir)//trim(adjustl(cid))//'.csv'
-                        open(ounits(keep), file=fname, status='old',access='append', &
-                             action='write')
+                        open(ounits(keep), file=trim(ofiles(keep)), &
+                             status='old',access='append',action='write')
                     endif
                 end do
                 old_id = station_id
@@ -377,7 +377,11 @@ do year = 1971,2009
                              0.1*SLP,',',0.1*WS,',',WD,',',0.1*AT,',', &
                              0.1*DD,',',EL,',',IW,',',IP
             end if
-            
+            j = j + 1
+            goto 97
+98 continue
+            write(*,*) "Error occured at line ", j, "of file ", fname
+97 continue
         end do
 99 continue
     close(inunits(ID))
