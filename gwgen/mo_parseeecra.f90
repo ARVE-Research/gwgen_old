@@ -64,7 +64,7 @@ subroutine parse_file( &
     !   wind speed indicator            IW          1          0         1       9
     !  Land: sea level pressure flag   IP          1          0)
     implicit none
-    
+
     character(300), intent(in) :: infile
     integer, intent(in) :: nrecords, year
     integer, dimension(nrecords), intent(out) :: &
@@ -185,13 +185,13 @@ subroutine parse_file( &
 
 end subroutine parse_file
 
-subroutine extract_data(ids, src_dir, odir)
+subroutine extract_data(ids, src_dir, odir, years, imonths)
 
     implicit none
-    
-    integer, intent(in), dimension(:) :: ids
+
+    integer, intent(in), dimension(:) :: ids, years, imonths
     character*300, intent(in) :: src_dir, odir
-    
+
     INTEGER :: &
         yr,mn,dy,hr,      & !   year,month,day,hour          yr,mn,dy,hr    8   51120100  96113021    none
         IB,               & !   sky brightness indicator        IB          1          0         1    none
@@ -222,12 +222,12 @@ subroutine extract_data(ids, src_dir, odir)
         EL,               & !   Land: station elevation (m)     EL          4       -350      4877    9000
         IW,               & !   wind speed indicator            IW          1          0         1       9
         IP                  !  Land: sea level pressure flag   IP          1          0         2       9
-    
+
     integer(kind = OMP_lock_kind) :: lck = 0
     integer(kind = OMP_lock_kind), dimension(size(ids)) :: locks
     integer :: ID
     integer :: j = 0, i = 0, nids = 0, keep = 0, old_id = 0, year = 0, &
-               imonth = 0
+               imonth = 0, iyear = 0
     integer, dimension(size(ids)) :: ounits
     integer, dimension(100) :: inunits = 0
     character*350, dimension(size(ids)) :: ofiles
@@ -240,10 +240,10 @@ subroutine extract_data(ids, src_dir, odir)
         'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', &
         'NOV', 'DEC' /)
     logical :: file_exists
-    
+
     !       mn,dy,hr,IB,la,lo,id,LO,ww,N ,Nh,h ,CL,CM,CH,AM,AH,UM,UH,IC,SA,RI,SLP,WS,WD,AT,DD,EL,IW,IP
     cfmt = 'i2,i2,i2,i1,i5,i5,i5,i1,i2,i1,i2,i2,i2,i2,i2,i3,i3,i1,i1,i2,i4,i4,i5,i3 ,i3,i4,i3,i4,i1,i1'
-    
+
     ! output format
     25 format(i4,a,i0.2,a,i0.2,a,i0.2, & ! yr,mn,dy,hr
               a,           &
@@ -311,7 +311,7 @@ do i = 1, nids
     ofiles(i) = trim(odir)//trim(adjustl(cid))//'.csv'
     ounits(i) = j + 1000
     open(10, file=trim(ofiles(i)), status='unknown',action='write')
-    write(10,'a') 'year,month,day,hour,IB,lat,lon,station_id,LO,ww,N,Nh,h,CL,CM,CH,AM,AH,UM,UH,IC,SA,RI,SLP,WS,WD,AT,DD,EL,IW,IP'
+    write(10,'(a)') 'year,month,day,hour,IB,lat,lon,station_id,LO,ww,N,Nh,h,CL,CM,CH,AM,AH,UM,UH,IC,SA,RI,SLP,WS,WD,AT,DD,EL,IW,IP'
     j = j + 1
     close(10, status='keep')
 end do
@@ -323,12 +323,13 @@ do i = 1,size(inunits)
 end do
 
 !$OMP PARALLEL DO SHARED(lck,locks,src_dir,odir,nids,ids,months,inunits,ounits, &
-!$OMP&                  ofiles,cfmt), &
+!$OMP&                  ofiles,cfmt,imonths,years), &
 !$OMP FIRSTPRIVATE(old_id,keep), &
 !$OMP& PRIVATE(yr,mn,dy,hr,IB,LAT,LON,station_id,LO,ww,N,Nh, h,CL,CM,CH,AM,AH, &
 !$OMP&         UM,UH,IC,SA,RI,SLP,WS,WD,AT, DD,EL,IW,IP,fname,cid,i,ID,imonth, &
-!$OMP&         cyear,year,all_cfmt)
-do year = 1971,2009
+!$OMP&         cyear,year,all_cfmt,iyear)
+do iyear = 1,size(years)
+    year = years(iyear)
     ID = OMP_get_thread_num() + 1
     call OMP_set_lock(lck)
     write(*,*) "My thread is ", ID, '. Processing year ', year
@@ -338,9 +339,9 @@ do year = 1971,2009
     else
         all_cfmt = '(i4,'//cfmt//')'
     endif
-    do imonth = 1,12
+    do imonth = 1,size(imonths)
         write(cyear,'(I0.2)') mod(year, 100)
-        fname = trim(src_dir)//months(imonth)//cyear//'L'
+        fname = trim(src_dir)//months(imonths(imonth))//cyear//'L'
         inquire(file=fname,EXIST=file_exists)
         if (.not. file_exists) goto 99
         open(inunits(ID), file=fname, status='old', action='read')

@@ -171,15 +171,16 @@ end do
 
 99 continue
 
-do d = 1,ndaymon(lastmonth)
-  dates(j, :) = (/lastyear, lastmonth, d/)
-  variables(j, :) = (/tmin(d), tmax(d), prcp(d)/)
-  flags(j, 1, :) = tmin_flags(d,:)
-  flags(j, 2, :) = tmax_flags(d,:)
-  flags(j, 3, :) = prcp_flags(d,:)
-  j = j + 1
-end do
-
+if (lastmonth > 0) then
+  do d = 1,ndaymon(lastmonth)
+    dates(j, :) = (/lastyear, lastmonth, d/)
+    variables(j, :) = (/tmin(d), tmax(d), prcp(d)/)
+    flags(j, 1, :) = tmin_flags(d,:)
+    flags(j, 2, :) = tmax_flags(d,:)
+    flags(j, 3, :) = prcp_flags(d,:)
+    j = j + 1
+  end do
+end if
 j = j - 1
 
 end subroutine parse_station

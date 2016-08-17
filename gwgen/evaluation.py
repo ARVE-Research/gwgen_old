@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 """Evaluation module of the gwgen module"""
-import os
 import os.path as osp
-import inspect
-import abc
 import six
+from collections import namedtuple
 from psyplot.compat.pycompat import OrderedDict
-from itertools import chain, product, starmap
+from itertools import chain, starmap
 import numpy as np
 from scipy import stats
 import pandas as pd
@@ -14,445 +12,381 @@ from gwgen.utils import docstrings
 import gwgen.utils as utils
 import logging
 
-try:
-    import copyreg as cr
-except ImportError:
-    import copy_reg as cr
-    
 
-class EvaluatorMeta(abc.ABCMeta):
-    """Meta class for the :class:`Parameterizer`"""
-
-    def __new__(cls, name, bases, namespace):
-        new_cls = super(EvaluatorMeta, cls).__new__(
-            cls, name, bases, namespace)
-        if new_cls.name:
-            new_cls._registry[new_cls.name] = new_cls
-        cr.pickle(new_cls, new_cls._get_copy_reg)
-        return new_cls
-
-
-@six.add_metaclass(EvaluatorMeta)
-class Evaluator(object):
+class Evaluator(utils.TaskBase):
     """Abstract base class for evaluation tasks
-    
+
     Evaluation tasks should incorporate a run method that is called by the
-    :meth:`gwgen.main.ModelOrganizer.evaluate method"""
-    
-    fmt = {}
+    :meth:`gwgen.main.ModelOrganizer.evaluate` method"""
 
-    _registry = {}
-
-    name = None
-    
-    summary = ''
-    
-    _logger = None
+    _registry = []
 
     @property
-    def logger(self):
-        """The logger of this organizer"""
-        return self._logger or logging.getLogger('.'.join(
-            [__name__, self.__class__.__name__, self.name or '']))
-        
-    @property
-    def data_dir(self):
-        """str. Path to the directory where the source data of the model
-        is located"""
-        return self.model_config['data']
-        
-    @property
-    def eval_dir(self):
-        """str. Path to the directory were the processed data is stored"""
-        
-        ret = self.config.setdefault('evaldir', osp.join(
-            self.config['expdir'], 'evaluation'))
-        if not osp.exists(ret):
-            try:
-                os.makedirs(ret)
-            except FileExistsError:
-                pass
-        return ret
-        
-    @property
-    def input_dir(self):
-        """str. Path to the directory were the input data is stored"""
-        ret = self.config.setdefault('indir', osp.join(
-            self.config['expdir'], 'input'))
-        if not osp.exists(ret):
-            try:
-                os.makedirs(ret)
-            except FileExistsError:
-                pass
-        return ret
-    
-    @property
-    def reference_path(self):
-        """The path to the reference file in the configuration"""
-        return self.config.get(
-            'reference', osp.join(self.eval_dir, 'reference.csv'))
-        
-    @reference_path.setter
-    def reference_path(self, value):
-        self.config['reference'] = value
+    def task_data_dir(self):
+        """The directory where to store data"""
+        return self.eval_dir
 
-    @property
-    def df_ref(self):
-        """The reference data frame"""
-        df = pd.read_csv(self.reference_path, 
-                         index_col=['id', 'year', 'month', 'day'])
-        stations = list(self.stations)
-        if len(stations) == 1:
-            stations = slice(stations[0], stations[0])
-        return df.loc(axis=0)[stations]
+_PreparationConfigBase = namedtuple('_PreparationConfigBase',
+                                    ['setup_raw', 'raw2db', 'raw2csv',
+                                     'reference', 'input_path'])
 
-    @property
-    def input_path(self):
-        """The path to the model input file in the configuration"""
-        return self.config.get(
-            'input', osp.join(self.input_dir, 'input.csv'))
-        
-    @input_path.setter
-    def input_path(self, value):
-        self.config['input'] = value
-        
-    @property
-    def output_dir(self):
-        """str. Path to the directory were the input data is stored"""
-        ret = self.config.setdefault('outdir', osp.join(
-            self.config['expdir'], 'output'))
-        if not osp.exists(ret):
-            try:
-                os.makedirs(ret)
-            except FileExistsError:
-                pass
-        return ret
-        
-    @property
-    def output_path(self):
-        """The path to the model output file in the configuration"""
-        return self.config['outdata']
+_PreparationConfigBase.__doc__ += docstrings.get_sections("""
+Parameters
+----------
+setup_raw: { 'scratch' | 'file' | 'db' | None }
+    The method how to setup the raw data from GHCN and EECRA
 
-    @property
-    def nc_file(self):
-        """NetCDF file for the project"""
-        return osp.join(self.eval_dir, self.name + '.nc')
-        
-    @property
-    def project_file(self):
-        """Pickle file for the project"""
-        return osp.join(self.eval_dir, self.name + '.pkl')
-        
-    @property
-    def pdf_file(self):
-        """pdf file with figures the project"""
-        return osp.join(self.eval_dir, self.name + '.pdf')
-    
-    @property
-    def df_sim(self):
-        """The data frame of the simulation output"""
-        df = pd.read_csv(self.output_path, 
-                         index_col=['id', 'year', 'month', 'day'])
-        stations = list(self.stations)
-        if len(stations) == 1:
-            stations = slice(stations[0], stations[0])
-        return df.loc(axis=0)[stations]
-        
-    @docstrings.get_sectionsf('Evaluator')
-    def __init__(self, stations, config, model_config, global_config={},
-                 logger=None):
-        """
-        Parameters
-        ----------
-        stations: list
-            The list of stations to process
-        config: dict
-            The configuration of the experiment
-        model_config: dict
-            The configuration of the underlying model
-        logger: logging.Logger
-            The logger to use for this parameterizer
-        """
-        self.stations = stations
-        self.config = config
-        self.model_config = model_config
-        self.global_config = global_config
-        if isinstance(logger, six.string_types):
-            logger = logging.getLogger(logger)
-        self._logger = logger
-        # overwrite the class attribute of the formatoptions
-        self.fmt = self.fmt.copy()
-        
-    @staticmethod
-    def _get_copy_reg(parameterizer):
-        if parameterizer._engine is None:
-            engine = None
-        else:
-            engine = parameterizer.engine.url 
-        return parameterizer.__class__, (
-            parameterizer.stations, parameterizer.config, 
-            parameterizer.model_config, parameterizer.logger.name, engine)
-        
-    @abc.abstractmethod
-    @docstrings.get_sectionsf('Parameterizer.run', 
-                              sections=['Parameters', 'Returns'])
-    @docstrings.dedent
-    def run(self, plot_output=None, nc_output=None, project_output=None,
-            new_project=False, project=None):
-        """
-        Run the evaluation task
-        
-        This method needs to be implemented by any evaluation task and can. It
-        can take any keyword argument you want, but you should consider the
-        :meth:`_modify_parser` method that can be used to modify the parser 
-        according to the needs
-        
-        Parameters
-        ----------
-        plot_output: str
-            An alternative path to use for the PDF file of the plot
-        nc_output: str
-            An alternative path to use for the netCDF file of the plot data
-        project_output: str
-            An alternative path to use for the psyplot project file of the plot
-        new_project: bool
-            If True, a new project will be created even if a file in
-            `project_output` exists already
-        project: str
-            The path to a psyplot project file to use for this parameterization
-        
-        Returns
-        -------
-        dict
-            The dictionary with the configuration settings for the namelist
-        dict
-            The dictionary holding additional meta information"""
-        self.logger.info('Calculating %s evaluation', self.name)
-        ret_info = OrderedDict()
+    ``'scratch'``
+        To set up the model from the raw data
+    ``'file'``
+        Set up the model from an existing file
+    ``'db'``
+        Set up the model from a database
+    ``None``
+        If the file name of this this task exists, use this one,
+        otherwise a database is provided, use this one, otherwise go
+        from scratch
+raw2db: bool
+    If True, the raw data from GHCN and EECRA is stored in a postgres database
+raw2csv: bool
+    If True, the raw data from GHCN and EECRA is stored in a csv file
+reference: str
+    The path of the file where to store the reference data. If None and not
+    already set in the configuration, it will default to
+    ``'evaluation/reference.csv'``
+input_path: str
+    The path of the file where to store the model input. If None, and not
+    already set in the configuration, it will default to
+    ``'inputdir/input.csv'`` where *inputdir* is the path to the input
+    directory (by default, *input* in the experiment directory)
+""", '_PreparationConfigBase')
 
-        # ---- file names
-        nc_output = nc_output or self.nc_file
-        plot_output = plot_output or self.pdf_file
-        project_output = project_output or self.project_file
-        ret_info['nc_file'] = nc_output
-        ret_info['plot_file'] = plot_output
-        ret_info['project_file'] = project_output
 
-        # ---- open dataset
-        ds = self.ds
-        
-        # ---- create project
-        if not new_project and osp.exists(project or project_output):
-            import psyplot.project as psy
-            self.logger.debug('    Loading existing project %s', 
-                              project or project_output)
-            sp = psy.Project.load_project(
-                project or project_output, datasets=[ds])
-        else:
-            self.logger.debug('    Creating project...')
-            sp = self.create_project(ds)
-        
-        # ---- save data and project
-        pdf = sp.export(plot_output, tight=True, close_pdf=False)
-        self.logger.debug('    Saving project to %s', project_output)
-        sp.save_project(project_output, use_rel_paths=True, 
-                        paths=[nc_output])
-        
-        # ---- make plots not covered by psyplot
-        self.plot_additionals(pdf)
+PreparationConfig = utils.enhanced_config(_PreparationConfigBase,
+                                          'PreparationConfig')
 
-        # ---- configure the experiment
-        self.make_run_config(sp, ret_info)
 
-        # ---- export the figures
-        self.logger.debug('    Saving plots to %s', plot_output)
-        pdf.close()
-        
-        # ---- close the project
-        sp.close(True, True)
-        self.logger.debug('Done.')
-        
-        return ret_info
+@docstrings.dedent
+def default_preparation_config(
+        setup_raw=None, raw2db=False, raw2csv=False, reference=None,
+        input_path=None, *args, **kwargs):
+    """
+    The default configuration for :class:`EvaluationPreparation` instances.
+    See also the :attr:`EvaluationPreparation.default_config` attribute
 
-    @docstrings.get_sectionsf('Parameterizer.create_project')
-    @docstrings.dedent
-    def create_project(self, ds):
-        """
-        To be reimplemented for each parameterization task
-        
-        Parameters
-        ----------
-        ds: xarray.Dataset
-            The dataset to plot"""
-        import psyplot.project as psy
-        return psy.gcp()
-        
-    @docstrings.get_sectionsf('Parameterizer.make_run_config')
-    @docstrings.dedent
-    def make_run_config(self, sp, info):
-        """
-        Method to be reimplemented to provide information about the evaluation
-        task
-        
-        Parameters
-        ----------
-        sp: psyplot.project.Project
-            The project of the data
-        info: dict
-            The dictionary for saving additional information of the 
-            parameterization task"""
-        return
-        
-    @docstrings.get_sectionsf('Parameterizer.plot_additionals')
-    @docstrings.dedent
-    def plot_additionals(self, pdf):
-        """
-        Method to be reimplemented to make additional plots (if necessary)
-        
-        Parameters
-        ----------
-        pdf: matplotlib.backends.backend_pdf.PdfPages
-            The PdfPages instance which can be used to save the figure
-        """
-        return
+    Parameters
+    ----------
+    %(PreparationConfig.parameters)s"""
+    return PreparationConfig(setup_raw, raw2db, raw2csv, reference, input_path,
+                             *utils.default_config(*args, **kwargs))
 
-    @classmethod    
-    def _modify_parser(cls, parser):
-        parser.update_arg('plot_output', short='o')
-        parser.update_arg('nc_output', short='onc')
-        parser.update_arg('project_output', short='op')
-        parser.update_arg('new_project', short='np')
-        parser.update_arg('project', short='p')
-        return parser
-        
-    def get_run_kws(self, kwargs):
-        return {key: val for key, val in kwargs.items() 
-                if key in inspect.getargspec(self.run)[0]}
-        
-    @classmethod
-    def get_task(cls, name):
-        return cls._registry[name]
 
-        
 class EvaluationPreparation(Evaluator):
     """Evaluation task to prepare the evaluation"""
-    
+
     name = 'prepare'
-    
+
     summary = 'Prepare the for experiment for evaluation'
-    
-    http_stations = (
-        'ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt')
+
+    http_inventory = (
+        'ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/ghcnd-inventory.txt')
+
+    _datafile = ['reference.csv', 'input.csv']
+
+    dbname = ['reference', 'input']
+
+    has_run = False
+
+    @property
+    def default_config(self):
+        ret = default_preparation_config()._replace(
+            **super(EvaluationPreparation, self).default_config._asdict())
+        return ret._replace(**dict(reference=self.reference_path,
+                                   input_path=self.input_path))
+
+    @property
+    def datafile(self):
+        """The paths to reference and input file"""
+        return [self.reference_path, self.input_path]
+
+    @property
+    def ghcnd_inventory_file(self):
+        return osp.join(self.data_dir, 'ghcn', 'ghcnd-inventory.txt')
 
     @property
     def station_list(self):
-        fname = osp.join(self.data_dir, 'ghcn', 'ghcnd-stations.txt')
-        if not osp.exists(fname):
-            self.logger.info("Downloading station file from %s to %s",
-                             self.http_stations, fname)
-            utils.download_file(self.http_stations, fname)
+        fname = self.ghcnd_inventory_file
+        station_ids, lat, lon, variables, first, last = np.loadtxt(
+            fname, dtype='S11', unpack=True).astype(np.str_)
+        return pd.DataFrame({'id': station_ids, 'lat': lat.astype(float),
+                             'lon': lon.astype(float), 'vname': variables,
+                             'firstyr': first.astype(int),
+                             'lastyr': last.astype(int)},
+                            index=np.arange(len(station_ids)))
+
+    @property
+    def inventory(self):
+        fname = self.ghcnd_inventory_file
         station_ids, lat, lon = np.loadtxt(
             fname, usecols=[0, 1, 2], dtype='S11', unpack=True).astype(np.str_)
-        return pd.DataFrame({'id': station_ids, 'lat': lat.astype(float), 
-                             'lon': lon.astype(float)}, 
+        return pd.DataFrame({'id': station_ids, 'lat': lat.astype(float),
+                             'lon': lon.astype(float)},
                             index=np.arange(len(station_ids)))
-    
-    @docstrings.dedent
-    def run(self, ref_path=None, input_path=None, store_raw=False, 
-            setup_from=None):
-        """
-        Get the input data for the evaluation
-        
-        Parameters
-        ----------
-        ref_path: str
-            The path of the file where to store the reference data. If None and
-            not already set in the configuration, it will default to 
-            ``'evaluation/reference.csv'``
-        input_path: str
-            The path of the file where to store the model input. If None, and
-            not already set in the configuration, it will default to 
-            ``'inputdir/input.csv'`` where *inputdir* is the path to the
-            input directory (by default, *input* in the experiment directory)
-        store_raw: bool
-            If True, set, the raw input data is stored as well
-        setup_from: { 'scratch' | 'file' }
-            How to setup the raw data. By default (if the data has already)
-            been saved to a file, it is set up from file. Otherwise from 
-            scratch
-            """
-        def get(name):
-            return next(t for t in tasks if t.name == name)
+
+    @property
+    def reference_data(self):
+        """The reference :class:`~pandas.DataFrame`"""
+        return self.data[0]
+
+    @reference_data.setter
+    def reference_data(self, data):
+        self.data[0] = data
+
+    @property
+    def input_data(self):
+        """The input :class:`~pandas.DataFrame`"""
+        return self.data[1]
+
+    @input_data.setter
+    def input_data(self, data):
+        self.data[1] = data
+
+    @classmethod
+    def _modify_parser(cls, parser):
+        parser.setup_args(default_preparation_config)
+        # disable plot_output, etc.
+        parser, setup_grp, run_grp = super(
+            EvaluationPreparation, cls)._modify_parser(parser)
+        parser.update_arg('setup_raw', short='fr', long='raw-from',
+                          group=setup_grp)
+        parser.update_arg('input_path', short='i', long='input',
+                          group=setup_grp)
+        parser.update_arg('reference', short='r', group=setup_grp)
+        parser.update_arg('raw2db', group=setup_grp)
+        parser.update_arg('raw2csv', group=setup_grp)
+        return parser, setup_grp, run_grp
+
+    def write2file(self, *args, **kwargs):
+        """Reimplemented to sort the data according to the index"""
+        for data in self.data:
+            data.sort_index(inplace=True)
+        return super(EvaluationPreparation, self).write2file(*args, **kwargs)
+
+    def write2db(self, *args, **kwargs):
+        """Reimplemented to sort the data according to the index"""
+        for data in self.data:
+            data.sort_index(inplace=True)
+        return super(EvaluationPreparation, self).write2db(*args, **kwargs)
+
+    def setup_from_db(self, *args, **kwargs):
+        kwargs['index_col'] = [['id', 'year', 'month', 'day'],  # reference
+                               ['id', 'lon', 'lat', 'year', 'month']]  # input
+        super(EvaluationPreparation, self).setup_from_db(*args, **kwargs)
+
+    def setup_from_file(self, *args, **kwargs):
+        kwargs['index_col'] = [['id', 'year', 'month', 'day'],  # reference
+                               ['id', 'lon', 'lat', 'year', 'month']]  # input
+        super(EvaluationPreparation, self).setup_from_file(*args, **kwargs)
+
+    def __init__(self, *args, **kwargs):
+        self._manager = kwargs.pop('manager', None)
+        super(EvaluationPreparation, self).__init__(*args, **kwargs)
+        if self.task_config.to_csv:  # update the configuration
+            self.reference_path = self.reference_path
+            self.input_path = self.input_path
+
+    def __reduce__(self):
+        """Reimplemented to give provide also the manager"""
+        ret = list(super(EvaluationPreparation, self).__reduce__())
+        if len(ret) < 3:
+            ret.append({})
+        ret[2]['_manager'] = self._manager
+        return tuple(ret)
+
+    def init_from_scratch(self):
+        """Initialize the setup via the parameterization classes"""
         from gwgen.parameterization import (
-            Parameterizer, CompleteDailyCloud, CompleteDailyGHCNData, 
-            CompleteMonthlyCloud, CompleteMonthlyGHCNData)
-        classes = [CompleteDailyCloud, CompleteDailyGHCNData, 
-                   CompleteMonthlyCloud, CompleteMonthlyGHCNData]
+            Parameterizer, YearlyCompleteDailyCloud,
+            YearlyCompleteDailyGHCNData, YearlyCompleteMonthlyCloud,
+            YearlyCompleteMonthlyGHCNData)
+        classes = [
+            YearlyCompleteDailyCloud, YearlyCompleteDailyGHCNData,
+            YearlyCompleteMonthlyCloud, YearlyCompleteMonthlyGHCNData]
         config = self.config.copy()
         config['paramdir'] = self.eval_dir
         kws = dict(config=config, model_config=self.model_config,
-                   to_csv=store_raw, setup_from=setup_from)
+                   to_csv=self.task_config.raw2csv,
+                   to_db=self.task_config.raw2db,
+                   setup_from=self.task_config.setup_raw)
         base_kws = {cls.name: kws for cls in classes}
-        tasks = Parameterizer.setup_tasks(
-            self.stations, base_kws=base_kws, global_conf=self.global_config,
-            logger=self.logger)
-        cday = get(CompleteDailyGHCNData.name).data
-        ccday = get(CompleteDailyCloud.name).data
-        cmonth = get(CompleteMonthlyGHCNData.name).data
-        ccmonth = get(CompleteMonthlyCloud.name).data
-        reference = cday.merge(
-            ccday[['mean_cloud']], left_index=True, right_index=True).reset_index()
-        exp_input = cmonth.merge(
-            ccmonth[['mean_cloud']], left_index=True, right_index=True)
-        exp_input = exp_input.reset_index().merge(
-            self.station_list, on='id')
-        reference['wet_day'] = (reference.prcp > 0).astype(int)
-        
-        # save the data and store the paths in the configuration
-        self.reference_path = ref_path = ref_path or self.reference_path
-        self.input_path = input_path = input_path or self.input_path
+        self._manager = Parameterizer.get_manager(
+            config=self.global_config.copy())
+        self._manager.initialize_tasks(self.stations, task_kws=base_kws)
+        if not self.global_config.get('serial'):
+            import multiprocessing as mp
+            for task in self._manager.tasks:
+                utils._db_locks[task.dbname] = mp.Lock()
+                utils._file_locks[task.datafile] = mp.Lock()
+        # make sure the lat-lon information is available
+        self.download_src()
 
+    def download_src(self, force=False):
+        fname = self.ghcnd_inventory_file
+        if force or not osp.exists(fname):
+            self.logger.info("Downloading station file from %s to %s",
+                             self.http_inventory, fname)
+            utils.download_file(self.http_inventory, fname)
+
+    def setup_from_scratch(self):
+        from gwgen.parameterization import (
+            YearlyCompleteDailyCloud, YearlyCompleteDailyGHCNData,
+            YearlyCompleteMonthlyCloud, YearlyCompleteMonthlyGHCNData)
+
+        def get(name):
+            return next(t for t in tasks if t.name == name)
+
+        # force serial setup because we might already be in a parallel setup
+        self._manager.config['serial'] = True
+        self._manager.setup(self.stations, to_return='all')
+        tasks = self._manager.tasks
+        # save in the right order for the FORTRAN code
         order = ['tmin', 'tmax', 'mean_cloud', 'prcp', 'wet_day']
-        self.logger.debug('Exporting reference data to %s', ref_path)
-        reference[['id', 'year', 'month', 'day'] + order].to_csv(
-            ref_path, index=False)
-        self.logger.debug('Exporting input data to %s', input_path)
-        exp_input[['id', 'lon', 'lat', 'year', 'month'] + order].to_csv(
-            input_path, index=False, float_format='%6.2f')
-        
-    @classmethod
-    def _modify_parser(cls, parser):
-        parser.update_arg('ref_path', short='r')
-        parser.update_arg('setup_from', short='f', long='from')
-        parser.update_arg('input_path', short='i')
-        parser.update_arg('store_raw', short='store')
-        
-        
+
+        # daily reference
+        cday = get(YearlyCompleteDailyGHCNData.name).data
+        ccday = get(YearlyCompleteDailyCloud.name).data
+        try:
+            reference = cday.merge(
+                ccday[['mean_cloud']], left_index=True, right_index=True,
+                how='left')
+            reference.ix[reference.mean_cloud.isnull(), 'mean_cloud'] = 0
+        except TypeError:  # indices to not match
+            reference = cday.ix[1:0]  # create empty data frame
+            reference['mean_cloud'] = np.array([],
+                                               dtype=ccday.mean_cloud.dtype)
+        reference['wet_day'] = (reference.prcp > 0).astype(int)
+        self.reference_data = reference[order].sort_index()
+
+        # monthly input
+        cmonth = get(YearlyCompleteMonthlyGHCNData.name).data
+        ccmonth = get(YearlyCompleteMonthlyCloud.name).data
+        try:
+            exp_input = cmonth.merge(
+                ccmonth[['mean_cloud']], left_index=True, right_index=True,
+                how='left')
+            exp_input.ix[exp_input.mean_cloud.isnull(), 'mean_cloud'] = 0
+        except TypeError:  # indices do not match
+            exp_input = cmonth.ix[1:0]  # create empty data frame
+            exp_input['mean_cloud'] = np.array([],
+                                               dtype=ccmonth.mean_cloud.dtype)
+        inventory = self.station_list
+        exp_input = exp_input.reset_index().merge(
+            inventory[inventory.vname == 'PRCP'][['id', 'lon', 'lat']],
+            on='id')
+        exp_input.set_index(['id', 'lon', 'lat', 'year', 'month'],
+                            inplace=True)
+        self.input_data = exp_input[order].sort_index()
+
+
+class OutputTask(Evaluator):
+    """Task to provide all the data for input and output"""
+
+    # the last will be ignored!
+    _datafile = 'output.csv'
+
+    dbname = 'output'
+
+    name = 'output'
+
+    summary = 'Load and setup the output of the model'
+
+    has_run = False
+
+    @property
+    def datafile(self):
+        return [self.output_path]
+
+    def write2file(self, *args, **kwargs):
+        """Not implemented since the output file is generated by the model!"""
+        self.logger.warn(
+            "Writing to file of %s task is disabled because this is done "
+            "by the model!", self.name)
+
+    def setup_from_db(self, *args, **kwargs):
+        kwargs['index_col'] = ['id', 'year', 'month', 'day']
+        super(OutputTask, self).setup_from_db(*args, **kwargs)
+
+    def setup_from_file(self, *args, **kwargs):
+        kwargs['index_col'] = ['id', 'year', 'month', 'day']
+        super(OutputTask, self).setup_from_file(*args, **kwargs)
+
+    def setup_from_scratch(self):
+        raise ValueError(
+            "Cannot set up the %s task from scratch because it requires the "
+            "output of the model!")
+
+
+_QuantileConfig = namedtuple('_QuantileConfig', ['quantiles', 'no_rounding'])
+
+
+_QuantileConfig.__doc__ += docstrings.get_sections("""
+Parameters
+----------
+quantiles: list of floats
+    The quantiles to use for calculating the percentiles
+no_rounding: bool
+    Do not round the simulation to the infered precision of the
+    reference. The inferred precision is the minimum difference between
+    two values with in the entire data""", '_QuantileConfig')
+
+
+QuantileConfig = utils.enhanced_config(_QuantileConfig, 'QuantileConfig')
+
+
+@docstrings.dedent
+def default_quantile_config(
+        quantiles=[25, 50, 75, 90, 95, 99, 100], no_rounding=False,
+        *args, **kwargs):
+    """
+    The default configuration for :class:`QuantileEvaluation` instances.
+    See also the :attr:`QuantileEvaluation.default_config` attribute
+
+    Parameters
+    ----------
+    %(QuantileConfig.parameters)s"""
+    return QuantileConfig(quantiles, no_rounding,
+                          *utils.default_config(*args, **kwargs))
+
+
 class QuantileEvaluation(Evaluator):
     """Evaluator to evaluate specific quantiles"""
-    
+
     name = 'quants'
-    
+
     summary = 'Compare the quantiles of simulation and observation'
-    
+
     names = OrderedDict([
         ('prcp', {'long_name': 'Precipitation',
-                  'units': 'mm'}), 
+                  'units': 'mm'}),
         ('tmin', {'long_name': 'Min. Temperature',
                   'units': 'degC'}),
         ('tmax', {'long_name': 'Max. Temperature',
-                  'units': 'degC'}), 
+                  'units': 'degC'}),
         ('mean_cloud', {'long_name': 'Cloud fraction',
                         'units': '-'})
         ])
 
     all_variables = [[v + '_ref', v + '_sim'] for v in names]
 
-    _quantiles = [25, 50, 75, 90, 95, 99, 100]
+    setup_requires = ['prepare', 'output']
 
-    _round = True
-    
-    #: default formatoptions for the 
+    has_run = True
+
+    _datafile = 'quantile_evaluation.csv'
+
+    dbname = 'quantile_evaluation'
+
+    #: default formatoptions for the
     #: :class:`psyplot.plotter.linreg.DensityRegPlotter` plotter
     fmt = kwargs = dict(
         legend={'loc': 'upper left'},
@@ -466,41 +400,15 @@ class QuantileEvaluation(Evaluator):
         bounds=['minmax', 11, 0, 99],
         cbar='',
         bins=10,
+        ideal=[0, 1],
+        id_color='r',
         )
-    
+
     @property
-    def data(self):
-        """The dataframe containing the observed and simulated data"""
-    
-        # create reference dataframe
-        df_ref = self.df_ref
-        # create simulation dataframe
-        df_sim = self.df_sim
-        names = self.names
-        # load observed precision
-        if self._round:
-            for name in set(names) - {'mean_cloud'}:
-                df_sim[name].values[:] = self.round_to_ref_prec(
-                    df_ref[name].values, df_sim[name].values)
-        # merge reference and simulation into one single dataframe
-        df = df_ref.merge(df_sim, left_index=True, right_index=True,
-                          suffixes=['_ref', '_sim'])
-        if 'mean_cloud' in names:
-            from gwgen.parameterization import CloudParameterizerBase
-            # mask out non-complete months for cloud validation
-            df_map = CloudParameterizerBase.eecra_ghcn_map()
-            df_map['complete'] = True
-            df.reset_index(['year', 'month', 'day'], inplace=True)
-            df = df.merge(df_map, left_index=True, right_index=True)
-            cloud_names = ['mean_cloud_ref', 'mean_cloud_sim']
-            df.ix[df.complete.isnull(), cloud_names] = np.nan
-            df.set_index(['year', 'month', 'day'], append=True, inplace=True)
-        # calculate the percentiles for each station and month
-        g = df.sort_index().groupby(level=['id', 'year'])
-        ret = g.apply(self.calc)
-        ret.index = ret.index.droplevel(2)
-        return ret
-    
+    def default_config(self):
+        return default_quantile_config()._replace(
+            **super(QuantileEvaluation, self).default_config._asdict())
+
     @property
     def ds(self):
         """The dataset of the quantiles"""
@@ -517,32 +425,46 @@ class QuantileEvaluation(Evaluator):
             ds[vsim].attrs['type'] = 'simulated'
         ds.pctl.attrs['long_name'] = 'Percentile'
         return ds
-    
-    @docstrings.dedent
-    def run(self, quantiles=[25, 50, 75, 90, 95, 99, 100], no_rounding=False,
-            *args, **kwargs):
-        """
-        Run the quantile evaluation
-        
-        Parameters
-        ----------
-        quantiles: list of floats
-            The quantiles to use for calculating the percentiles
-        no_rounding: bool
-            Do not round the simulation to the infered precision of the 
-            reference. The infered precision is the minimum difference between
-            two values with in the entire data
-            """
-        self._quantiles = quantiles
-        self._round = not no_rounding
-        return super(QuantileEvaluation, self).run(*args, **kwargs)
-        
+
+    def setup_from_scratch(self):
+        df_ref = self.prepare.reference_data
+        # create simulation dataframe
+        df_sim = self.output.data
+        names = self.names
+        # load observed precision
+        if self.task_config.no_rounding:
+            for name in set(names) - {'mean_cloud'}:
+                df_sim[name].values[:] = self.round_to_ref_prec(
+                    df_ref[name].values, df_sim[name].values)
+        # merge reference and simulation into one single dataframe
+        df = df_ref.merge(df_sim, left_index=True, right_index=True,
+                          suffixes=['_ref', '_sim'])
+        if 'mean_cloud' in names:
+            from gwgen.parameterization import CloudParameterizerBase
+            # mask out non-complete months for cloud validation
+            df_map = CloudParameterizerBase.eecra_ghcn_map()  # idx col: id
+            df_map['complete'] = True
+            df.reset_index(['year', 'month', 'day'], inplace=True)  # idx id
+            df = df.merge(df_map, left_index=True, right_index=True)
+            cloud_names = ['mean_cloud_ref', 'mean_cloud_sim']
+            df.ix[df.complete.isnull(), cloud_names] = np.nan
+            df.set_index(['year', 'month', 'day'], append=True, inplace=True)
+        # calculate the percentiles for each station and month
+        g = df.sort_index().groupby(level=['id', 'year'])
+        data = g.apply(self.calc)
+        if len(data):
+            data.index = data.index.droplevel(2)
+        self.data = data
+
     @classmethod
     def _modify_parser(cls, parser):
-        parser.setup_args(super(QuantileEvaluation, cls).run)
-        parser.update_arg('quantiles', short='q')
-        super(QuantileEvaluation, cls)._modify_parser(parser)
-        
+        parser.setup_args(default_quantile_config)
+        parser, setup_grp, run_grp = super(
+            QuantileEvaluation, cls)._modify_parser(parser)
+        parser.update_arg('quantiles', short='q', group=run_grp)
+        parser.update_arg('no_rounding', short='nr', group=run_grp)
+        return parser, setup_grp, run_grp
+
     def create_project(self, ds):
         import psyplot.project as psy
         import seaborn as sns
@@ -550,10 +472,10 @@ class QuantileEvaluation(Evaluator):
         for vref, vsim in self.all_variables:
             self.logger.debug('Creating plots of %s', vsim)
             kwargs = dict(precision=0.1) if vref.startswith('prcp') else {}
-            psy.plot.densityreg(ds, name=vsim, coord=vref, fmt=self.fmt, 
+            psy.plot.densityreg(ds, name=vsim, coord=vref, fmt=self.fmt,
                                 pctl=range(ds.pctl.size), **kwargs)
         return psy.gcp(True)[:]
-        
+
     def make_run_config(self, sp, info):
         for orig in self.names:
             info[orig] = d = OrderedDict()
@@ -564,7 +486,6 @@ class QuantileEvaluation(Evaluator):
                         if val is not None:
                             pctl_d[key] = float(val)
         return info
-                
 
     def calc(self, group):
         def calc_percentiles(vname):
@@ -573,21 +494,21 @@ class QuantileEvaluation(Evaluator):
             if vname.startswith('prcp'):  # or vname.startswith('cloud'):
                 arr = arr[arr > 0]
             if len(arr) == 0:
-                return np.array([np.nan] * len(self._quantiles))
+                return np.array([np.nan] * len(quantiles))
             else:
-                return np.percentile(arr, self._quantiles)
+                return np.percentile(arr, quantiles)
+        quantiles = self.task_config.quantiles
         df = pd.DataFrame.from_dict(dict(zip(
-            chain(*self.all_variables), map(calc_percentiles, 
-                                            chain(*self.all_variables)
-            ))))
-        df['pctl'] = self._quantiles
+            chain(*self.all_variables), map(calc_percentiles,
+                                            chain(*self.all_variables)))))
+        df['pctl'] = quantiles
         df.set_index('pctl')
         return df
-            
+
     @staticmethod
     def round_to_ref_prec(ref, sim, func=np.ceil):
         """Round one array to the precision of another
-        
+
         Parameters
         ----------
         ref: np.ndarray
@@ -596,7 +517,7 @@ class QuantileEvaluation(Evaluator):
             The simulated array to round
         func: function
             The rounding function to use
-            
+
         Returns
         -------
         np.ndarray
@@ -604,15 +525,17 @@ class QuantileEvaluation(Evaluator):
         ref_sorted = np.unique(ref)
         precision = (ref_sorted[1:] - ref_sorted[:-1]).min()
         return func((sim / precision) * precision)
-        
-        
+
+
 class KSEvaluation(QuantileEvaluation):
     """Evaluation using a Kolmogorov-Smirnoff test"""
-    
+
     name = 'ks'
-    
+
     summary = 'Perform a kolmogorov smirnoff test'
-    
+
+    requires = ['prepare', 'output']
+
     @staticmethod
     def calc(group):
         def calc(v1, v2, name):
@@ -653,52 +576,96 @@ class KSEvaluation(QuantileEvaluation):
                    (tmin_sim, tmin_ref, 'tmin'),
                    (tmax_sim, tmax_ref, 'tmax'),
                    (cloud_sim, cloud_ref, 'mean_cloud')])))))
-        
-    
-    def run(self):
+
+    def run(self, info):
         """Run the evaluation
-        
-        Returns
-        -------
-        dict
+
+        Parameters
+        ----------
+        info: dict
             The percentage of stations with no significant difference"""
         def significance_fractions(vname):
             return 100. - (len(df[vname][df[vname].notnull() & (df[vname])]) /
                            df[vname].count())*100.
-        logger = self.logger                       
+        logger = self.logger
         logger.info('Calculating %s evaluation', self.name)
-        
-        ret = OrderedDict()
+
         df = self.data
         names = ['prcp', 'tmin', 'tmax', 'mean_cloud']
         for name in names:
-            ret[name] = float(significance_fractions(name))
-        
-        if self.logger.isEnabledFor(logging.DEBUG):
+            info[name] = float(significance_fractions(name))
+
+        if logger.isEnabledFor(logging.DEBUG):
             logger.debug('Done. Stations without significant difference:')
-            for name, val in ret.items():
+            for name, val in info.items():
                 logger.debug('    %s: %6.3f %%' % (name, val))
-        return ret
-        
+
     @classmethod
     def _modify_parser(cls, parser):
         pass
-    
+
 
 class SimulationQuality(Evaluator):
-    """Evaluator to provide one value characterizing the quality of the 
+    """Evaluator to provide one value characterizing the quality of the
     experiment
-    
-    The applied metric follows the formula
-    
+
+    The applied metric is the mean of
+
     .. math::
-        
-        m = \prod_{q\in Q}[(1 - R^2_q)|1 - a_q|] \cdot ks
-        
-    where :math:`q\in Q` are the quantiles from the quantile evaluation, 
-    :math:`R^2_q` the coefficient of determination and :math:`a_q` the slope
-    of quantile :math:`q`. In other words, it is the multiplication of the
-    coefficients of determination, the deviation from the ideal slope 
-    (:math:`a_q == 1`) and a 100 % aggreement."""
-    
-    pass
+        m = \\left<\{\\left<\{R^2_q\}_{q\in Q}\\right>,
+                     \\left<\{1 - |1 - a_q|\}_{q\in Q}\\right>,
+                     \{ks\}\}\\right>
+
+    where :math:`\\left<\\right>` denotes the mean of the enclosed set,
+    :math:`q\in Q` are the quantiles from the quantile evaluation,
+    :math:`R^2_q` the corresponding coefficient of determination and
+    :math:`a_q` the slope of quantile :math:`q`. :math:`ks` denotes the
+    fraction of stations that do not differ significantly from the observations
+    according to the ks test.
+
+    In other words, this quality estimate is the mean of the
+
+        1. coefficients of determination
+        2. the deviation from the ideal slope (:math:`a_q == 1`) and
+        3. the fraction of stations that do not differ significantly
+
+    Hence, a value of 1 mean high quality, a value of 0 low quality"""
+
+    name = 'quality'
+
+    summary = 'Estimate simulation quality using ks and quantile evaluation'
+
+    has_run = True
+
+    @classmethod
+    def _modify_parser(cls, parser):
+        return parser, None, None
+
+    def setup_from_scratch(self):
+        """Only sets an empty dataframe"""
+        self.data = pd.DataFrame([])
+
+    def run(self, info):
+        logger = self.logger
+        logger.info('Calculating %s evaluation', self.name)
+        quants_info = self.config['evaluation'].get('quants')
+        ks_info = self.config['evaluation'].get('ks')
+        missing = []
+        if quants_info is None:
+            missing.append('quants task')
+        if ks_info is None:
+            missing.append('ks task')
+        if missing:
+            raise ValueError("%s requires that %s has been run before!" % (
+                self.name, ' and '.join(missing)))
+        for v, v_ks in ks_info.items():
+            df = pd.DataFrame(quants_info[v])
+            slope = float((1 - np.abs(1 - df.loc['slope'].values)).mean())
+            rsquared = float(df.loc['rsquared'].values.mean())
+            info[v] = OrderedDict([
+                ('rsquared', rsquared), ('slope', slope), ('ks', v_ks / 100.),
+                ('quality', float(np.mean([rsquared, slope, v_ks / 100.])))])
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug('Simulation quality:')
+            for name, val in info.items():
+                logger.debug('    %s: %6.3f' % (name, val['quality']))
