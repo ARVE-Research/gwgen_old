@@ -315,6 +315,7 @@ def append_doc(namedtuple_cls, doc):
         class DocNamedTuple(namedtuple_cls):
             __doc__ = namedtuple_cls.__doc__ + doc
             __slots__ = ()
+        DocNamedTuple.__name__ = namedtuple_cls.__name__
         return DocNamedTuple
 
 

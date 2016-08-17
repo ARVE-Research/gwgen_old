@@ -27,7 +27,7 @@ handlers:
 
         level: DEBUG
 
-        formatter: full
+        formatter: simple
 
         stream: ext://sys.stdout
 
@@ -39,6 +39,6 @@ loggers:
 
         propagate: False
 
-        level: INFO
+        level: DEBUG
 
 ...

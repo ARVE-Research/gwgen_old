@@ -1249,7 +1249,8 @@ class ModelOrganizer(object):
                     base = copy.deepcopy(self.config.experiments)
                     if not complete:
                         base[current]['id'] = current
-                        base[current].move_to_end('id', last=False)
+                        if six.PY3:
+                            base[current].move_to_end('id', last=False)
                 else:
                     base = self.config.experiments
             else:

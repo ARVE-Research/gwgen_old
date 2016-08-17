@@ -171,7 +171,7 @@ class SensitivityAnalysis(object):
         organizer.start(setup=dict(
             root_dir=root_dir, modelname=modelname, link=link,
             src_model=self.organizer.modelname))
-        if not no_move:
+        if not six.PY2 and not no_move:
             utils.ordered_move(organizer.config.models, modelname,
                                self.organizer.modelname)
 
@@ -489,7 +489,7 @@ SensitivityPlotConfig = namedtuple(
     'SensitivityPlotConfig',
     ('sa', 'indicators', 'variables', 'meta') + utils.TaskConfig._fields)
 
-SensitivityPlotConfig.__doc__ += """
+SensitivityPlotConfig = utils.append_doc(SensitivityPlotConfig, """
 Parameters
 ----------
 sa: SensitivityAnalysis
@@ -501,7 +501,7 @@ variables: str or list of str
 meta: dict
     Alternative meta information for the data set
 %(TaskConfig.parameters)s
-"""
+""")
 
 
 class SensitivityPlot(utils.TaskBase):

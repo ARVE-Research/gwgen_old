@@ -9,10 +9,14 @@ import numpy as np
 import tempfile
 from gwgen.main import ModelOrganizer
 import gwgen.utils as utils
+from gwgen.config import setup_logging
+
+test_root = osp.abspath(osp.dirname(__file__))
+
+_test_stations = osp.join(test_root, 'test_stations.dat')
 
 
-_test_stations = osp.abspath(
-    osp.join(osp.dirname(__file__), 'test_stations.dat'))
+setup_logging(osp.join(test_root, 'logging.yaml'))
 
 
 class BaseTest(unittest.TestCase):
@@ -119,7 +123,7 @@ class BaseTest(unittest.TestCase):
 
 # check if we are online by trying to connect to google
 try:
-    BaseTest._test_url('https://www.google.de', timeout=1)
+    BaseTest._test_url('https://www.google.de')
     online = True
 except:
     online = False
