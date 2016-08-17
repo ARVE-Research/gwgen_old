@@ -36,8 +36,7 @@ def configuration(parent_package='', top_path=None):
 
     return config
 
-install_requires = ['numpy', 'PyYAML', 'pandas', 'matplotlib', 'f90nml',
-                    'psyplot', 'scipy']
+install_requires = ['f90nml', 'psyplot', 'scipy']
 
 if six.PY2:
     install_requires.append('argparse')
