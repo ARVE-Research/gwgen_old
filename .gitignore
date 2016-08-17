@@ -69,5 +69,4 @@ target/
 *.o
 
 # test files
-tests/eecra
 tests/ghcn/ghcnd-stations.txt
