@@ -1,6 +1,7 @@
 from setuptools import find_packages
 from numpy.distutils.core import Extension, setup
 import sys
+import six
 import os.path as osp
 
 parseghcnrow = Extension(
@@ -35,6 +36,12 @@ def configuration(parent_package='', top_path=None):
 
     return config
 
+install_requires = ['numpy', 'PyYAML', 'pandas', 'matplotlib', 'f90nml',
+                    'psyplot', 'scipy']
+
+if six.PY2:
+    install_requires.append('argparse')
+
 
 setup(name='gwgen',
       version='0.0.1.dev0',
@@ -64,16 +71,7 @@ setup(name='gwgen',
       author_email='philipp.sommer@unil.ch',
       license="GPLv2",
       packages=find_packages(exclude=['docs', 'tests*', 'examples']),
-      install_requires=[
-          'numpy',
-          'PyYAML',
-          'pandas',
-          'matplotlib',
-          'f90nml',
-          'psyplot',
-          'scipy',
-          'argparse',
-      ],
+      install_requires=install_requires,
       package_data={'gwgen': [
           'gwgen/src/*',
           'gwgen/data/*',
