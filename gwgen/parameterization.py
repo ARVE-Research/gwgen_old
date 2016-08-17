@@ -1564,6 +1564,13 @@ class CloudParameterizer(CompleteMonthlyCloud):
         'cldf_sd_w': 'sd_cloud_wet.a_err',
         'cldf_sd_d': 'sd_cloud_dry.a_err'}
 
+    @property
+    def sql_dtypes(self):
+        import sqlalchemy
+        ret = super(CloudParameterizer, self).sql_dtypes
+        ret['wet_day'] = sqlalchemy.REAL
+        return ret
+
     def setup_from_file(self, *args, **kwargs):
         kwargs['index_col'] = ['id', 'month']
         return Parameterizer.setup_from_file(self, *args, **kwargs)
