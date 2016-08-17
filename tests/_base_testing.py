@@ -37,11 +37,13 @@ class BaseTest(unittest.TestCase):
                                       osp.basename(_test_stations))
         shutil.copyfile(_test_stations, self.stations_file)
         self.organizer = ModelOrganizer('gwgen')
-        self.organizer.config.global_config['data'] = osp.dirname(__file__)
-        self.organizer.config.global_config['use_relative_links'] = False
+        global_conf = self.organizer.config.global_config
+        global_conf['data'] = osp.dirname(__file__)
+        global_conf['use_relative_links'] = False
+        global_conf['TaskManager.raise_on_error'] = True
         if use_db:
             self._clear_db()
-            self.organizer.config.global_config['database'] = 'travis_ci_test'
+            global_conf['database'] = 'travis_ci_test'
 
     def tearDown(self):
         if osp.exists(self.test_dir):

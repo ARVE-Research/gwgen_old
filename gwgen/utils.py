@@ -1,3 +1,4 @@
+from __future__ import division
 import inspect
 import os
 import os.path as osp
@@ -1628,7 +1629,10 @@ class TaskManager(object):
             if len(instance.stations):
                 try:
                     instance.setup()
-                except:
+                except Exception as e:
+                    if not self.config.get('serial') or self.config.get(
+                            'TaskManager.raise_on_error'):
+                        raise
                     fname = stations[0] + '.dat'
                     self.logger.error(
                         'Failed to setup %s task for %i stations! '
