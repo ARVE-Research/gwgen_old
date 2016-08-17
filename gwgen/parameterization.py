@@ -1570,7 +1570,7 @@ class CloudParameterizer(CompleteMonthlyCloud):
 
     def setup_from_db(self, *args, **kwargs):
         kwargs['index_col'] = ['id', 'month']
-        return super(CloudParameterizer, self).setup_from_db(*args, **kwargs)
+        return Parameterizer.setup_from_db(self, *args, **kwargs)
 
     @property
     def ds(self):
@@ -1599,7 +1599,7 @@ class CloudParameterizer(CompleteMonthlyCloud):
     def setup_from_scratch(self):
         g = self.cmonthly_cloud.data.groupby(level=['id', 'month'])
         data = g.mean()
-        cols = [col for col in data.columns if not col.endswith('_complete')]
+        cols = [col for col in data.columns if '_complete' not in col]
         self.data = data[cols]
 
     @docstrings.dedent
