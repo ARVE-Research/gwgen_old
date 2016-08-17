@@ -295,7 +295,7 @@ class SensitivityAnalysis(object):
                 repeat(ranges.keys()), product(*ranges.values())))):
             experiment = utils.get_next_name(experiment)
             organizer.init(modelname=self.modelname, experiment=experiment)
-            if not no_move:
+            if not six.PY2 and not no_move:
                 utils.ordered_move(organizer.config.experiments, experiment,
                                    self.experiment)
             organizer.exp_config['namelist'] = {'weathergen_ctl': d.copy()}
@@ -379,7 +379,7 @@ class SensitivityAnalysis(object):
                     organizer.start(init=dict(
                         modelname=self.modelname, experiment=experiment,
                         description=base_description.format(*combined)))
-                    if not no_move:
+                    if not six.PY2 and not no_move:
                         utils.ordered_move(
                             organizer.config.experiments, experiment,
                             self.experiment)
