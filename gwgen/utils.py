@@ -307,10 +307,21 @@ def _requirement_property(requirement):
         get_x, doc=requirement + " parameterization instance")
 
 
+def append_doc(namedtuple_cls, doc):
+    if six.PY3:
+        namedtuple_cls.__doc__ += doc
+        return namedtuple_cls
+    else:
+        class DocNamedTuple(namedtuple_cls):
+            __doc__ = namedtuple_cls + doc
+            __slots__ = ()
+        return DocNamedTuple
+
+
 _SetupConfig = namedtuple(
     '_SetupConfig', ['setup_from', 'to_csv', 'to_db', 'remove'])
 
-_SetupConfig.__doc__ += docstrings.get_sections("""
+_SetupConfig = append_doc(_SetupConfig, docstrings.get_sections("""
 Configuration for the setup of tasks via their :meth:`~TaskBase.setup`
 
 Parameters
@@ -334,14 +345,14 @@ to_db: bool
     If True, the data at setup will be written to into a database
 remove: bool
     If True and the old data file already exists, remove before writing to it
-""", '_SetupConfig')
+""", '_SetupConfig'))
 
 
 _RunConfig = namedtuple(
     '_RunConfig',
     ['plot_output', 'nc_output', 'project_output', 'new_project', 'project'])
 
-_RunConfig.__doc__ += docstrings.get_sections("""
+_RunConfig = append_doc(_RunConfig, docstrings.get_sections("""
 Configuration for the run of tasks via their :meth:`~TaskBase.setup`
 
 Parameters
@@ -358,19 +369,19 @@ new_project: bool
     exists already
 project: str
     The path to a psyplot project file to use for this parameterization
-""", '_RunConfig')
+""", '_RunConfig'))
 
 TaskConfig = namedtuple(
     'TaskConfig', _SetupConfig._fields + _RunConfig._fields)
 
-TaskConfig.__doc__ += docstrings.get_sections(docstrings.dedents("""
+TaskConfig = append_doc(TaskConfig, docstrings.get_sections(docstrings.dedents("""
 Configuration of tasks for their :meth:`~TaskBase.setup` and
 :meth:`~TaskBase.run` methods.
 
 Parameters
 ----------
 %(_SetupConfig.parameters)s
-%(_RunConfig.parameters)s"""), 'TaskConfig')
+%(_RunConfig.parameters)s"""), 'TaskConfig'))
 
 
 @docstrings.dedent
@@ -419,15 +430,14 @@ _file_locks = {}
 def enhanced_config(config_cls, name):
     ret = namedtuple(name, config_cls._fields + TaskConfig._fields)
 
-    ret.__doc__ += docstrings.get_sections(docstrings.dedents("""
+    return append_doc(ret, docstrings.get_sections(docstrings.dedents("""
         Configuration of the :class:`EvaluationPreparation` class
 
         Parameters
         ----------
         %({}.parameters)s
         %(TaskConfig.parameters)s
-        """.format(config_cls.__name__)), name)
-    return ret
+        """.format(config_cls.__name__)), name))
 
 
 @six.add_metaclass(TaskMeta)

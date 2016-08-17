@@ -215,7 +215,8 @@ class DailyGHCNData(Parameterizer):
 
 _DailyGHCNConfig = namedtuple('_DailyGHCNConfig', ['download'])
 
-_DailyGHCNConfig.__doc__ += docstrings.get_sections("""
+_DailyGHCNConfig = utils.append_doc(
+    _DailyGHCNConfig, docstrings.get_sections("""
 Parameters
 ----------
 download: { 'single' | 'all' | None }
@@ -224,7 +225,7 @@ download: { 'single' | 'all' | None }
     Otherwise, if ``'single'``, download the missing file from %s. If ``'all'``
     the entire tarball is downloaded from %s
 """ % (DailyGHCNData.http_single, DailyGHCNData.http_source),
-    '_DailyGHCNConfig')
+        '_DailyGHCNConfig'))
 
 
 DailyGHCNConfig = utils.enhanced_config(_DailyGHCNConfig, 'DailyGHCNConfig')
@@ -412,14 +413,14 @@ class YearlyCompleteDailyGHCNData(CompleteDailyGHCNData):
 
 _PrcpConfig = namedtuple('_PrcpConfig', ['thresh', 'threshs2compute'])
 
-_PrcpConfig.__doc__ += docstrings.get_sections("""
+_PrcpConfig = utils.append_doc(_PrcpConfig, docstrings.get_sections("""
 Parameters
 ----------
 thresh: float
     The threshold to use for the configuration
 threshs2compute: list of floats
     The thresholds to compute during the setup of the data
-""", '_PrcpConfig')
+""", '_PrcpConfig'))
 
 
 PrcpConfig = utils.enhanced_config(_PrcpConfig, 'PrcpConfig')

@@ -30,7 +30,8 @@ _PreparationConfigBase = namedtuple('_PreparationConfigBase',
                                     ['setup_raw', 'raw2db', 'raw2csv',
                                      'reference', 'input_path'])
 
-_PreparationConfigBase.__doc__ += docstrings.get_sections("""
+_PreparationConfigBase = utils.append_doc(
+    _PreparationConfigBase, docstrings.get_sections("""
 Parameters
 ----------
 setup_raw: { 'scratch' | 'file' | 'db' | None }
@@ -59,7 +60,7 @@ input_path: str
     already set in the configuration, it will default to
     ``'inputdir/input.csv'`` where *inputdir* is the path to the input
     directory (by default, *input* in the experiment directory)
-""", '_PreparationConfigBase')
+""", '_PreparationConfigBase'))
 
 
 PreparationConfig = utils.enhanced_config(_PreparationConfigBase,
@@ -329,7 +330,7 @@ class OutputTask(Evaluator):
 _QuantileConfig = namedtuple('_QuantileConfig', ['quantiles', 'no_rounding'])
 
 
-_QuantileConfig.__doc__ += docstrings.get_sections("""
+_QuantileConfig = utils.append_doc(_QuantileConfig, docstrings.get_sections("""
 Parameters
 ----------
 quantiles: list of floats
@@ -337,7 +338,7 @@ quantiles: list of floats
 no_rounding: bool
     Do not round the simulation to the infered precision of the
     reference. The inferred precision is the minimum difference between
-    two values with in the entire data""", '_QuantileConfig')
+    two values with in the entire data""", '_QuantileConfig'))
 
 
 QuantileConfig = utils.enhanced_config(_QuantileConfig, 'QuantileConfig')
