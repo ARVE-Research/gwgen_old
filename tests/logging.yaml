@@ -27,7 +27,7 @@ handlers:
 
         level: DEBUG
 
-        formatter: simple
+        formatter: full
 
         stream: ext://sys.stdout
 
