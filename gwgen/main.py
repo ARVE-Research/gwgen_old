@@ -248,7 +248,7 @@ class ModelOrganizer(object):
 
     commands = ['setup', 'compile_model', 'init', 'unarchive', 'configure',
                 'set_value', 'get_value', 'del_value', 'info',
-                'select', 'param', 'run', 'evaluate', 'sensitivity_analysis',
+                'preproc', 'param', 'run', 'evaluate', 'sensitivity_analysis',
                 'archive', 'remove']
 
     #: mapping from the name of the parser command to the method name. Will be
@@ -1552,6 +1552,72 @@ class ModelOrganizer(object):
     # -------------- Preprocessing functions for the experiment ---------------
     # -------------------------------------------------------------------------
 
+    @property
+    def preproc_funcs(self):
+        """A mapping from preproc commands to the corresponding function"""
+        from gwgen.preproc import CloudGHCNMap
+        return {'select': self.select,
+                CloudGHCNMap.name: self.cloud_ghcn_map}
+
+    @docstrings.dedent
+    def preproc(self, **kwargs):
+        """
+        Preprocess the data
+
+        Parameters
+        ----------
+        ``**kwargs``
+            Any keyword from the :attr:`preproc` attribute with kws for the
+            corresponding function, or any keyword for the :meth:`main` method
+        """
+        funcs = self.preproc_funcs
+        sp_kws = {key: kwargs.pop(key) for key in set(kwargs).intersection(
+            funcs)}
+        self.main(**kwargs)
+        exp_config = self.fix_paths(self.exp_config)
+        outdir = exp_config.setdefault('indir', osp.join(
+            exp_config['expdir'], 'input'))
+        if not osp.exists(outdir):
+            os.makedirs(outdir)
+
+        preproc_config = exp_config.setdefault('preproc', OrderedDict())
+
+        for key, val in sp_kws.items():
+            if isinstance(val, Namespace):
+                val = vars(val)
+            info = funcs[key](**val)
+            if info:
+                preproc_config[key] = info
+
+    def _modify_preproc(self, parser):
+        from gwgen.preproc import CloudGHCNMap
+        self._modify_main(parser)
+        sps = parser.add_subparsers(title='Preprocessing tasks', chain=True)
+        # select
+        sp = sps.add_parser(
+            'select', help='Select stations based upon a regular grid')
+        sp.setup_args(self.select)
+        sp.update_arg('grid', short='g')
+        sp.update_arg('grid_output', short='og')
+        sp.update_arg('stations_output', short='os')
+        sp.update_arg('igrid_key', short='k')
+        sp.update_arg('grid_key', short='ok')
+        sp.update_arg('grid_db', short='gdb')
+        sp.update_arg('stations_db', short='sdb')
+        sp.update_arg('no_prcp_check', short='nc')
+        sp.update_arg('setup_from', short='f', long='from',
+                      dest='setup_from')
+        sp.update_arg('download', short='d', choices=['single', 'all'])
+        sp.create_arguments()
+
+        sp = sps.add_parser(
+            CloudGHCNMap.name, help=CloudGHCNMap.summary)
+        sp.setup_args(self.cloud_ghcn_map)
+        sp.update_arg('max_files', short='mf', type=int)
+        CloudGHCNMap._modify_parser(sp)
+        sp.create_arguments()
+        return parser
+
     # ------------------------------- Selection -------------------------------
 
     def _prcp_check(self, series):
@@ -1659,11 +1725,7 @@ class ModelOrganizer(object):
         import scipy.spatial
         import pandas as pd
 
-        self.main(**kwargs)
-
         logger = self.logger
-        self.fix_paths(self.exp_config)
-        self.fix_paths(self.model_config)
 
         if grid is None:
             if igrid_key is not None:
@@ -1787,19 +1849,36 @@ class ModelOrganizer(object):
 
         return df_stations, merged
 
-    def _modify_select(self, parser):
-        parser.update_arg('grid', short='g')
-        parser.update_arg('grid_output', short='og')
-        parser.update_arg('stations_output', short='os')
-        parser.update_arg('igrid_key', short='k')
-        parser.update_arg('grid_key', short='ok')
-        parser.update_arg('grid_db', short='gdb')
-        parser.update_arg('stations_db', short='sdb')
-        parser.update_arg('no_prcp_check', short='nc')
-        parser.update_arg('setup_from', short='f', long='from',
-                          dest='setup_from')
-        parser.update_arg('download', short='d', choices=['single', 'all'])
-        return parser
+    # --------------------------- Cloud inventory -----------------------------
+
+    def cloud_ghcn_map(self, max_files=None, **kwargs):
+        """
+        Extract the inventory of EECRA stations
+
+        Parameters
+        ----------
+        max_files: int
+            The maximum number of files to process during one process. If None,
+            it is determined by the global ``'max_stations'`` key
+        ``**kwargs``
+            Any keyword for the :class:`gwgen.preproc.CloudGHCNMap` class
+        """
+        from gwgen.preproc import CloudGHCNMap
+        from gwgen.parameterization import HourlyCloud
+        stations_orig = self.global_config.get('max_stations')
+        if max_files is not None:
+            self.global_config['max_stations'] = max_files
+        files = HourlyCloud.from_organizer(self, []).raw_src_files
+        manager = CloudGHCNMap.get_manager(config=self.global_config)
+        self._setup_manager(manager, stations=list(files.values()),
+                            base_kws={CloudGHCNMap.name: kwargs})
+        d = {}
+        manager.run(d)
+        if stations_orig:
+            self.global_config['max_stations'] = stations_orig
+        else:
+            self.global_config.pop('max_stations')
+        return d.get(CloudGHCNMap.name)
 
     # --------------------------- Parameterization ----------------------------
 
@@ -2066,7 +2145,12 @@ class ModelOrganizer(object):
         main_kws = {
             key: kwargs[key] for key in set(kwargs).difference(sa_func_map)}
         self.main(**main_kws)
+        # to make sure, we already called the choose the right experiment and
+        # modelname
+        experiment = self.experiment
         sa = SensitivityAnalysis(self)
+        self.fix_paths(self.exp_config)
+        self.fix_paths(self.model_config)
         for key, val in sensitivity_kws.items():
             if isinstance(val, Namespace):
                 val = vars(val)
@@ -2453,7 +2537,7 @@ class ModelOrganizer(object):
                 self._link(fname_use, fname)
             stations = np.loadtxt(
                 fname, dtype='S11', usecols=[0]).astype(np.str_)
-        else:
+        elif len(stations):
             np.savetxt(fname, stations, fmt='%s')
         if not exp_dict.get(config_key) or not osp.samefile(
                 fname, exp_dict[config_key]):
