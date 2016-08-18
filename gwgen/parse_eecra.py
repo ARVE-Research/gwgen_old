@@ -1,4 +1,5 @@
 # -*- codng: utf-8 -*-
+import re
 import os.path as osp
 import numpy as np
 import pandas as pd
@@ -37,7 +38,7 @@ names = [
     'IP']
 
 
-def parse_file(ifile, year):
+def parse_file(ifile, year=None):
     """Parse a raw data file from EECRA and as a pandas DataFrame
 
     Parameters
@@ -51,6 +52,13 @@ def parse_file(ifile, year):
     -------
     pandas.DataFrame
         `ifile` parsed into a dataframe"""
+    if year is None:
+        m = re.match(r'\w{3}(\d{2})L', osp.basename(ifile))
+        if not m:
+            raise TypeError(
+                "parse_file() missing 1 required positional argument: 'year'")
+        year = int(m.group(1))
+        year += 1900 if year > 60 else 2000
     df = pd.DataFrame.from_dict(OrderedDict(
         zip(names, parseeecra.parse_file(ifile, year, file_len(ifile)))))
     return df
