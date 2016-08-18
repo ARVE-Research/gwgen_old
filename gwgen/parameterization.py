@@ -1084,16 +1084,18 @@ class CloudParameterizerBase(Parameterizer):
         self.logger.debug('Using %i cloud stations in the %i given stations',
                           len(self._stations), Norig)
 
-    @staticmethod
-    def eecra_ghcn_map():
+    def eecra_ghcn_map(self):
         """Get a dataframe mapping from GHCN id to EECRA station_id"""
         cls = CloudParameterizerBase
         try:
             return cls._eecra_ghcn_map
         except AttributeError:
-            cls._eecra_ghcn_map = pd.read_csv(osp.join(
-                utils.get_module_path(inspect.getmodule(cls)), 'data',
-                'eecra_ghcn_map.csv'), index_col='id')
+            fname = osp.join(self.data_dir, 'eecra_ghcn_map.csv')
+            if not osp.exists(fname):
+                fname = osp.join(
+                    utils.get_module_path(inspect.getmodule(cls)), 'data',
+                    'eecra_ghcn_map.csv')
+            cls._eecra_ghcn_map = pd.read_csv(fname, index_col='id')
         return cls._eecra_ghcn_map
 
     @classmethod
