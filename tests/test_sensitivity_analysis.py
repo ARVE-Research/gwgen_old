@@ -22,9 +22,11 @@ class SensitivityAnalysisTest(bt.BaseTest):
 
     def test_init(self):
         self.test_setup()
+        experiment = self.organizer.experiment
         self.organizer.exp_config['eval_stations'] = self.stations_file
         self.organizer.parse_args(
-            'sens init -nml thresh,13,16 gp_shape,0.1,1.1,0.3'.split())
+            '-id {} sens init -nml thresh,13,16 gp_shape,0.1,1.1,0.3'.format(
+                experiment).split())
         modelname = self.modelname
         threshs = np.arange(13, 16)
         shapes = np.arange(0.1, 1.1, 0.3)
@@ -42,12 +44,13 @@ class SensitivityAnalysisTest(bt.BaseTest):
 
     def test_init_and_param(self):
         self.test_setup()
+        experiment = self.organizer.experiment
         self.organizer.exp_config['eval_stations'] = self.stations_file
         self.organizer.exp_config['param_stations'] = self.stations_file
         n_shape = 2
         self.organizer.parse_args(
-            'sens init -nml thresh,10,16,5 gp_shape,-1err,1err,{}'.format(
-                n_shape).split())
+            '-id {} sens init -nml thresh,10,16,5 gp_shape,-1err,1err,{}'.format(
+                experiment, n_shape).split())
         modelname = self.modelname
         threshs = np.arange(10, 16, 5)
         _, threshs = np.meshgrid(range(n_shape + 1), threshs)
@@ -79,7 +82,8 @@ class SensitivityAnalysisTest(bt.BaseTest):
 
     def test_compile_model(self):
         self.test_setup()
-        self.organizer.sensitivity_analysis(compile={})
+        self.organizer.sensitivity_analysis(
+            compile={}, experiment=self.organizer.experiment)
         binpath = osp.join(self.test_dir, self.modelname, 'bin', 'weathergen')
         self.assertTrue(osp.exists(binpath),
                         msg='binary %s does not exist!' % binpath)
@@ -89,7 +93,8 @@ class SensitivityAnalysisTest(bt.BaseTest):
             self.test_init_and_param()
         else:
             self.test_init()
-        self.organizer.sensitivity_analysis(compile={}, run={})
+        self.organizer.sensitivity_analysis(
+            compile={}, run={}, experiment=self.organizer.experiment)
         modelname = self.modelname
         all_exps = self.organizer.config.experiments
         exp_names = [exp_id for exp_id in all_exps
@@ -108,7 +113,9 @@ class SensitivityAnalysisTest(bt.BaseTest):
         orig_serial = self.organizer.global_config.get('serial')
         # parallel does not work due to matplotlib
         self.organizer.global_config['serial'] = True
-        self.organizer.sensitivity_analysis(evaluate={'quants': {}, 'ks': {}})
+        self.organizer.sensitivity_analysis(
+            evaluate={'quants': {}, 'ks': {}},
+            experiment=self.organizer.experiment)
         self.organizer.global_config['serial'] = orig_serial
         modelname = self.modelname
         all_exps = self.organizer.config.experiments
@@ -133,6 +140,7 @@ class SensitivityAnalysisTest(bt.BaseTest):
         plot1d_output = osp.join(self.test_dir, 'plot1d.pdf')
         plot2d_output = osp.join(self.test_dir, 'plot2d.pdf')
         self.organizer.sensitivity_analysis(
+            experiment=self.organizer.experiment,
             evaluate={'quality': {}},
             plot={'plot1d': {'plot_output': plot1d_output},
                   'plot2d': {'plot_output': plot2d_output}})
