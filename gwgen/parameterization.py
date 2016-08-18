@@ -1182,14 +1182,20 @@ class HourlyCloud(CloudParameterizerBase):
     months = range(1, 13)
 
     @property
+    def raw_dir(self):
+        """The directory where we expect the raw files"""
+        return osp.join(self.data_dir, 'raw')
+
+    @property
     def data_dir(self):
         return osp.join(super(HourlyCloud, self).data_dir, 'eecra')
 
     @property
     def raw_src_files(self):
         src_dir = osp.join(self.data_dir, 'raw')
-        return {yrmon: osp.join(src_dir, self.eecra_fname(*yrmon))
-                for yrmon in product(self.years, self.months)}
+        return OrderedDict([
+            (yrmon, osp.join(src_dir, self.eecra_fname(*yrmon)))
+            for yrmon in product(self.years, self.months)])
 
     @property
     def src_files(self):
@@ -1241,7 +1247,7 @@ class HourlyCloud(CloudParameterizerBase):
         logger.debug('Initializing %s', self.name)
         stations = self.stations
         logger.debug('Reading data for %s stations', len(stations))
-        raw_dir = osp.join(self.data_dir, 'raw')
+        raw_dir = self.raw_dir
         stations_dir = osp.join(self.data_dir, 'stations')
         if not osp.isdir(raw_dir):
             os.makedirs(raw_dir)
