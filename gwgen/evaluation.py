@@ -441,11 +441,12 @@ class QuantileEvaluation(Evaluator):
         df = df_ref.merge(df_sim, left_index=True, right_index=True,
                           suffixes=['_ref', '_sim'])
         if 'mean_cloud' in names:
-            from gwgen.parameterization import CloudParameterizerBase
+            from gwgen.parameterization import HourlyCloud
             # mask out non-complete months for cloud validation
-            df_map = CloudParameterizerBase.eecra_ghcn_map()  # idx col: id
+
+            df_map = HourlyCloud.from_task(self).eecra_ghcn_map()  # idx: id
             df_map['complete'] = True
-            df.reset_index(['year', 'month', 'day'], inplace=True)  # idx id
+            df.reset_index(['year', 'month', 'day'], inplace=True)  # idx: id
             df = df.merge(df_map, left_index=True, right_index=True)
             cloud_names = ['mean_cloud_ref', 'mean_cloud_sim']
             df.ix[df.complete.isnull(), cloud_names] = np.nan
