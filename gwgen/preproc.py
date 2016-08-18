@@ -66,6 +66,10 @@ class CloudGHCNMap(utils.TaskBase):
         super(CloudGHCNMap, self).__init__(*args, **kwargs)
         self.__setup = False
 
+    def setup(self, *args, **kwargs):
+        self.__setup = True
+        super(CloudGHCNMap, self).setup(*args, **kwargs)
+
     def init_from_scratch(self):
         from gwgen.parameterization import HourlyCloud
         task = HourlyCloud.from_task(self)
@@ -105,7 +109,7 @@ class CloudGHCNMap(utils.TaskBase):
 
         if use_xstall:
             to_replace = self.xstall_df
-            self.data.loc[to_replace.index, ['lat', 'lon']] = to_replace
+            eecra.loc[to_replace.index, ['lat', 'lon']] = to_replace
 
         t = EvaluationPreparation.from_task(self)
         # download inventory
