@@ -15,7 +15,8 @@ class SensitivityAnalysisTest(bt.BaseTest):
 
     def test_setup(self):
         self._test_init()
-        self.organizer.sensitivity_analysis(setup={})
+        self.organizer.sensitivity_analysis(
+            setup={}, experiment=self.organizer.experiment)
         modelname = self.modelname
         self.assertTrue(osp.exists(
             self.organizer.config.models[modelname]['root']))
@@ -49,8 +50,8 @@ class SensitivityAnalysisTest(bt.BaseTest):
         self.organizer.exp_config['param_stations'] = self.stations_file
         n_shape = 2
         self.organizer.parse_args(
-            '-id {} sens init -nml thresh,10,16,5 gp_shape,-1err,1err,{}'.format(
-                experiment, n_shape).split())
+            ('-id {} sens init -nml thresh,10,16,5 '
+             'gp_shape,-1err,1err,{}').format(experiment, n_shape).split())
         modelname = self.modelname
         threshs = np.arange(10, 16, 5)
         _, threshs = np.meshgrid(range(n_shape + 1), threshs)
