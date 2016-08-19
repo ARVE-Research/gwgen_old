@@ -109,6 +109,8 @@ class CloudGHCNMap(utils.TaskBase):
 
         if use_xstall:
             to_replace = self.xstall_df
+            # keep only matching stations
+            to_replace = to_replace.join(eecra[[]], how='inner')
             eecra.loc[to_replace.index, ['lat', 'lon']] = to_replace
 
         t = EvaluationPreparation.from_task(self)
