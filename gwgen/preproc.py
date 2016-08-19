@@ -21,7 +21,7 @@ class CloudGHCNMap(utils.TaskBase):
 
     http_xstall = 'http://cdiac.ornl.gov/ftp/ndp026c/XSTALL'
 
-    _datafile = ['eecra_inventory.csv', 'eecra_ghcn_map']
+    _datafile = ['eecra_inventory.csv', 'eecra_ghcn_map.csv']
 
     dbname = ['eecra_inventory', 'eecra_ghcn_map']
 
@@ -82,8 +82,8 @@ class CloudGHCNMap(utils.TaskBase):
             return parse_file(fname).groupby('station_id')[
                 ['lat', 'lon', 'year']].mean()
 
-        self._set_data(pd.concat(list(map(compute, self.stations))), 0)
-        self._set_data(pd.DataFrame([], columns=['station_id'],
+        self._set_data(pd.concat(list(map(compute, self.stations[:1]))), 0)
+        self._set_data(pd.DataFrame([], columns=['station_id', 'distance'],
                                     index=pd.Index([], name='id')), 1)
 
     def write2db(self, *args, **kwargs):
@@ -115,6 +115,7 @@ class CloudGHCNMap(utils.TaskBase):
         # download inventory
         t.download_src()
         ghcn = t.station_list
+        ghcn = ghcn.ix[ghcn.vname == 'PRCP']
 
         # transform to a coordinate system with metres as units
         eecra_points = ccrs.Mollweide().transform_points(
@@ -125,17 +126,25 @@ class CloudGHCNMap(utils.TaskBase):
         tree = cKDTree(eecra_points)
         distances, indices = tree.query(
             ghcn_points, distance_upper_bound=self.task_config.max_distance)
-        distances[np.isinf(distances)] = np.nan
-        ghcn['station_id'] = eecra.iloc[indices - 1].index.values
+        out_of_range = np.isinf(distances)
+        distances[out_of_range] = np.nan
+        ghcn['station_id'] = eecra.iloc[indices - 1].index.values.astype(int)
         ghcn['distance'] = distances
-        ghcn.ix[distances.isnull(), 'station_id'] = np.nan
+        ghcn.ix[out_of_range, 'station_id'] = np.nan
 
         # remove duplicates in the station map
         ghcn.sort_values(['station_id', 'distance'], inplace=True)
         ghcn.ix[ghcn.duplicated('station_id'),
                 ['station_id', 'distance']] = np.nan
 
-        self.data = [eecra, ghcn.drop(['lat', 'lon'], 1)]
+        # and unnecessary columns
+        ghcn.drop(['lat', 'lon', 'firstyr', 'lastyr', 'vname'], 1,
+                  inplace=True)
+
+        self.data = [eecra, ghcn]
+
+        if not list(ghcn.index.names) == ['id']:
+            ghcn.reset_index().set_index('id', inplace=True)
 
         if self.task_config.to_csv:
             self.write2file()
