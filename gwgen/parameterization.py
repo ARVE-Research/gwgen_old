@@ -199,7 +199,10 @@ class DailyGHCNData(Parameterizer):
                                                  '.tar.gz')
                 if not osp.exists(tarfname):
                     if download is None:
-                        raise FileNotFoundError(msg)
+                        if six.PY2:
+                            raise IOError(msg)
+                        else:
+                            raise FileNotFoundError(msg)
                     else:
                         logger.debug('    Downloading rawdata from %s',
                                      self.http_source)
@@ -522,7 +525,7 @@ class PrcpDistParams(Parameterizer):
         """Return the data that only belongs to the specified threshold of the
         task"""
         sl = (slice(None), slice(None), self.task_config.thresh)
-        return self.data.loc[sl, :]
+        return self.data.sort_index().loc[sl, :]
 
     @staticmethod
     def prcp_dist_params(
@@ -903,33 +906,20 @@ class TemperatureParameterizer(Parameterizer):
         """The dataframe of this parameterization task converted to a dataset
         """
         import xarray as xr
-        ds = xr.Dataset.from_dataframe(self.data[[
-            col for col in self.data.columns if (
-                col.startswith('tmin') or col.startswith('tmax'))]].set_index(
-                    'tmin'))
-        ds.set_coords('tmax', inplace=True)
-        tmax_variables = [v for v in ds.variables if v.startswith('tmax')]
-        ds_tmax = xr.Dataset.from_dataframe(self.data.set_index('tmax'))
-        ds.tmin.attrs['long_name'] = 'min. temperature'
-        ds.tmax.attrs['long_name'] = 'max. temperature'
-        for v in tmax_variables:
-            ds[v] = ds_tmax.variables[v]
-            ds[v].attrs['units'] = 'degC'
-            ds[v.replace('max', 'min')].attrs['units'] = 'degC'
-        for v, state in product(('tmin', 'tmax'), ('wet', 'dry')):
-            vname = v + '_' + state
-            std = v + 'stddev_' + state
-            coord = 'c_' + vname
-            ds[vname].attrs['long_name'] = 'mean %s. temperature' % (v[1:])
-            ds[coord] = ds[vname].rename({v: coord})
-            ds[std] = ds[std].rename({v: coord}).variable
-            ds[std].attrs['long_name'] = (
-                'std. dev. of %s. temperature' % (v[1:]))
-            for name in [vname, coord, std, v, v + 'stddev']:
-                ds[name].attrs['state'] = state if name != v else 'all'
-                ds[name].attrs['symbol'] = 't_\mathrm{{%s%s%s}}' % (
-                    v[1:], ', sd' if 'stddev' in name else '',
-                    (', ' + state) if name != v else '')
+        cols = [col for col in self.data.columns if (
+                   col.startswith('tmin') or col.startswith('tmax'))]
+        ds = xr.Dataset.from_dataframe(self.data[cols].reset_index())
+        for v, t, state in product(['tmin', 'tmax'], ['stddev', ''],
+                                   ['', 'wet', 'dry']):
+            vname = v + t + (('_' + state) if state else '')
+            varo = ds.variables[vname]
+            what = v[1:]
+            label = 'std. dev.' if t else 'mean'
+            varo.attrs['long_name'] = '%s of %s. temperature' % (label, what)
+            varo.attrs['units'] = 'degC'
+            varo.attrs['symbol'] = 't_\mathrm{{%s%s%s}}' % (
+                what, ', sd' if t else '', (', ' + state) if state else '')
+            varo.attrs['state'] = state or 'all'
         return ds
 
     @staticmethod
@@ -1023,13 +1013,16 @@ class TemperatureParameterizer(Parameterizer):
         variables = ['tmin', 'tmax']
         types = ['', 'stddev']
         for v, t in product(variables, types):
+            base = '%s%s' % (v, t)
             psy.plot.densityreg(
-                ds, name='%s%s_wet' % (v, t), ax=next(axes),
+                ds, name=base + '_wet', ax=next(axes),
+                coord=v if not t else v + '_wet',
                 ylabel='%(long_name)s\non %(state)s days',
                 text=[(middle, 0.03, '%(long_name)s', 'fig', dict(
                      weight='bold', ha='center'))], fmt=self.fmt)
             psy.plot.densityreg(
-                ds, name='%s%s_dry' % (v, t), ax=next(axes),
+                ds, name=base + '_dry', ax=next(axes),
+                coord=v if not t else v + '_dry',
                 ylabel='on %(state)s days', fmt=self.fmt)
         return psy.gcp(True)[:]
 
@@ -1294,7 +1287,8 @@ class HourlyCloud(CloudParameterizerBase):
                          len(missing))
             compressed_fname = fname + '.Z'
             if force or not osp.exists(compressed_fname):
-                utils.download_file(self.get_eecra_url(*yrmon), fname)
+                utils.download_file(self.get_eecra_url(*yrmon),
+                                    compressed_fname)
             spr.call(['gzip', '-d', compressed_fname] + (['-k'] * keep))
 
     def setup_from_file(self, *args, **kwargs):
