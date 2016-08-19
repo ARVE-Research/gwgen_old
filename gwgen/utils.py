@@ -1207,6 +1207,9 @@ class TaskBase(object):
             parser.update_arg('nc_output', short='onc')
             parser.update_arg('project_output', short='op')
             parser.update_arg('new_project', short='np')
+            # XXX Bug fix until docstrings.keep_params works right XXX
+            parser.pop_key('project', 'action', None)
+            # XXX
             parser.update_arg('project', short='p')
         return parser, setup_grp, run_grp
 
