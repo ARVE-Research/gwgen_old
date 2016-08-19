@@ -1877,7 +1877,7 @@ class ModelOrganizer(object):
         if stations_orig:
             self.global_config['max_stations'] = stations_orig
         else:
-            self.global_config.pop('max_stations')
+            self.global_config.pop('max_stations', None)
         return d.get(CloudGHCNMap.name)
 
     # --------------------------- Parameterization ----------------------------
