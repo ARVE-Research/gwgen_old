@@ -551,7 +551,7 @@ class PrcpDistParams(Parameterizer):
             except:
                 self.logger.critical(
                     'Error while calculating GP parameters for %s!',
-                    ', '.join(df.index.get_level_values(n).unique()
+                    ', '.join(str(df.index.get_level_values(n).unique())
                               for n in df.index.names),
                     exc_info=True)
                 tmp = tempfile.NamedTemporaryFile(suffix='.csv').name
@@ -569,7 +569,7 @@ class PrcpDistParams(Parameterizer):
                             self.logger.critical(
                                 'Error while calculating GP parameters for '
                                 '%s!', ', '.join(
-                                    df.index.get_level_values(n).unique()
+                                    str(df.index.get_level_values(n).unique())
                                     for n in df.index.names),
                                 exc_info=True)
                             tmp = tempfile.NamedTemporaryFile(
