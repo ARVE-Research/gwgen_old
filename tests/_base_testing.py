@@ -40,7 +40,6 @@ class BaseTest(unittest.TestCase):
         global_conf = self.organizer.config.global_config
         global_conf['data'] = osp.dirname(__file__)
         global_conf['use_relative_links'] = False
-        global_conf['TaskManager.raise_on_error'] = True
         if use_db:
             self._clear_db()
             global_conf['database'] = 'travis_ci_test'

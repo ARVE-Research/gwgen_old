@@ -1537,9 +1537,6 @@ class TaskManager(object):
         orig_stations = stations
         for i, (key, tasks) in enumerate(grouped):
             self.tasks = tasks
-#            if ret_tasks:
-#                for task in tasks:
-#                    task.set_requirements(ret_tasks)
             if key:
                 logger.info('Processing %s tasks in parallel', len(tasks))
                 # create locks
@@ -1630,19 +1627,7 @@ class TaskManager(object):
             # parameterization) therefore we check again and skip the instance
             # if necessary
             if len(instance.stations):
-                try:
-                    instance.setup()
-                except Exception as e:
-                    if not self.config.get('serial') or self.config.get(
-                            'TaskManager.raise_on_error'):
-                        raise
-                    fname = stations[0] + '.dat'
-                    self.logger.error(
-                        'Failed to setup %s task for %i stations! '
-                        'Saving station names to %s', instance.name,
-                        len(stations), fname, exc_info=True)
-                    np.savetxt(fname, stations, fmt='%s')
-                    break
+                instance.setup()
             else:
                 self.logger.debug(
                     'Skipping %s task because it contains no stations!',
