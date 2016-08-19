@@ -527,9 +527,8 @@ class PrcpDistParams(Parameterizer):
         sl = (slice(None), slice(None), self.task_config.thresh)
         return self.data.sort_index().loc[sl, :]
 
-    @staticmethod
     def prcp_dist_params(
-            df, threshs=np.array([5, 7.5, 10, 12.5, 15, 17.5, 20])):
+            self, df, threshs=np.array([5, 7.5, 10, 12.5, 15, 17.5, 20])):
         from scipy import stats
         vals = df.prcp.values[~np.isnan(df.prcp.values)]
         N = len(threshs)
@@ -546,20 +545,33 @@ class PrcpDistParams(Parameterizer):
             # fit the gamma curve. We fix the (unnecessary) location parameter
             # to improve the result (see
             # http://stackoverflow.com/questions/16963415/why-does-the-gamma-distribution-in-scipy-have-three-parameters)
-            gshape, _, gscale = stats.gamma.fit(vals, floc=0)
-            for i, thresh in enumerate(threshs):
-                arr = vals[vals >= thresh]
-                ngp[i] = len(arr)
-                if ngp[i] > 10:
-                    pshape[i], _, pscale_orig[i] = stats.genpareto.fit(
-                        arr, floc=thresh)
-                    # find the crossover point where the gamma and pareto
-                    # distributions should match this follows
-                    # Neykov et al. (Nat. Hazards Earth Syst. Sci.,
-                    # 14, 2321-2335, 2014) bottom of page 2330 (left column)
-                    pscale[i] = (1 - stats.gamma.cdf(
-                        thresh, gshape, scale=gscale))/stats.gamma.pdf(
-                            thresh, gshape, scale=gscale)
+            try:
+                gshape, _, gscale = stats.gamma.fit(vals, floc=0)
+            except:
+                self.logger.critical(
+                    'Error while calculating gamma parameters for %s!',
+                    self.stations, exc_info=True)
+            else:
+                for i, thresh in enumerate(threshs):
+                    arr = vals[vals >= thresh]
+                    ngp[i] = len(arr)
+                    if ngp[i] > 10:
+                        try:
+                            pshape[i], _, pscale_orig[i] = stats.genpareto.fit(
+                                arr, floc=thresh)
+                        except:
+                            self.logger.critical(
+                                'Error while calculating GP parameters for '
+                                '%s!', self.stations, exc_info=True)
+                        else:
+                            # find the crossover point where the gamma and
+                            # pareto distributions should match this follows
+                            # Neykov et al. (Nat. Hazards Earth Syst. Sci.,
+                            # 14, 2321-2335, 2014) bottom of page 2330 (left
+                            # column)
+                            pscale[i] = (1 - stats.gamma.cdf(
+                                thresh, gshape, scale=gscale))/stats.gamma.pdf(
+                                    thresh, gshape, scale=gscale)
         return pd.DataFrame.from_dict(OrderedDict([
             ('n', np.repeat(n, N)), ('ngamma', np.repeat(ngamma, N)),
             ('mean_wet', np.repeat(vals.mean(), N)),
