@@ -1051,8 +1051,6 @@ class TemperatureParameterizer(Parameterizer):
                 plotter.plot_data[1].attrs.get('intercept', 0))
             nml[nml_name + '2'] = float(
                 plotter.plot_data[1].attrs.get('slope'))
-            print("'%s': '%s.intercept'," % (nml_name + '1', vname))
-            print("'%s': '%s.slope'," % (nml_name + '2', vname))
 
 
 class CloudParameterizerBase(Parameterizer):
