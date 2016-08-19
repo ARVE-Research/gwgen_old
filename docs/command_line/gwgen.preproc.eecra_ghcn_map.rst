@@ -1,0 +1,8 @@
+gwgen preproc eecra_ghcn_map
+============================
+
+.. argparse::
+   :module: gwgen.main
+   :func: _get_parser
+   :prog: gwgen
+   :path: preproc eecra_ghcn_map

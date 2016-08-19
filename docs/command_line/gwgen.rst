@@ -13,7 +13,7 @@ Command Line API Reference
     gwgen.get-value
     gwgen.del-value
     gwgen.info
-    gwgen.select
+    gwgen.preproc
     gwgen.param
     gwgen.run
     gwgen.evaluate

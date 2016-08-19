@@ -17,6 +17,7 @@ Submodules
    gwgen.parameterization
    gwgen.parse_eecra
    gwgen.parseghcnrow
+   gwgen.preproc
    gwgen.sensitivity_analysis
    gwgen.utils
 

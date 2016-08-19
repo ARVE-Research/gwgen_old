@@ -4,11 +4,11 @@ gwgen evaluate
 .. toctree::
     :maxdepth: 1
 
-    gwgen.evaluate.quality
-    gwgen.evaluate.output
     gwgen.evaluate.prepare
-    gwgen.evaluate.ks
+    gwgen.evaluate.output
     gwgen.evaluate.quants
+    gwgen.evaluate.ks
+    gwgen.evaluate.quality
 
 .. argparse::
    :module: gwgen.main

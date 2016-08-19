@@ -1,8 +1,8 @@
-gwgen select
-============
+gwgen preproc select
+====================
 
 .. argparse::
    :module: gwgen.main
    :func: _get_parser
    :prog: gwgen
-   :path: select
+   :path: preproc select
