@@ -1,6 +1,7 @@
 """Module holding the parameterization scripts for the weather generator"""
 import os
 import os.path as osp
+import tempfile
 import datetime as dt
 import six
 from functools import partial
@@ -549,8 +550,12 @@ class PrcpDistParams(Parameterizer):
                 gshape, _, gscale = stats.gamma.fit(vals, floc=0)
             except:
                 self.logger.critical(
-                    'Error while calculating gamma parameters for %s!',
-                    self.stations, exc_info=True)
+                    'Error while calculating gamma parameters for ids %s, '
+                    'months %s!', df.id.unique(), df.month.unique(),
+                    exc_info=True)
+                tmp = tempfile.NamedTemporaryFile(suffix='.csv').name
+                df.to_csv(tmp)
+                self.logger.critical('Data stored in %s', tmp)
             else:
                 for i, thresh in enumerate(threshs):
                     arr = vals[vals >= thresh]
@@ -562,7 +567,12 @@ class PrcpDistParams(Parameterizer):
                         except:
                             self.logger.critical(
                                 'Error while calculating GP parameters for '
-                                '%s!', self.stations, exc_info=True)
+                                'ids %s, months %s!', df.id.unique(),
+                                df.month.unique(), exc_info=True)
+                            tmp = tempfile.NamedTemporaryFile(
+                                suffix='.csv').name
+                            df.to_csv(tmp)
+                            self.logger.critical('Data stored in %s', tmp)
                         else:
                             # find the crossover point where the gamma and
                             # pareto distributions should match this follows
