@@ -11,17 +11,12 @@ from itertools import chain, groupby
 from collections import namedtuple
 import pandas as pd
 import numpy as np
+import docrep
 from psyplot.compat.pycompat import OrderedDict, filterfalse
-from psyplot.docstring import DocStringProcessor
 from psyplot.config.rcsetup import safe_list
 
-try:
-    import copyreg as cr
-except ImportError:
-    import copy_reg as cr
 
-
-docstrings = DocStringProcessor()
+docstrings = docrep.DocstringProcessor()
 
 
 float_patt = re.compile(r'[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?')
