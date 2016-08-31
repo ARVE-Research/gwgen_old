@@ -10,31 +10,38 @@ import gwgen.utils as utils
 from gwgen.utils import docstrings
 
 
-class CloudGHCNMap(utils.TaskBase):
-    """A task for computing the EECRA inventory for each station"""
-
-    _registry = []
-
-    name = 'eecra_ghcn_map'
-
-    summary = 'Compute the inventory of the EECRA stations'
-
-    http_xstall = 'http://cdiac.ornl.gov/ftp/ndp026c/XSTALL'
-
-    _datafile = ['eecra_inventory.csv', 'eecra_ghcn_map.csv']
-
-    dbname = ['eecra_inventory', 'eecra_ghcn_map']
-
-    has_run = True
+class CloudPreproc(utils.TaskBase):
 
     @property
     def task_data_dir(self):
         return osp.join(self.data_dir, 'eecra')
 
+    _registry = []
+
+
+class CloudInventory(CloudPreproc):
+    """A task for computing the EECRA inventory for each station"""
+
+    name = 'eecra_inventory'
+
+    summary = 'Compute the inventory of the EECRA stations'
+
+    http_xstall = 'http://cdiac.ornl.gov/ftp/ndp026c/XSTALL'
+
+    _datafile = 'eecra_inventory.csv'
+
+    dbname = 'eecra_inventory'
+
+    has_run = True
+
+    @property
+    def setup_parallel(self):
+        return self.setup_from == 'scratch'
+
     @property
     def default_config(self):
         return default_cloud_inventory_config()._replace(
-            **super(CloudGHCNMap, self).default_config._asdict())
+            **super(CloudInventory, self).default_config._asdict())
 
     @property
     def xstall_df(self):
@@ -55,15 +62,130 @@ class CloudGHCNMap(utils.TaskBase):
     def _modify_parser(cls, parser):
         parser.setup_args(default_cloud_inventory_config)
         cls.has_run = False
-        parser, setup_grp, run_grp = super(CloudGHCNMap, cls)._modify_parser(
+        parser, setup_grp, run_grp = super(CloudInventory, cls)._modify_parser(
             parser)
         parser.update_arg('xstall', group=setup_grp)
+        cls.has_run = True
+        return parser, setup_grp, run_grp
+
+    def __init__(self, *args, **kwargs):
+        super(CloudInventory, self).__init__(*args, **kwargs)
+        self.__setup = False
+
+    def setup(self, *args, **kwargs):
+        self.__setup = True
+        super(CloudInventory, self).setup(*args, **kwargs)
+
+    def init_from_scratch(self):
+        from gwgen.parameterization import HourlyCloud
+        task = HourlyCloud.from_task(self)
+        task.download_src(task.raw_dir)  # make sure the source files exist
+
+    def setup_from_file(self, **kwargs):
+        """Set up the task from already stored files (and avoid locating the
+        stations of this task)"""
+        kwargs = self._split_kwargs(kwargs)
+        for i, datafile in enumerate(utils.safe_list(self.datafile)):
+            self._set_data(pd.read_csv(datafile, **kwargs[i]), i)
+
+    def setup_from_db(self, **kwargs):
+        """Set up the task from datatables already created (and avoid locating
+        the stations of this task)"""
+        kwargs = self._split_kwargs(kwargs)
+        for i, dbname in enumerate(utils.safe_list(self.dbname)):
+            self._set_data(pd.read_sql_query(
+                "SELECT * FROM %s" % (self.dbname),
+                self.engine, **kwargs[i]), i)
+
+    def setup_from_scratch(self):
+        from gwgen.parse_eecra import parse_file
+
+        def compute(fname):
+            g = parse_file(fname).groupby('station_id')[
+                ['lat', 'lon', 'year']]
+            df = g.mean()
+            df['counts'] = g.size()
+            return df
+
+        self.data = pd.concat(list(map(compute, self.stations)))
+
+    def write2db(self, *args, **kwargs):
+        if self.__setup:
+            return
+        kwargs.setdefault('if_exists', 'replace')
+        super(CloudInventory, self).write2db(*args, **kwargs)
+
+    def write2file(self, *args, **kwargs):
+        if self.__setup:
+            return
+        super(CloudInventory, self).write2file(*args, **kwargs)
+
+    def run(self, info):
+
+        self.__setup = False
+
+        if self.setup_from == 'scratch':
+            df = self.data
+            # we may use a parallel setup which requires a weighted average
+            g = df.groupby(level='station_id')
+            total_counts = g.counts.transform("sum")
+            df['lat'] = df.counts / total_counts * df.lat
+            df['lon'] = df.counts / total_counts * df.lon
+            eecra = g.agg(OrderedDict([
+                    ('lat', 'sum'), ('lon', 'sum'), ('year', ('min', 'max'))]))
+            eecra.columns = ['lat', 'lon', 'firstyear', 'lastyear']
+
+            use_xstall = self.task_config.xstall
+
+            if use_xstall:
+                to_replace = self.xstall_df
+                # keep only matching stations
+                to_replace = to_replace.join(eecra[[]], how='inner')
+                eecra.loc[to_replace.index, ['lat', 'lon']] = to_replace
+            self.data = eecra
+
+        if self.task_config.to_csv:
+            self.write2file()
+        if self.task_config.to_db:
+            self.write2db()
+
+
+class CloudGHCNMap(CloudPreproc):
+    """A task for computing the EECRA inventory for each station"""
+
+    name = 'eecra_ghcn_map'
+
+    setup_requires = ['eecra_inventory']
+
+    summary = 'Compute the inventory of the EECRA stations'
+
+    _datafile = 'eecra_ghcn_map.csv'
+
+    dbname = 'eecra_ghcn_map'
+
+    has_run = True
+
+    @property
+    def default_config(self):
+        return default_cloud_ghcn_map_config()._replace(
+            **super(CloudGHCNMap, self).default_config._asdict())
+
+    @classmethod
+    def _modify_parser(cls, parser):
+        parser.setup_args(default_cloud_ghcn_map_config)
+        cls.has_run = False
+        parser, setup_grp, run_grp = super(CloudGHCNMap, cls)._modify_parser(
+            parser)
         parser.update_arg('max_distance', group=setup_grp, short='md')
+        parser.pop_arg('to_db')
+        parser.pop_arg('setup_from')
         cls.has_run = True
         return parser, setup_grp, run_grp
 
     def __init__(self, *args, **kwargs):
         super(CloudGHCNMap, self).__init__(*args, **kwargs)
+        self.task_config = self.task_config._replace(
+            setup_from='scratch', to_db=False)
         self.__setup = False
 
     def setup(self, *args, **kwargs):
@@ -76,20 +198,14 @@ class CloudGHCNMap(utils.TaskBase):
         task.download_src(task.raw_dir)  # make sure the source files exist
 
     def setup_from_scratch(self):
-        from gwgen.parse_eecra import parse_file
-
-        def compute(fname):
-            return parse_file(fname).groupby('station_id')[
-                ['lat', 'lon', 'year']].mean()
-
-        self._set_data(pd.concat(list(map(compute, self.stations[:1]))), 0)
-        self._set_data(pd.DataFrame([], columns=['station_id', 'distance'],
-                                    index=pd.Index([], name='id')), 1)
+        """Does nothing but initializing an empty data frame. The real work is
+        done in the :meth:`run` method"""
+        self.data = pd.DataFrame([], columns=['station_id', 'dist'],
+                                 index=pd.Index([], name='id'))
 
     def write2db(self, *args, **kwargs):
-        if self.__setup:
-            return
-        super(CloudGHCNMap, self).write2db(*args, **kwargs)
+        raise NotImplementedError(
+            'The data is always written to the database!')
 
     def write2file(self, *args, **kwargs):
         if self.__setup:
@@ -97,70 +213,67 @@ class CloudGHCNMap(utils.TaskBase):
         super(CloudGHCNMap, self).write2file(*args, **kwargs)
 
     def run(self, info):
+        def create_geog(table):
+            conn.execute(
+                'ALTER TABLE %s ADD COLUMN geog geography(POINT,4326) ;' % (
+                    table))
+            conn.execute("""
+                UPDATE %s
+                    SET geog = ST_SetSRID(ST_MakePoint(lon,lat),4326);""" % (
+                    table))
+            conn.execute(
+                'CREATE INDEX {0}_geog ON {0} USING GIST (geog);'.format(table)
+                )
         from gwgen.evaluation import EvaluationPreparation
-        from scipy.spatial import cKDTree
-        import cartopy.crs as ccrs
         self.__setup = False
-        eecra = self.data[0].groupby(level='station_id').agg(OrderedDict([
-                ('lat', 'mean'), ('lon', 'mean'), ('year', ('min', 'max'))]))
-        eecra.columns = ['lat', 'lon', 'firstyear', 'lastyear']
 
-        use_xstall = self.task_config.xstall
+        inv = self.eecra_inventory
 
-        if use_xstall:
-            to_replace = self.xstall_df
-            # keep only matching stations
-            to_replace = to_replace.join(eecra[[]], how='inner')
-            eecra.loc[to_replace.index, ['lat', 'lon']] = to_replace
+        if not self.engine.has_table(inv.dbname):
+            inv.write2db()
+        conn = self.engine.connect()
+        if 'geog' not in pd.read_sql_query('SELECT * FROM %s LIMIT 0' % (
+                inv.name), conn).columns:
+            create_geog(inv.dbname)
 
         t = EvaluationPreparation.from_task(self)
         # download inventory
         t.download_src()
         ghcn = t.station_list
-        ghcn = ghcn.ix[ghcn.vname == 'PRCP']
+        ghcn = ghcn.ix[ghcn.vname == 'PRCP'].set_index('id')
+        ghcn.to_sql('ghcn_inventory', self.engine, if_exists='replace')
+        create_geog('ghcn_inventory')
 
-        # transform to a coordinate system with metres as units
-        eecra_points = ccrs.Mollweide().transform_points(
-            ccrs.PlateCarree(), eecra.lon.values, eecra.lat.values)[..., :2]
-        ghcn_points = ccrs.Mollweide().transform_points(
-            ccrs.PlateCarree(), ghcn.lon.values, ghcn.lat.values)[..., :2]
+        conn.execute("DROP TABLE IF EXISTS eecra_ghcn_map;")
 
-        tree = cKDTree(eecra_points)
-        distances, indices = tree.query(
-            ghcn_points, distance_upper_bound=self.task_config.max_distance)
-        out_of_range = np.isinf(distances)
-        distances[out_of_range] = np.nan
-        ghcn['station_id'] = eecra.iloc[indices - 1].index.values.astype(int)
-        ghcn['distance'] = distances
-        ghcn.ix[out_of_range, 'station_id'] = np.nan
+        conn.execute("""
+            CREATE TABLE eecra_ghcn_map AS (
+                SELECT DISTINCT ON (id) id, station_id, dist FROM (
+                    SELECT DISTINCT ON (a.station_id)
+                        b.id, a.station_id, ST_Distance(a.geog, b.geog) AS dist
+                    FROM eecra_inventory a
+                        INNER JOIN ghcn_inventory b ON ST_DWithin(
+                            a.geog, b.geog, 1000)
+                    ORDER BY a.station_id, ST_Distance(a.geog, b.geog)) foo
+                ORDER BY id, dist);""")
 
-        # remove duplicates in the station map
-        ghcn.sort_values(['station_id', 'distance'], inplace=True)
-        ghcn.ix[ghcn.duplicated('station_id'),
-                ['station_id', 'distance']] = np.nan
-
-        # and unnecessary columns
-        ghcn.drop(['lat', 'lon', 'firstyr', 'lastyr', 'vname'], 1,
-                  inplace=True)
-
-        self.data = [eecra, ghcn]
-
-        if not list(ghcn.index.names) == ['id']:
-            ghcn.reset_index().set_index('id', inplace=True)
+        self.data = pd.read_sql('eecra_ghcn_map', self.engine, index_col='id')
+        conn.close()
 
         if self.task_config.to_csv:
             self.write2file()
-        if self.task_config.to_db:
-            self.write2db()
 
 
-CloudGHCNMapConfig = namedtuple(
-    'CloudGHCNMapConfig',
-    ['xstall', 'max_distance'] + list(utils.TaskConfig._fields))
+CloudInventoryConfig = namedtuple(
+    'CloudInventoryConfig', ['xstall'] + list(utils.TaskConfig._fields))
 
 
-CloudGHCNMapConfig = utils.append_doc(
-    CloudGHCNMapConfig, docstrings.get_sections(docstrings.dedents("""
+# to_db is set to True by default because it is required
+docstrings.delete_params('TaskConfig.parameters', 'to_db', 'setup_from')
+
+
+CloudInventoryConfig = utils.append_doc(
+    CloudInventoryConfig, docstrings.get_sections(docstrings.dedents("""
     Parameters
     ----------
     xstall: bool or str
@@ -168,16 +281,43 @@ CloudGHCNMapConfig = utils.append_doc(
         This file contains some estimates of station longitude and latitude.
         If ``False`` or empty string, the file is not used, otherwise, if set
         with a string, it is interpreted as the path to the local file
-    max_distance: float
-        The maximum distance in meters for which we consider two stations as
-        equal (Default: 1000m)
-    %%(TaskConfig.parameters)s
-    """ % CloudGHCNMap.http_xstall), 'CloudGHCNMapConfig'))
+    %%(TaskConfig.parameters.no_to_db|setup_from)s
+    """ % CloudInventory.http_xstall), 'CloudInventoryConfig'))
 
 
 @docstrings.dedent
-def default_cloud_inventory_config(xstall=True, max_distance=1000., *args,
-                                   **kwargs):
+def default_cloud_inventory_config(xstall=True, *args, **kwargs):
+    """
+    Default config for :class:`CloudInventory`
+
+    Parameters
+    ----------
+    %(CloudInventoryConfig.parameters)s"""
+    return CloudInventoryConfig(
+        xstall, *utils.default_config(*args, **kwargs))
+
+
+CloudGHCNMapConfig = namedtuple(
+    'CloudGHCNMapConfig', ['max_distance'] + list(utils.TaskConfig._fields))
+
+
+# to_db is set to True by default because it is required
+docstrings.delete_params('TaskConfig.parameters', 'to_db', 'setup_from')
+
+
+CloudGHCNMapConfig = utils.append_doc(
+    CloudGHCNMapConfig, docstrings.get_sections(docstrings.dedents("""
+    Parameters
+    ----------
+    max_distance: float
+        The maximum distance in meters for which we consider two stations as
+        equal (Default: 1000m)
+    %(TaskConfig.parameters.no_to_db|setup_from)s
+    """), 'CloudGHCNMapConfig'))
+
+
+@docstrings.dedent
+def default_cloud_ghcn_map_config(max_distance=1000., *args, **kwargs):
     """
     Default config for :class:`CloudGHCNMap`
 
@@ -185,91 +325,4 @@ def default_cloud_inventory_config(xstall=True, max_distance=1000., *args,
     ----------
     %(CloudGHCNMapConfig.parameters)s"""
     return CloudGHCNMapConfig(
-        xstall, max_distance, *utils.default_config(*args, **kwargs))
-
-
-# Alternative approach using dask. Currently much slower because we miss the
-# agg function for dasks groupby
-# class CloudInventory(utils.TaskBase):
-#    """A task for computing the EECRA inventory for each station"""
-#
-#    _registry = []
-#
-#    name = 'inventory'
-#
-#    summary = 'Compute the inventory of the EECRA stations'
-#
-#    http_xstall = 'http://cdiac.ornl.gov/ftp/ndp026c/XSTALL'
-#
-#    _datafile = 'eecra_inventory.csv'
-#
-#    dbname = 'eecra_inventory'
-#
-#    has_run = False
-#
-#    setup_parallel = False  # is done in parallel via dask
-#
-#    @property
-#    def task_data_dir(self):
-#        return osp.join(self.data_dir, 'eecra')
-#
-#    @property
-#    def default_config(self):
-#        return default_cloud_inventory_config()._replace(
-#            **super(CloudInventory, self).default_config._asdict())
-#
-#    @classmethod
-#    def _modify_parser(cls, parser):
-#        parser.setup_args(default_cloud_inventory_config)
-#        cls.has_run = False
-#        parser, setup_grp, run_grp = super(
-#            CloudInventory, cls)._modify_parser(parser)
-#        parser.update_arg('xstall', group=setup_grp)
-#        cls.has_run = True
-#        return parser, setup_grp, run_grp
-#
-#    def __init__(self, *args, **kwargs):
-#        super(CloudInventory, self).__init__(*args, **kwargs)
-#        self.__setup = False
-#
-#    def init_from_scratch(self):
-#        from gwgen.parameterization import HourlyCloud
-#        task = HourlyCloud.from_task(self)
-#        task.download_src(task.raw_dir)  # make sure the source files exist
-#
-#    def setup_from_scratch(self):
-#        from gwgen.parse_eecra import parse_file
-#        import dask.dataframe as dd
-#        from dask.multiprocessing import get
-#        import pandas as pd
-#
-#        files = self.stations
-#        df = parse_file(files[0])
-#
-#        divisions = [None] * (len(files) + 1)
-#        dsk = {('eecra', i): (parse_file, fname)
-#               for i, fname in enumerate(files)}
-#        ddf = dd.DataFrame(dsk, 'eecra', df.columns, divisions)
-#        g = ddf[['station_id', 'lat', 'lon', 'year']].groupby('station_id')
-#
-#        self.logger.debug('processing stations')
-#        data = g[['lat', 'lon']].mean().compute(get=get)
-#        self.logger.debug('Calculate first year')
-#        data['firstyear'] = g.year.min().compute(get=get)
-#        self.logger.debug('Calculate last year')
-#        data['lastyear'] = g.year.max().compute(get=get)
-#
-#        use_xstall = self.task_config.xstall
-#
-#        if use_xstall:
-#            if utils.isstring(use_xstall):
-#                fname = self.task_config.no_xstall
-#            else:
-#                fname = tempfile.NamedTemporaryFile().name
-#                utils.download_file(self.http_xstall, fname)
-#            arr = np.loadtxt(fname, usecols=[1, 2, 3])
-#            df = pd.DataFrame(arr, columns=['station_id', 'lat', 'lon'])
-#            df['station_id'] = df.station_id.astype(int)
-#            df.set_index('station_id', inplace=True)
-#
-#        self.data = data
+        max_distance, *utils.default_config(*args, **kwargs))
