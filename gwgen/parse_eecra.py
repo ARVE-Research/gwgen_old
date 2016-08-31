@@ -56,7 +56,8 @@ def parse_file(ifile, year=None):
         m = re.match(r'\w{3}(\d{2})L', osp.basename(ifile))
         if not m:
             raise TypeError(
-                "parse_file() missing 1 required positional argument: 'year'")
+                "Could not infer year of file %s! Use the 'year' "
+                "parameter!" % (ifile, ))
         year = int(m.group(1))
         year += 1900 if year > 60 else 2000
     df = pd.DataFrame.from_dict(OrderedDict(
