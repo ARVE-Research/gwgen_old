@@ -3,6 +3,7 @@ import os
 import os.path as osp
 import tempfile
 import datetime as dt
+import textwrap
 import six
 from functools import partial
 from collections import namedtuple
@@ -1078,8 +1079,68 @@ class TemperatureParameterizer(Parameterizer):
                 plotter.plot_data[1].attrs.get('slope'))
 
 
+_CloudConfig = namedtuple('_CloudConfig', ['args_type'])
+
+_CloudConfig = utils.append_doc(_CloudConfig, docstrings.get_sections("""
+Parameters
+----------
+args_type: str
+    The type of the stations. One of
+
+    ghcn
+        Stations are GHCN ids
+    eecra
+        Stations are EECRA station numbers
+""", '_CloudConfig'))
+
+
+CloudConfig = utils.enhanced_config(_CloudConfig, 'CloudConfig')
+
+
+@docstrings.dedent
+def default_cloud_config(args_type='ghcn', *args, **kwargs):
+    """
+    The default configuration for :class:`CloudParameterizerBase` instances.
+    See also the :attr:`CloudParameterizerBase.default_config` attribute
+
+    Parameters
+    ----------
+    %(CloudConfig.parameters)s"""
+    return CloudConfig(args_type, *utils.default_config(*args, **kwargs))
+
+
 class CloudParameterizerBase(Parameterizer):
     """Abstract base class for cloud parameterizers"""
+
+    allow_files = False
+
+    @property
+    def default_config(self):
+        return default_cloud_config()._replace(
+            **super(CloudParameterizerBase, self).default_config._asdict())
+
+    @property
+    def args_type(self):
+        return self.task_config.args_type
+
+    @property
+    def setup_from(self):
+        if self.allow_files and self.args_type == 'files':
+            return 'scratch'
+        return super(CloudParameterizerBase, self).setup_from
+
+    @setup_from.setter
+    def setup_from(self, value):
+        super(CloudParameterizerBase, self.__class__).setup_from.fset(
+            self, value)
+
+    @property
+    def sql_dtypes(self):
+        import sqlalchemy
+        ret = super(CloudParameterizerBase, self).sql_dtypes
+        if self.args_type in ['eecra', 'files']:
+            ret['id'] = sqlalchemy.INTEGER
+        return ret
 
     @property
     def stations(self):
@@ -1087,22 +1148,37 @@ class CloudParameterizerBase(Parameterizer):
 
     @stations.setter
     def stations(self, stations):
-        Norig = len(stations)
-        df_map = self.eecra_ghcn_map()
-        try:
-            df_map = df_map.loc[stations].dropna()
-        except KeyError:
-            self._stations = df_map.index.values[:0]
-            self.eecra_stations = df_map.station_id.values[:0].astype(int)
+        at = self.args_type
+        if self.allow_files and at == 'files':
+            self._stations = self.eecra_stations = stations
+        elif at == 'eecra':
+            self._stations = self.eecra_stations = np.asarray(stations,
+                                                              dtype=int)
+        elif at == 'ghcn':
+            Norig = len(stations)
+            df_map = self.eecra_ghcn_map()
+            try:
+                df_map = df_map.loc[stations].dropna()
+            except KeyError:
+                self._stations = df_map.index.values[:0]
+                self.eecra_stations = df_map.station_id.values[:0].astype(int)
+            else:
+                self._stations = df_map.index.values
+                self.eecra_stations = df_map.station_id.values.astype(int)
+            self.logger.debug(
+                'Using %i cloud stations in the %i given stations',
+                len(self._stations), Norig)
         else:
-            self._stations = df_map.index.values
-            self.eecra_stations = df_map.station_id.values.astype(int)
-        self.logger.debug('Using %i cloud stations in the %i given stations',
-                          len(self._stations), Norig)
+            raise ValueError(
+                "args_type must be one of {'eecra', 'ghcn'%s}! Not %s" % (
+                    ", 'files'" if self.allow_files else '', at))
 
     def eecra_ghcn_map(self):
         """Get a dataframe mapping from GHCN id to EECRA station_id"""
         cls = CloudParameterizerBase
+        if self.args_type == 'eecra':
+            return pd.DataFrame(self.eecra_stations, columns=['station_id'],
+                                index=pd.Index(self.eecra_stations, name='id'))
         try:
             return cls._eecra_ghcn_map
         except AttributeError:
@@ -1129,6 +1205,44 @@ class CloudParameterizerBase(Parameterizer):
             The ids in `stations` that can be mapped to the eecra dataset"""
         return cls.eecra_ghcn_map().loc[stations].dropna().index.values
 
+    @classmethod
+    def _modify_parser(cls, parser):
+        parser.setup_args(default_cloud_config)
+        parser, setup_grp, run_grp = super(
+            CloudParameterizerBase, cls)._modify_parser(parser)
+        parser.pop_key('args_type', 'metavar', None)
+        choices = ['ghcn', 'eecra']
+        if cls.allow_files:
+            choices += ['files']
+            append = textwrap.indent(
+                "\nfiles\n"
+                "    Arguments are paths to raw EECRA files", '    ')
+        else:
+            append = ''
+        parser.update_arg('args_type', short='at', group=setup_grp,
+                          choices=choices)
+        parser.append2help('args_type', append + '\nDefault: %(default)s')
+        return parser, setup_grp, run_grp
+
+    @classmethod
+    @docstrings.dedent
+    def from_task(cls, task, *args, **kwargs):
+        """
+        %(TaskBase.from_task.summary)s
+
+        Parameters
+        ----------
+        %(TaskBase.from_task.parameters)s
+
+        Other Parameters
+        ----------------
+        %(TaskBase.from_task.other_parameters)s
+        """
+        if cls.allow_files and getattr(task.task_config, 'args_type', None):
+            kwargs.setdefault('args_type', task.task_config.args_type)
+        return super(CloudParameterizerBase, cls).from_task(
+            task, *args, **kwargs)
+
 
 class HourlyCloud(CloudParameterizerBase):
     """Parameterizer that loads the hourly cloud data from the EECRA database
@@ -1141,6 +1255,8 @@ class HourlyCloud(CloudParameterizerBase):
     _datafile = 'hourly_cloud.csv'
 
     dbname = 'hourly_cloud'
+
+    allow_files = True
 
     urls = {
         ((1971, 1), (1977, 4)): (
@@ -1261,6 +1377,8 @@ class HourlyCloud(CloudParameterizerBase):
 
     def init_from_scratch(self):
         """Reimplemented to download the data if not existent"""
+        if self.args_type == 'files':
+            return
         logger = self.logger
         logger.debug('Initializing %s', self.name)
         stations = self.stations
@@ -1305,9 +1423,8 @@ class HourlyCloud(CloudParameterizerBase):
         files = self.raw_src_files
         missing = {yrmon: fname for yrmon, fname in six.iteritems(files)
                    if not osp.exists(fname)}
+        logger.debug('%i raw source files are missing.', len(missing))
         for yrmon, fname in six.iteritems(missing):
-            logger.debug('%i raw source files are missing. Start download...',
-                         len(missing))
             compressed_fname = fname + '.Z'
             if force or not osp.exists(compressed_fname):
                 utils.download_file(self.get_eecra_url(*yrmon),
@@ -1324,16 +1441,24 @@ class HourlyCloud(CloudParameterizerBase):
 
     def setup_from_scratch(self):
         """Set up the data"""
-        files = self.src_files
-        df_map = pd.DataFrame(
-            np.vstack([self.stations, self.eecra_stations]).T,
-            columns=['id', 'station_id'])
-        self.data = pd.concat(
-            [pd.read_csv(fname).merge(df_map, on='station_id', how='inner')
-             for fname in files], ignore_index=False, copy=False)
-        self.data.set_index(['id', 'year', 'month', 'day', 'hour'],
-                            inplace=True)
-        self.data.sort_index(inplace=True)
+        if self.args_type == 'files':
+            from gwgen.parse_eecra import parse_file
+            self.data = pd.concat(list(map(parse_file, self.stations))).rename(
+                columns={'station_id': 'id'})
+            self.data.set_index(['id', 'year', 'month', 'day', 'hour'],
+                                inplace=True)
+            self.data.sort_index(inplace=True)
+        else:
+            files = self.src_files
+            df_map = pd.DataFrame(
+                np.vstack([self.stations, self.eecra_stations]).T,
+                columns=['id', 'station_id'])
+            self.data = pd.concat(
+                [pd.read_csv(fname).merge(df_map, on='station_id', how='inner')
+                 for fname in files], ignore_index=False, copy=False)
+            self.data.set_index(['id', 'year', 'month', 'day', 'hour'],
+                                inplace=True)
+            self.data.sort_index(inplace=True)
 
 
 class DailyCloud(CloudParameterizerBase):
@@ -1349,6 +1474,8 @@ class DailyCloud(CloudParameterizerBase):
     dbname = 'daily_cloud'
 
     setup_requires = ['hourly_cloud']
+
+    allow_files = True
 
     @staticmethod
     def calculate_daily(df):
@@ -1396,6 +1523,8 @@ class MonthlyCloud(CloudParameterizerBase):
 
     setup_requires = ['daily_cloud']
 
+    allow_files = True
+
     @property
     def sql_dtypes(self):
         import sqlalchemy
@@ -1435,9 +1564,6 @@ class MonthlyCloud(CloudParameterizerBase):
         return super(MonthlyCloud, self).setup_from_db(*args, **kwargs)
 
     def setup_from_scratch(self):
-        def year_complete(series):
-            """Check whether the data for the given is complete"""
-            return series.astype(int).sum() == 12
         df = self.daily_cloud.data
         g = df.groupby(level=['id', 'year', 'month'])
         data = g.apply(self.calculate_monthly)
@@ -1456,19 +1582,8 @@ class MonthlyCloud(CloudParameterizerBase):
             df_nums[tcol] = df_nums[col] == df_nums.ndays
         df_nums.drop('day', 1, inplace=True)
 
-        df_yearly = df_nums[complete_cols].groupby(level=['id', 'year']).agg(
-            year_complete)
-
-        names = df_nums.index.names
-        df_nums = df_nums.reset_index().merge(
-            df_yearly[complete_cols].reset_index(), on=['id', 'year'],
-            suffixes=['', '_year']).set_index(names)
-
-        all_complete_cols = complete_cols + [
-            col + '_year' for col in complete_cols]
-
         self.data = pd.merge(
-            data, df_nums[all_complete_cols], left_index=True,
+            data, df_nums[complete_cols], left_index=True,
             right_index=True)
 
 
@@ -1533,7 +1648,7 @@ class YearlyCompleteMonthlyCloud(CompleteMonthlyCloud):
 
     name = 'yearly_cmonthly_cloud'
 
-    setup_requires = ['monthly_cloud']
+    setup_requires = ['cmonthly_cloud']
 
     dbname = 'yearly_complete_monthly_cloud'
 
@@ -1541,11 +1656,29 @@ class YearlyCompleteMonthlyCloud(CompleteMonthlyCloud):
 
     summary = "Extract the months with complete cloud data in complete years"
 
+    allow_files = False
+
     def setup_from_scratch(self):
+        def year_complete(series):
+            """Check whether the data for the given is complete"""
+            return series.astype(int).sum() == 12
+        all_monthly = self.cmonthly_cloud.data
+
         cols = ['wet_day', 'mean_cloud']  # not 'tmin', 'tmax'
-        complete_cols = [col + '_complete_year' for col in cols]
-        self.data = self.monthly_cloud.data[
-            self.monthly_cloud.data[complete_cols].values.all(axis=1)]
+
+        complete_cols = [col + '_complete' for col in cols]
+
+        df_yearly = all_monthly[complete_cols].groupby(
+            level=['id', 'year']).agg(year_complete)
+
+        names = all_monthly.index.names
+        all_monthly = all_monthly.reset_index().merge(
+            df_yearly[complete_cols].reset_index(), on=['id', 'year'],
+            suffixes=['', '_year']).set_index(names)
+
+        ycomplete_cols = [col + '_complete_year' for col in cols]
+        self.data = all_monthly.ix[
+            all_monthly[ycomplete_cols].values.all(axis=1)]
 
 
 class CloudParameterizer(CompleteMonthlyCloud):
@@ -1560,6 +1693,8 @@ class CloudParameterizer(CompleteMonthlyCloud):
     _datafile = 'cloud_correlation.csv'
 
     dbname = 'cloud_correlation'
+
+    allow_files = False
 
     fmt = dict(
         legend={'loc': 'upper left'},
@@ -1728,7 +1863,7 @@ class YearlyCompleteDailyCloud(CompleteDailyCloud):
 
     name = 'yearly_cdaily_cloud'
 
-    setup_requires = ['daily_cloud', 'monthly_cloud']
+    setup_requires = ['cdaily_cloud', 'yearly_cmonthly_cloud']
 
     _datafile = "yearly_complete_daily_cloud.csv"
 
@@ -1737,11 +1872,13 @@ class YearlyCompleteDailyCloud(CompleteDailyCloud):
     summary = (
         "Get the days of the complete daily cloud months in complete years")
 
+    allow_files = False
+
     def setup_from_scratch(self):
-        monthly = self.monthly_cloud.data
+        monthly = self.yearly_cmonthly_cloud.data
         cols = ['wet_day', 'tmin', 'tmax', 'mean_cloud']
         complete_cols = [col + '_complete_year' for col in cols]
-        self.data = self.daily_cloud.data.reset_index().merge(
+        self.data = self.cdaily_cloud.data.reset_index().merge(
             monthly[
                 monthly[complete_cols].values.all(axis=1)][[]].reset_index(),
             how='inner', on=['id', 'year', 'month'], copy=False).set_index(

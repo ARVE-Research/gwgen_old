@@ -10,7 +10,7 @@ import sys
 from functools import partial
 import datetime as dt
 from itertools import groupby, chain, repeat
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentParser, Namespace, RawTextHelpFormatter
 import inspect
 import logging
 import numpy as np
@@ -61,8 +61,8 @@ class FuncArgParser(ArgumentParser):
             The documentation of the given `param`
         str
             The datatype of the given `param`"""
-        arg_doc = docstrings._keep_params(doc, [param]) or \
-            docstrings._keep_types(doc, [param])
+        arg_doc = docstrings.keep_params_s(doc, [param]) or \
+            docstrings.keep_types_s(doc, [param])
         dtype = None
         if arg_doc:
             lines = arg_doc.splitlines()
@@ -101,12 +101,26 @@ class FuncArgParser(ArgumentParser):
                 elif dtype:
                     d['metavar'] = dtype
 
-    def update_arg(self, arg, if_existent=True, **kwargs):
-        """Update the `add_argument` data for the given parameter
+    def update_arg(self, arg, if_existent=None, **kwargs):
         """
-        if not if_existent:
+        Update the `add_argument` data for the given parameter
+
+        Parameters
+        ----------
+        arg: str
+            The name of the function argument
+        if_existent: bool or None
+            If True, the argument is updated. If None (default), the argument
+            is only updated, if it exists. Otherwise, if False, the given
+            ``**kwargs`` are only used if the argument is not yet existing
+        ``**kwargs``
+            The keyword arguments any parameter for the
+            :meth:`argparse.ArgumentParser.add_argument` method
+        """
+        if if_existent or (if_existent is None and arg in self.__arguments):
+            self.__arguments[arg].update(kwargs)
+        elif not if_existent and if_existent is not None:
             self.__arguments.setdefault(arg, kwargs)
-        self.__arguments[arg].update(kwargs)
 
     def pop_arg(self, *args, **kwargs):
         """Delete a previously defined argument from the parser
@@ -248,8 +262,8 @@ class ModelOrganizer(object):
 
     commands = ['setup', 'compile_model', 'init', 'unarchive', 'configure',
                 'set_value', 'get_value', 'del_value', 'info',
-                'preproc', 'param', 'run', 'evaluate', 'sensitivity_analysis',
-                'archive', 'remove']
+                'preproc', 'param', 'run', 'evaluate',
+                'sensitivity_analysis', 'archive', 'remove']
 
     #: mapping from the name of the parser command to the method name. Will be
     #: filled by the :meth:`setup_parser` method
@@ -1557,7 +1571,7 @@ class ModelOrganizer(object):
         """A mapping from preproc commands to the corresponding function"""
         from gwgen.preproc import CloudGHCNMap
         return {'select': self.select,
-                CloudGHCNMap.name: self.cloud_ghcn_map}
+                'cloud': self.cloud_preproc}
 
     @docstrings.dedent
     def preproc(self, **kwargs):
@@ -1590,7 +1604,7 @@ class ModelOrganizer(object):
                 preproc_config[key] = info
 
     def _modify_preproc(self, parser):
-        from gwgen.preproc import CloudGHCNMap
+        from gwgen.preproc import CloudPreproc
         self._modify_main(parser)
         sps = parser.add_subparsers(title='Preprocessing tasks', chain=True)
         # select
@@ -1610,12 +1624,18 @@ class ModelOrganizer(object):
         sp.update_arg('download', short='d', choices=['single', 'all'])
         sp.create_arguments()
 
-        sp = sps.add_parser(
-            CloudGHCNMap.name, help=CloudGHCNMap.summary)
-        sp.setup_args(self.cloud_ghcn_map)
+#        sp = sps.add_parser(
+#            CloudGHCNMap.name, help=CloudGHCNMap.summary)
+#        sp.setup_args(self.cloud_ghcn_map)
+#        CloudGHCNMap._modify_parser(sp)
+#        sp.create_arguments()
+        sp = sps.add_parser('cloud', help='Cloud preprocessing')
+        sp.setup_args(self.cloud_preproc)
         sp.update_arg('max_files', short='mf', type=int)
-        CloudGHCNMap._modify_parser(sp)
+        sp.pop_arg('return_manager')
+        self._modify_task_parser(sp, CloudPreproc)
         sp.create_arguments()
+
         return parser
 
     # ------------------------------- Selection -------------------------------
@@ -1850,6 +1870,43 @@ class ModelOrganizer(object):
         return df_stations, merged
 
     # --------------------------- Cloud inventory -----------------------------
+
+    @docstrings.dedent
+    def cloud_preproc(self, max_files=None, return_manager=False, **kwargs):
+        """
+        Extract the inventory of EECRA stations
+
+        Parameters
+        ----------
+        max_files: int
+            The maximum number of files to process during one process. If None,
+            it is determined by the global ``'max_stations'`` key
+        ``**kwargs``
+            Any task in the :class:`gwgen.preproc.CloudPreproc` framework
+        """
+        from gwgen.preproc import CloudPreproc
+        from gwgen.parameterization import HourlyCloud
+        stations_orig = self.global_config.get('max_stations')
+        if max_files is not None:
+            self.global_config['max_stations'] = max_files
+        files = HourlyCloud.from_organizer(self, []).raw_src_files
+        manager = CloudPreproc.get_manager(config=self.global_config)
+        for key, val in kwargs.items():
+            if isinstance(val, Namespace):
+                kwargs[key] = val = vars(val)
+                val.pop('max_files', None)
+        self._setup_manager(manager, stations=list(files.values()),
+                            base_kws=kwargs)
+        d = {}
+        manager.run(d)
+        if stations_orig:
+            self.global_config['max_stations'] = stations_orig
+        else:
+            self.global_config.pop('max_stations', None)
+        if return_manager:
+            return d, manager
+        else:
+            return d
 
     def cloud_ghcn_map(self, max_files=None, **kwargs):
         """
@@ -2429,7 +2486,8 @@ class ModelOrganizer(object):
 
         if subparsers is None:
             if parser is None:
-                parser = FuncArgParser(self.name)
+                parser = FuncArgParser(self.name,
+                                       formatter_class=RawTextHelpFormatter)
             subparsers = parser.add_subparsers(chain=True)
 
         ret = {}
@@ -2437,8 +2495,8 @@ class ModelOrganizer(object):
             func = getattr(self, cmd)
             parser_cmd = parser_cmds.setdefault(cmd, cmd.replace('_', '-'))
             ret[cmd] = sp = subparsers.add_parser(
-                parser_cmd, help=docstrings.get_summary(
-                    func.__doc__ or ''))
+                parser_cmd, formatter_class=RawTextHelpFormatter,
+                help=docstrings.get_summary(func.__doc__ or ''))
             sp.setup_args(func)
             modifier = getattr(self, '_modify_' + cmd, None)
             if modifier is not None:
@@ -2526,7 +2584,8 @@ class ModelOrganizer(object):
                 raise ValueError('No stations file specified!')
             else:
                 stations = np.loadtxt(exp_dict[config_key],
-                                      dtype='S11', usecols=[0]).astype(np.str_)
+                                      dtype='S300', usecols=[0]).astype(
+                    np.str_)
         elif len(stations) == 1 and osp.exists(stations[0]):
             fname_use = stations[0]
             exists = osp.exists(fname)
@@ -2536,7 +2595,7 @@ class ModelOrganizer(object):
             elif not exists:
                 self._link(fname_use, fname)
             stations = np.loadtxt(
-                fname, dtype='S11', usecols=[0]).astype(np.str_)
+                fname, dtype='S300', usecols=[0]).astype(np.str_)
         elif len(stations):
             np.savetxt(fname, stations, fmt='%s')
         if not exp_dict.get(config_key) or not osp.samefile(
@@ -2638,9 +2697,12 @@ class ModelOrganizer(object):
                           dest='setup_from')
         parser.update_arg('other_exp', short='ido', long='other_id',
                           dest='other_exp')
-        parser.update_arg('stations', short='s')
+        try:
+            parser.update_arg('stations', short='s')
+        except KeyError:
+            pass
         parser.update_arg('database', short='db')
-        parser.pop_arg('to_return')
+        parser.pop_arg('to_return', None)
         parser.update_arg(
             'norun', short='nr', const=True, nargs='?',
             type=norun, help=(
@@ -2659,7 +2721,8 @@ class ModelOrganizer(object):
                 base_task._registry[::-1]), lambda t: t.name))
         sps = parser.add_subparsers(title='Tasks', chain=True)
         for task in tasks:
-            sp = sps.add_parser(task.name, help=task.summary)
+            sp = sps.add_parser(task.name, help=task.summary,
+                                formatter_class=RawTextHelpFormatter)
             task._modify_parser(sp)
             sp.add_argument(
                 '-ido', '--other_id', help=other_exp_doc,
