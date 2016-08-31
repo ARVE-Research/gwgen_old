@@ -305,11 +305,11 @@ def _requirement_property(requirement):
 
 def append_doc(namedtuple_cls, doc):
     if six.PY3:
-        namedtuple_cls.__doc__ += doc
+        namedtuple_cls.__doc__ += '\n' + doc
         return namedtuple_cls
     else:
         class DocNamedTuple(namedtuple_cls):
-            __doc__ = namedtuple_cls.__doc__ + doc
+            __doc__ = namedtuple_cls.__doc__ + '\n' + doc
             __slots__ = ()
         DocNamedTuple.__name__ = namedtuple_cls.__name__
         return DocNamedTuple
@@ -541,6 +541,19 @@ class TaskBase(object):
         return ret
 
     @property
+    def cloud_dir(self):
+        """str. Path to the directory were the processed parameterization
+        data is stored"""
+        ret = self.config.setdefault('clouddir', osp.join(
+            self.config['expdir'], 'cloud_parameterization'))
+        if not osp.exists(ret):
+            try:
+                os.makedirs(ret)
+            except FileExistsError:
+                pass
+        return ret
+
+    @property
     def eval_dir(self):
         """str. Path to the directory were the processed evaluation data is
         stored"""
@@ -751,11 +764,9 @@ class TaskBase(object):
             arguments. Note that if you provide ``*args``, you have to provide
             all possible arguments
         """
-        import multiprocessing as mp
         self.global_config = global_config
         self.config = config
         self.model_config = model_config
-        self.stations = stations
         if args:
             self.task_config = self.default_config._make(args)
         else:
@@ -763,6 +774,7 @@ class TaskBase(object):
                 if val is None:
                     kwargs[key] = getattr(self.default_config, key, None)
             self.task_config = self.default_config._replace(**kwargs)
+        self.stations = stations
         # overwrite the class attribute of the formatoptions
         self.fmt = self.fmt.copy()
         if data is not None or isinstance(self._datafile, six.string_types):
@@ -820,6 +832,8 @@ class TaskBase(object):
         'global_config')
 
     @classmethod
+    @docstrings.get_summaryf('TaskBase.from_task')
+    @docstrings.get_sectionsf('TaskBase.from_task')
     @docstrings.dedent
     def from_task(cls, task, *args, **kwargs):
         """
@@ -1012,8 +1026,11 @@ class TaskBase(object):
                 self.engine, **kwargs[i]), i)
 
     @classmethod
+    @docstrings.get_sectionsf('TaskBase.setup_from_instances')
+    @docstrings.dedent
     def setup_from_instances(cls, base, instances, copy=False):
-        """Combine multiple task instances into one instance
+        """
+        Combine multiple task instances into one instance
 
         Parameters
         ----------
@@ -1234,8 +1251,9 @@ class TaskBase(object):
                 lock.acquire()
             self.logger.info('Writing %s lines to data table %s', len(data),
                              dbname)
+            kws.setdefault('if_exists', 'append')
             try:
-                data.to_sql(dbname, self.engine, if_exists='append', **kws)
+                data.to_sql(dbname, self.engine, **kws)
             except:
                 raise
             finally:
@@ -1346,10 +1364,10 @@ class TaskManager(object):
         -------
         list
             A list of :class:`TaskBase` instances"""
-        def init_task(task, config=None, model_config=None):
-            kws = task_kws.get(task.name, {})
-            config = config or kws.pop('config')
-            model_config = model_config or kws.pop('model_config')
+        def init_task(task):
+            kws = task_kws[task.name]
+            config = kws.pop('config')
+            model_config = kws.pop('model_config')
             return task(stations, config, model_config, self.config, **kws)
         tasks = {task.name: init_task(task) for task in map(
             self.get_task_cls, task_kws)}
@@ -1363,8 +1381,7 @@ class TaskManager(object):
                     for req_task in self.get_requirements(key, False):
                         if req_task.name not in tasks:
                             checked_requirements = False
-                            tasks[req_task.name] = init_task(
-                                req_task, task.config, task.model_config)
+                            tasks[req_task.name] = req_task.from_task(task)
         # sort the tasks for their requirements
         sorted_tasks = list(self.sort_by_requirement(tasks.values()))
         for i, instance in enumerate(sorted_tasks):
