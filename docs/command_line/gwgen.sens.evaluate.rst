@@ -4,9 +4,9 @@ gwgen sens evaluate
 .. toctree::
     :maxdepth: 1
 
-    gwgen.sens.evaluate.quants
-    gwgen.sens.evaluate.ks
     gwgen.sens.evaluate.quality
+    gwgen.sens.evaluate.ks
+    gwgen.sens.evaluate.quants
 
 .. argparse::
    :module: gwgen.main

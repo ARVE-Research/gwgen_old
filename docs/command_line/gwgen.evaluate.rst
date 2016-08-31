@@ -5,10 +5,10 @@ gwgen evaluate
     :maxdepth: 1
 
     gwgen.evaluate.prepare
-    gwgen.evaluate.output
-    gwgen.evaluate.quants
-    gwgen.evaluate.ks
     gwgen.evaluate.quality
+    gwgen.evaluate.output
+    gwgen.evaluate.ks
+    gwgen.evaluate.quants
 
 .. argparse::
    :module: gwgen.main

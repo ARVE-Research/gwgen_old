@@ -5,7 +5,7 @@ gwgen preproc
     :maxdepth: 1
 
     gwgen.preproc.select
-    gwgen.preproc.eecra_ghcn_map
+    gwgen.preproc.cloud
 
 .. argparse::
    :module: gwgen.main
