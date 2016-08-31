@@ -15,6 +15,8 @@ test_root = osp.abspath(osp.dirname(__file__))
 
 _test_stations = osp.join(test_root, 'test_stations.dat')
 
+_eecra_test_stations = osp.join(test_root, 'eecra_test_stations.dat')
+
 
 setup_logging(osp.join(test_root, 'logging.yaml'))
 
@@ -36,6 +38,9 @@ class BaseTest(unittest.TestCase):
         self.stations_file = osp.join(self.test_dir,
                                       osp.basename(_test_stations))
         shutil.copyfile(_test_stations, self.stations_file)
+        self.eecra_stations_file = osp.join(self.test_dir,
+                                            osp.basename(_eecra_test_stations))
+        shutil.copyfile(_eecra_test_stations, self.eecra_stations_file)
         self.organizer = ModelOrganizer('gwgen')
         global_conf = self.organizer.config.global_config
         global_conf['data'] = osp.dirname(__file__)
@@ -57,10 +62,10 @@ class BaseTest(unittest.TestCase):
 
     def _clear_db(self):
         engine = utils.get_postgres_engine('travis_ci_test')[0]
-#        conn = engenine.connect()
+        conn = engine.connect()
         for table in engine.table_names():
-            engine.execute("DROP TABLE %s;" % table)
-#        conn.close()
+            conn.execute("DROP TABLE %s;" % table)
+        conn.close()
 
     @property
     def stations(self):

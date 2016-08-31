@@ -59,6 +59,10 @@ class _ParameterizerTestMixin(object):
             if not isinstance(task.data, pd.DataFrame):
                 return task.data
             return [task.data]
+
+        def no_duplicates(df):
+            return df.ix[~df.index.duplicated()]
+
         if self.param_cls is None:
             return
         name = self.name
@@ -124,7 +128,8 @@ class _ParameterizerTestMixin(object):
             for df, df_ref in zip(new_data, ref_data):
                 df.sort_index(inplace=True)
                 df_ref.sort_index(inplace=True)
-                self.assertIsNone(df_equals(df, df_ref),
+                self.assertIsNone(df_equals(no_duplicates(df),
+                                            no_duplicates(df_ref)),
                                   msg=df_diff_msg % (df, df_ref))
         # check setup from file
         if setup_from_db:
@@ -139,11 +144,12 @@ class _ParameterizerTestMixin(object):
             new_data = get_data(new_task)
             self.assertEqual(len(new_data), len(ref_data),
                              msg=('Number of dataframes for %s task are not '
-                                  'equal after setup from file!') % name)
+                                  'equal after setup from db!') % name)
             for df, df_ref in zip(new_data, ref_data):
                 df.sort_index(inplace=True)
                 df_ref.sort_index(inplace=True)
-                self.assertIsNone(df_equals(df, df_ref),
+                self.assertIsNone(df_equals(no_duplicates(df),
+                                            no_duplicates(df_ref)),
                                   msg=df_diff_msg % (df, df_ref))
         return manager
 
@@ -238,7 +244,17 @@ class Test_TemperatureParameterizer(bt.BaseTest, _ParameterizerTestMixin):
     param_cls = param.TemperatureParameterizer
 
 
-class Test_HourlyCloud(bt.BaseTest, _ParameterizerTestMixin):
+class _CloudTestMixin(object):
+    """A base class defining a test for using eecra stations directly"""
+
+    def test_param_eecra(self, **kwargs):
+        self.stations_file = self.eecra_stations_file
+        kwargs.setdefault(self.param_cls.name, {}).setdefault(
+            'args_type', 'eecra')
+        self.test_param(**kwargs)
+
+
+class Test_HourlyCloud(bt.BaseTest, _ParameterizerTestMixin, _CloudTestMixin):
     """Test case for the :class:`gwgen.parameterization.HourlyCloud` task"""
 
     param_cls = param.HourlyCloud
@@ -284,26 +300,36 @@ class Test_HourlyCloud(bt.BaseTest, _ParameterizerTestMixin):
         super(Test_HourlyCloud, self).test_param(**kwargs)
 
 
-class Test_DailyCloud(bt.BaseTest, _ParameterizerTestMixin):
+class Test_DailyCloud(bt.BaseTest, _ParameterizerTestMixin, _CloudTestMixin):
     """Test case for the :class:`gwgen.parameterization.DailyCloud` task"""
 
     param_cls = param.DailyCloud
 
 
-class Test_MonthlyCloud(bt.BaseTest, _ParameterizerTestMixin):
+class Test_MonthlyCloud(bt.BaseTest, _ParameterizerTestMixin, _CloudTestMixin):
     """Test case for the :class:`gwgen.parameterization.MonthlyCloud` task"""
 
     param_cls = param.MonthlyCloud
 
 
-class Test_CompleteMonthlyCloud(bt.BaseTest, _ParameterizerTestMixin):
+class Test_CompleteMonthlyCloud(bt.BaseTest, _ParameterizerTestMixin,
+                                _CloudTestMixin):
     """Test case for the :class:`gwgen.parameterization.CompleteMonthlyCloud`
     task"""
 
     param_cls = param.CompleteMonthlyCloud
 
 
-class Test_CompleteDailyCloud(bt.BaseTest, _ParameterizerTestMixin):
+class Test_YearlyCompleteMonthlyCloud(bt.BaseTest, _ParameterizerTestMixin,
+                                      _CloudTestMixin):
+    """Test case for the
+    :class:`gwgen.parameterization.YearlyCompleteMonthlyCloud` task"""
+
+    param_cls = param.YearlyCompleteMonthlyCloud
+
+
+class Test_CompleteDailyCloud(bt.BaseTest, _ParameterizerTestMixin,
+                              _CloudTestMixin):
     """Test case for the :class:`gwgen.parameterization.CompleteDailyCloud`
     task"""
 
@@ -325,7 +351,8 @@ class Test_CompleteDailyCloud(bt.BaseTest, _ParameterizerTestMixin):
                 monthly[['mean_cloud', 'ndays']][difference]))
 
 
-class Test_YearlyCompleteDailyCloud(bt.BaseTest, _ParameterizerTestMixin):
+class Test_YearlyCompleteDailyCloud(bt.BaseTest, _ParameterizerTestMixin,
+                                    _CloudTestMixin):
     """Test case for the
     :class:`gwgen.parameterization.YearlyCompleteDailyCloud` task"""
 
@@ -347,7 +374,8 @@ class Test_YearlyCompleteDailyCloud(bt.BaseTest, _ParameterizerTestMixin):
                 yearly[['mean_cloud', 'ndays']].iloc[difference]))
 
 
-class Test_CloudParameterizer(bt.BaseTest, _ParameterizerTestMixin):
+class Test_CloudParameterizer(bt.BaseTest, _ParameterizerTestMixin,
+                              _CloudTestMixin):
     """Test case for the :class:`gwgen.parameterization.CloudParameterizer`
     task"""
 
