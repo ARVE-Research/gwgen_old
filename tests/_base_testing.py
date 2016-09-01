@@ -50,7 +50,7 @@ class BaseTest(unittest.TestCase):
         global_conf['use_relative_links'] = False
         if use_db:
             self._clear_db()
-            global_conf['database'] = 'travis_ci_test'
+            global_conf['database'] = dbname
 
     def tearDown(self):
         if osp.exists(self.test_dir):
