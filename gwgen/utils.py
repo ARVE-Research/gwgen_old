@@ -41,6 +41,8 @@ def download_file(url, target=None):
     file_name: str
         the downloaded filename"""
     logger.info('Downloading %s to %s', url, target)
+    if target is not None and not osp.exists(osp.dirname(target)):
+        os.makedirs(osp.dirname(target))
     if six.PY3:
         from urllib import request
         return request.urlretrieve(url, target)[0]
@@ -1592,6 +1594,8 @@ class TaskManager(object):
                 # start the computation
                 res = pool.map_async(self, args)
                 tasks = res.get()
+                pool.close()
+                pool.terminate()
                 tasks = [
                     task.setup_from_instances(
                         next(t for t in all_tasks if t.name == task.name),

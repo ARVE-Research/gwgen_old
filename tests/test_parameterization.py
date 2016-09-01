@@ -61,7 +61,7 @@ class _ParameterizerTestMixin(object):
             return [task.data]
 
         def no_duplicates(df):
-            return df.ix[~df.index.duplicated()]
+            return df.ix[~df.index.duplicated(keep=False)]
 
         if self.param_cls is None:
             return
@@ -128,9 +128,12 @@ class _ParameterizerTestMixin(object):
             for df, df_ref in zip(new_data, ref_data):
                 df.sort_index(inplace=True)
                 df_ref.sort_index(inplace=True)
-                self.assertIsNone(df_equals(no_duplicates(df),
-                                            no_duplicates(df_ref)),
-                                  msg=df_diff_msg % (df, df_ref))
+                df = no_duplicates(df)
+                df_ref = no_duplicates(df_ref)
+                mask = (df != df_ref).values.any(axis=1)
+                self.assertIsNone(df_equals(df, df_ref),
+                                  msg=df_diff_msg % (df.ix[mask],
+                                                     df_ref.ix[mask]))
         # check setup from file
         if setup_from_db:
             for fname in filter(None, safe_list(task.datafile)):
@@ -148,9 +151,12 @@ class _ParameterizerTestMixin(object):
             for df, df_ref in zip(new_data, ref_data):
                 df.sort_index(inplace=True)
                 df_ref.sort_index(inplace=True)
-                self.assertIsNone(df_equals(no_duplicates(df),
-                                            no_duplicates(df_ref)),
-                                  msg=df_diff_msg % (df, df_ref))
+                df = no_duplicates(df)
+                df_ref = no_duplicates(df_ref)
+                mask = (df != df_ref).values.any(axis=1)
+                self.assertIsNone(df_equals(df, df_ref),
+                                  msg=df_diff_msg % (df.ix[mask],
+                                                     df_ref.ix[mask]))
         return manager
 
 
@@ -267,10 +273,6 @@ class Test_HourlyCloud(bt.BaseTest, _ParameterizerTestMixin, _CloudTestMixin):
 
     def test_extraction(self):
         self._test_init()
-        manager = self.organizer.param(hourly_cloud={}, to_return='all',
-                                       stations=self.stations)
-        sl = (slice(None), [1996, 1997], [1, 2], slice(None), slice(None))
-        ref = manager.tasks[0].data.loc[sl, :]
         orig_data = self.organizer.model_config['data']
         self.organizer.model_config['data'] = self.test_dir
         eecra_dir = osp.join(self.test_dir, 'eecra')
@@ -287,11 +289,6 @@ class Test_HourlyCloud(bt.BaseTest, _ParameterizerTestMixin, _CloudTestMixin):
                             msg='Missing file %s!')
             self.assertGreater(utils.file_len(fname), 1,
                                msg='%s seems to be empty!' % fname)
-        task.setup_from_scratch()
-        ref.sort_index(inplace=True)
-        task.data.sort_index(inplace=True)
-        self.assertIsNone(df_equals(task.data, ref),
-                          msg=df_diff_msg % (task.data, ref))
 
     def test_param(self, **kwargs):
         """Unfortunately the raw EECRA data contains duplicates, so we don't

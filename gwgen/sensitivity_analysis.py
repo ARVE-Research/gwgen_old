@@ -115,6 +115,8 @@ class SensitivityAnalysis(object):
             changed = organizer.config.experiments[experiment]
             self.organizer.config.experiments[experiment] = changed
         config['serial'] = False
+        pool.close()
+        pool.terminate()
 
     def __call__(self, kws):
         """Call the :meth:`~gwgen.main.ModelOrganizer.start` of the
