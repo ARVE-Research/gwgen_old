@@ -1571,7 +1571,8 @@ class ModelOrganizer(object):
         """A mapping from preproc commands to the corresponding function"""
         from gwgen.preproc import CloudGHCNMap
         return {'select': self.select,
-                'cloud': self.cloud_preproc}
+                'cloud': self.cloud_preproc,
+                'test': self.create_test_sample}
 
     @docstrings.dedent
     def preproc(self, **kwargs):
@@ -1607,6 +1608,7 @@ class ModelOrganizer(object):
         from gwgen.preproc import CloudPreproc
         self._modify_main(parser)
         sps = parser.add_subparsers(title='Preprocessing tasks', chain=True)
+
         # select
         sp = sps.add_parser(
             'select', help='Select stations based upon a regular grid')
@@ -1624,16 +1626,21 @@ class ModelOrganizer(object):
         sp.update_arg('download', short='d', choices=['single', 'all'])
         sp.create_arguments()
 
-#        sp = sps.add_parser(
-#            CloudGHCNMap.name, help=CloudGHCNMap.summary)
-#        sp.setup_args(self.cloud_ghcn_map)
-#        CloudGHCNMap._modify_parser(sp)
-#        sp.create_arguments()
+        # cloud preprocessing
         sp = sps.add_parser('cloud', help='Cloud preprocessing')
         sp.setup_args(self.cloud_preproc)
         sp.update_arg('max_files', short='mf', type=int)
         sp.pop_arg('return_manager')
         self._modify_task_parser(sp, CloudPreproc)
+        sp.create_arguments()
+
+        # test samples
+        sp = sps.add_parser(
+            'test', help='Create a test sample for selected GHCN stations')
+        sp.setup_args(self.create_test_sample)
+        sp.update_arg('no_cloud', short='nc')
+        sp.update_arg('reduce_eecra', short='re', type=float)
+        sp.update_arg('keep_all', short='a')
         sp.create_arguments()
 
         return parser
@@ -1833,6 +1840,8 @@ class ModelOrganizer(object):
                                 repeat(kws)))
                 res = pool.map_async(self._parallel_select, args)
                 best = pd.concat(res.get())
+                pool.close()
+                pool.terminate()
             else:
                 best = self._select_best_df(
                     df_stations.dropna(0), test_series, kws)
@@ -1907,35 +1916,6 @@ class ModelOrganizer(object):
             return d, manager
         else:
             return d
-
-    def cloud_ghcn_map(self, max_files=None, **kwargs):
-        """
-        Extract the inventory of EECRA stations
-
-        Parameters
-        ----------
-        max_files: int
-            The maximum number of files to process during one process. If None,
-            it is determined by the global ``'max_stations'`` key
-        ``**kwargs``
-            Any keyword for the :class:`gwgen.preproc.CloudGHCNMap` class
-        """
-        from gwgen.preproc import CloudGHCNMap
-        from gwgen.parameterization import HourlyCloud
-        stations_orig = self.global_config.get('max_stations')
-        if max_files is not None:
-            self.global_config['max_stations'] = max_files
-        files = HourlyCloud.from_organizer(self, []).raw_src_files
-        manager = CloudGHCNMap.get_manager(config=self.global_config)
-        self._setup_manager(manager, stations=list(files.values()),
-                            base_kws={CloudGHCNMap.name: kwargs})
-        d = {}
-        manager.run(d)
-        if stations_orig:
-            self.global_config['max_stations'] = stations_orig
-        else:
-            self.global_config.pop('max_stations', None)
-        return d.get(CloudGHCNMap.name)
 
     # --------------------------- Parameterization ----------------------------
 
@@ -2013,6 +1993,100 @@ class ModelOrganizer(object):
         from gwgen.parameterization import Parameterizer
         self._modify_task_parser(parser, Parameterizer, *args, **kwargs)
 
+    # --------------------------------- Test ----------------------------------
+
+    @docstrings.dedent
+    def create_test_sample(self, test_dir, stations, no_cloud=False,
+                           reduce_eecra=0, keep_all=False):
+        """
+        Create a test sample for the given GHCN stations
+
+        Parameters
+        ----------
+        test_dir: str
+            The path to the directory containing the test files from Github
+        stations: str or list of str
+            either a list of GHCN stations to use or a filename containing a
+            1-row table with GHCN stations
+        no_cloud: bool
+            If True, no cloud stations are extracted
+        reduce_eecra: float
+            The percentage by which to reduce the EECRA data
+        keep_all: bool
+            If True all years of the EECRA data are used. Otherwise, only the
+            years with complete temperature and cloud are kept. Note
+            that this has only an effect if `reduce_eecra` is not 0
+        """
+        import calendar
+        import pandas as pd
+        from gwgen.parameterization import DailyGHCNData, HourlyCloud
+
+        def is_complete(s):
+            ndays = 366 if calendar.isleap(s.name[1]) else 365
+            s[:] = s.ix[~s.index.duplicated()].count() == ndays
+            return s
+
+        stations = self._get_stations(stations)
+        np.savetxt(osp.join(test_dir, 'test_stations.dat'), stations, fmt='%s')
+        # download the GHCN data
+        ghcn_task = DailyGHCNData.from_organizer(self, stations,
+                                                 download='single')
+        ghcn_task.init_from_scratch()
+        data_dir = super(DailyGHCNData, ghcn_task).data_dir
+
+        if not no_cloud:
+            eecra_task = HourlyCloud.from_organizer(self, stations)
+            if len(eecra_task.stations) == 0:
+                raise ValueError(
+                    "Could not find any station in the given stations %s!",
+                    ', '.join(stations))
+            np.savetxt(osp.join(test_dir, 'eecra_test_stations.dat'),
+                       eecra_task.eecra_stations, fmt='%i')
+            eecra_task.init_from_scratch()
+
+        for fname in ghcn_task.raw_src_files:
+            target = fname.replace(osp.join(data_dir, ''),
+                                   osp.join(test_dir, ''))
+            if not osp.samefile(fname, target):
+                shutil.copyfile(fname, target)
+            shutil.make_archive(osp.join(test_dir, 'ghcn', 'ghcnd_all'),
+                                'gztar',
+                                root_dir=osp.join(test_dir, 'ghcn'),
+                                base_dir='ghcnd_all')
+
+        if not no_cloud:
+            for fname in eecra_task.src_files:
+                target = fname.replace(osp.join(data_dir, ''),
+                                       osp.join(test_dir, ''))
+                if not reduce_eecra and not osp.samefile(fname, target):
+                    shutil.copyfile(fname, target)
+                else:
+                    df = pd.read_csv(fname)
+                    if not keep_all:
+                        df_bool = df.set_index(
+                            ['station_id', 'year', 'month', 'day'])[[
+                                'ww', 'AT', 'N']]
+                        for col in df_bool.columns:
+                            df_bool[col] = df_bool[col].astype(bool)
+                        g = df_bool.groupby(level=['station_id', 'year'])
+                        mask = g.transform(is_complete).values.any(axis=1)
+                        df = df.ix[mask]
+
+                    g = df.groupby(['station_id', 'year'],
+                                   as_index=False)
+                    tot = g.ngroups
+                    n = np.ceil(tot * (100 - reduce_eecra) / 100)
+                    idx_groups = iter(sorted(np.random.permutation(tot)[:n]))
+                    self.logger.debug(
+                        'Saving EECRA test sample with %i years from %i to '
+                        '%s', n, tot, target)
+                    df.ix[1:0].to_csv(target, index=False)
+                    igrp = next(idx_groups)
+                    for i, (key, group) in enumerate(g):
+                        if i == igrp:
+                            group.to_csv(target, header=False, mode='a',
+                                         index=False)
+                            igrp = next(idx_groups, -1)
     # -------------------------------------------------------------------------
     # ------------------------------- Run -------------------------------------
     # --------------------------- Run the experiment --------------------------
@@ -2551,7 +2625,8 @@ class ModelOrganizer(object):
     # ------------------------------ Miscallaneous ----------------------------
     # -------------------------------------------------------------------------
 
-    def _get_stations(self, stations, other_exp, odir, config_key):
+    def _get_stations(self, stations, other_exp=False, odir=None,
+                      config_key=None):
         """
         Get the stations for the parameterization or evaluation
 
@@ -2571,7 +2646,7 @@ class ModelOrganizer(object):
         import numpy as np
 
         exp_dict = self.exp_config
-        fname = osp.join(odir, 'stations.dat')
+        fname = osp.join(odir, 'stations.dat') if odir else ''
         if other_exp and stations is None:
             stations = self.fix_paths(
                 self.config.experiments[other_exp]).get(config_key)
@@ -2588,18 +2663,18 @@ class ModelOrganizer(object):
                     np.str_)
         elif len(stations) == 1 and osp.exists(stations[0]):
             fname_use = stations[0]
-            exists = osp.exists(fname)
+            exists = osp.exists(fname) if fname else False
             if exists and not osp.samefile(fname, fname_use):
                 os.remove(fname)
                 self._link(fname_use, fname)
-            elif not exists:
+            elif not exists and fname:
                 self._link(fname_use, fname)
             stations = np.loadtxt(
-                fname, dtype='S300', usecols=[0]).astype(np.str_)
-        elif len(stations):
+                fname_use, dtype='S300', usecols=[0]).astype(np.str_)
+        elif len(stations) and fname:
             np.savetxt(fname, stations, fmt='%s')
-        if not exp_dict.get(config_key) or not osp.samefile(
-                fname, exp_dict[config_key]):
+        if config_key and (not exp_dict.get(config_key) or not osp.samefile(
+                fname, exp_dict[config_key])):
             exp_dict[config_key] = fname
         return stations
 
