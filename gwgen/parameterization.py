@@ -117,6 +117,11 @@ class DailyGHCNData(Parameterizer):
         return osp.join(super(DailyGHCNData, self).data_dir,
                         'ghcn', 'ghcnd_all')
 
+    @property
+    def raw_src_files(self):
+        return list(map(lambda s: osp.join(self.data_dir, s + '.dly'),
+                        self.stations))
+
     flags = ['tmax_m', 'prcp_s', 'tmax_q', 'prcp_m', 'tmin_m', 'tmax_s',
              'tmin_s', 'prcp_q', 'tmin_q']
 
@@ -183,7 +188,7 @@ class DailyGHCNData(Parameterizer):
         logger.debug('Reading data for %s stations', len(stations))
         src_dir = self.data_dir
         logger.debug('    Expected data source: %s', src_dir)
-        files = list(map(lambda s: osp.join(src_dir, s + '.dly'), stations))
+        files = self.raw_src_files
         missing = list(filterfalse(osp.exists, files))
         if missing:
             download = self.task_config.download
@@ -1863,7 +1868,7 @@ class YearlyCompleteDailyCloud(CompleteDailyCloud):
 
     name = 'yearly_cdaily_cloud'
 
-    setup_requires = ['cdaily_cloud', 'yearly_cmonthly_cloud']
+    setup_requires = ['cdaily_cloud', 'cmonthly_cloud']
 
     _datafile = "yearly_complete_daily_cloud.csv"
 
@@ -1875,14 +1880,29 @@ class YearlyCompleteDailyCloud(CompleteDailyCloud):
     allow_files = False
 
     def setup_from_scratch(self):
-        monthly = self.yearly_cmonthly_cloud.data
-        cols = ['wet_day', 'tmin', 'tmax', 'mean_cloud']
-        complete_cols = [col + '_complete_year' for col in cols]
+        def year_complete(series):
+            """Check whether the data for the given is complete"""
+            return series.astype(int).sum() == 12
+        all_monthly = self.cmonthly_cloud.data
+
+        cols = ['wet_day', 'mean_cloud', 'tmin', 'tmax']
+
+        complete_cols = [col + '_complete' for col in cols]
+
+        df_yearly = all_monthly[complete_cols].groupby(
+            level=['id', 'year']).agg(year_complete)
+
+        names = all_monthly.index.names
+        all_monthly = all_monthly.reset_index().merge(
+            df_yearly[complete_cols].reset_index(), on=['id', 'year'],
+            suffixes=['', '_year']).set_index(names)
+
+        ycomplete_cols = [col + '_complete_year' for col in cols]
+        monthly = all_monthly.ix[
+            all_monthly[ycomplete_cols].values.all(axis=1)][[]].reset_index()
         self.data = self.cdaily_cloud.data.reset_index().merge(
-            monthly[
-                monthly[complete_cols].values.all(axis=1)][[]].reset_index(),
-            how='inner', on=['id', 'year', 'month'], copy=False).set_index(
-                ['id', 'year', 'month', 'day'])
+            monthly, how='inner', on=['id', 'year', 'month'],
+            copy=False).set_index(['id', 'year', 'month', 'day'])
 
 
 class CrossCorrelation(Parameterizer):
@@ -1908,6 +1928,15 @@ class CrossCorrelation(Parameterizer):
     setup_parallel = False
 
     has_run = True
+
+    @property
+    def sql_dtypes(self):
+        import sqlalchemy
+        ret = super(CrossCorrelation, self).sql_dtypes
+        for col in self.cols:
+            ret[col + '1'] = ret[col]
+        ret['variable'] = sqlalchemy.TEXT
+        return ret
 
     def setup_from_file(self, **kwargs):
         """Set up the parameterizer from already stored files"""
