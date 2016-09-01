@@ -1219,9 +1219,9 @@ class CloudParameterizerBase(Parameterizer):
         choices = ['ghcn', 'eecra']
         if cls.allow_files:
             choices += ['files']
-            append = textwrap.indent(
-                "\nfiles\n"
-                "    Arguments are paths to raw EECRA files", '    ')
+            append = (
+                "\n    files\n"
+                "        Arguments are paths to raw EECRA files")
         else:
             append = ''
         parser.update_arg('args_type', short='at', group=setup_grp,
