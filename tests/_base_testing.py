@@ -21,6 +21,9 @@ _eecra_test_stations = osp.join(test_root, 'eecra_test_stations.dat')
 setup_logging(osp.join(test_root, 'logging.yaml'))
 
 
+dbname = 'travis_ci_test'
+
+
 class BaseTest(unittest.TestCase):
     """Test the :class:`gwgen.main.ModuleOrganizer` class"""
 
@@ -61,7 +64,7 @@ class BaseTest(unittest.TestCase):
         del self.config_dir
 
     def _clear_db(self):
-        engine = utils.get_postgres_engine('travis_ci_test')[0]
+        engine = utils.get_postgres_engine(dbname)[0]
         conn = engine.connect()
         for table in engine.table_names():
             conn.execute("DROP TABLE %s;" % table)
@@ -137,7 +140,7 @@ except:
 
 # try to connect to a postgres database
 try:
-    utils.get_postgres_engine('travis_ci_test', create=True, test=True)
+    utils.get_postgres_engine(dbname, create=True, test=True)
     use_db = True
 except:
     use_db = False
