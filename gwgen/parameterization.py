@@ -1546,13 +1546,14 @@ class MonthlyCloud(CloudParameterizerBase):
     @staticmethod
     def calculate_monthly(df):
         if len(df) > 1:
+            wet = df.wet_day.values.astype(bool)
             return pd.DataFrame.from_dict(OrderedDict([
                 ('wet_day', [df.wet_day.sum()]),
-                ('mean_cloud_wet', [df.mean_cloud[df.wet_day].mean()]),
-                ('mean_cloud_dry', [df.mean_cloud[~df.wet_day].mean()]),
+                ('mean_cloud_wet', [df.mean_cloud.ix[wet].mean()]),
+                ('mean_cloud_dry', [df.mean_cloud.ix[~wet].mean()]),
                 ('mean_cloud', [df.mean_cloud.mean()]),
-                ('sd_cloud_wet', [df.mean_cloud[df.wet_day].std()]),
-                ('sd_cloud_dry', [df.mean_cloud[~df.wet_day].std()]),
+                ('sd_cloud_wet', [df.mean_cloud.ix[wet].std()]),
+                ('sd_cloud_dry', [df.mean_cloud.ix[~wet].std()]),
                 ('sd_cloud', [df.mean_cloud.std()]),
                 ]))
         else:
