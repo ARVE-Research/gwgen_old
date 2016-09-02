@@ -1404,6 +1404,9 @@ class TaskManager(object):
         ----------
         %(TaskManager._get_tasks.parameters)s"""
         task_kws = {key: val.copy() for key, val in task_kws.items()}
+        stations = np.asarray(stations)
+        if not stations.ndim:
+            stations = stations.reshape(1)
         # sort the tasks for their requirements
         self.tasks = tasks = self._get_tasks(stations, task_kws)
         for instance in tasks:
@@ -1513,6 +1516,9 @@ class TaskManager(object):
             run method will be returned
         """
         config = self.config
+        stations = np.asarray(stations)
+        if not stations.ndim:
+            stations = stations.reshape(1)
         if to_return is None:
             to_return = [task.name for task in self.tasks if task.has_run]
         elif to_return == 'all':
