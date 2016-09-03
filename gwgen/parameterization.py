@@ -1750,23 +1750,18 @@ class CloudParameterizer(CompleteMonthlyCloud):
         """The dataframe of this parameterization task converted to a dataset
         """
         import xarray as xr
-        ds = xr.Dataset.from_dataframe(self.data.set_index('mean_cloud'))
+        ds = xr.Dataset.from_dataframe(self.data.reset_index())
+        for t, state in product(['sd', 'mean'], ['', 'wet', 'dry']):
+            vname = t + '_cloud' + (('_' + state) if state != 'all' else '')
         for state in ['wet', 'dry', 'all']:
             name = 'cloud' + (('_' + state) if state != 'all' else '')
-            mean = 'mean_' + name
-            sd = 'sd_' + name
-            # set attributes
-            ds[mean].attrs['long_name'] = 'mean cloud fraction'
-            ds[mean].attrs['state'] = state
-            ds[mean].attrs['symbol'] = 'c'
-            ds[sd].attrs['long_name'] = 'std. dev. of cloud fraction'
-            ds[sd].attrs['state'] = state
-            ds[sd].attrs['symbol'] = 'c_\mathrm{std}'
-            # set mean on wet/dry days as coordinate for std on wet/dry days
-            if state != 'all':
-                coord = 'c_' + mean
-                ds[coord] = ds[mean].rename({'mean_cloud': coord})
-                ds[sd] = ds[sd].rename({'mean_cloud': coord}).variable
+            varo = ds.variables[vname]
+            label = 'std. dev.' if t else 'mean'
+            varo.attrs['long_name'] = '%s cloud fraction' % (label)
+            varo.attrs['units'] = '-'
+            varo.attrs['symbol'] = 'c_\mathrm{{%s%s}}' % (
+                'sd' if t else '', (', ' + state) if state else '')
+            varo.attrs['state'] = state or 'all'
         return ds
 
     def setup_from_scratch(self):
@@ -1805,11 +1800,13 @@ class CloudParameterizer(CompleteMonthlyCloud):
                 ylabel='%(long_name)s\non %(state)s days',
                 text=[(middle, 0.03, '%(long_name)s', 'fig', dict(
                      weight='bold', ha='center'))], fmt=self.fmt,
-                fit=fit_funcs[t])
+                fit=fit_funcs[t],
+                coord='mean_cloud' + ('_wet' if t == 'sd' else ''))
             psy.plot.densityreg(
                 ds, name='%s_cloud_dry' % (t), ax=next(axes),
                 ylabel='on %(state)s days', fmt=self.fmt,
-                fit=fit_funcs[t])
+                fit=fit_funcs[t],
+                coord='mean_cloud' + ('_dry' if t == 'sd' else ''))
         return psy.gcp(True)[:]
 
     @docstrings.dedent
