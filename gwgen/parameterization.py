@@ -669,7 +669,7 @@ class PrcpDistParams(Parameterizer):
         fig.subplots_adjust(hspace=0)
         ax2 = plt.subplot2grid((4, 2), (0, 1))
         ax3 = plt.subplot2grid((4, 2), (1, 1), rowspan=3, sharex=ax2)
-        pshape = df.pshape[df.ngp > 100]
+        pshape = df.pshape[df.pshape.notnull() & df.ngp > 100]
         sns.boxplot(pshape, ax=ax2, whis=[1, 99], showmeans=True,
                     meanline=True)
         sns.distplot(pshape, hist=True, kde=True, ax=ax3)
