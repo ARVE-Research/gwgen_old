@@ -1753,8 +1753,6 @@ class CloudParameterizer(CompleteMonthlyCloud):
         ds = xr.Dataset.from_dataframe(self.data.reset_index())
         for t, state in product(['sd', 'mean'], ['', 'wet', 'dry']):
             vname = t + '_cloud' + (('_' + state) if state != 'all' else '')
-        for state in ['wet', 'dry', 'all']:
-            name = 'cloud' + (('_' + state) if state != 'all' else '')
             varo = ds.variables[vname]
             label = 'std. dev.' if t else 'mean'
             varo.attrs['long_name'] = '%s cloud fraction' % (label)
