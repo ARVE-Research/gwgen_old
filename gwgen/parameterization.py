@@ -1969,14 +1969,19 @@ class CrossCorrelation(Parameterizer):
         self.data = final = ddf[cols].corr().compute(get=get, **kws)
         final.index.name = 'variable'
         # make sure that the index is ignored
-        shifted = dd.from_pandas(df.shift(freq=pd.datetools.day),
-                                 chunksize=chunksize)
+        shifted = df.copy()
+        shifted.iloc[1:, :] = shifted.iloc[:-1].values
+        # set last day of year to NaN
+        shifted.iloc[(shifted.index.month == 12) &
+                     (shifted.index.day == 31)] = np.nan
+        dshifted = dd.from_pandas(shifted, chunksize=chunksize)
         # m1
         for col in cols:
             final[col + '1'] = 0
             for col2 in cols:
                 final.loc[col2, col + '1'] = ddf[col].corr(
-                    shifted[col2]).compute(get=get, **kws)
+                    dshifted[col2]).compute(get=get, **kws)
+                final.columns.name = 'variable'
 
     def run(self, info, full_nml):
         cols = self.cols
