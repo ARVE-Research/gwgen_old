@@ -1947,21 +1947,36 @@ class CrossCorrelation(Parameterizer):
         self.data.columns.name = 'variable'
 
     def setup_from_scratch(self):
+        import dask.dataframe as dd
+        if not self.global_config.get('serial'):
+            from dask.multiprocessing import get
+            nprocs = self.global_config.get('nprocs', 'all')
+            if nprocs == 'all':
+                import multiprocessing as mp
+                nprocs = mp.cpu_count()
+            kws = {'num_workers': nprocs}
+        else:
+            from dask.async import get_sync as get
+            kws = {}
         df = self.yearly_cdaily_cloud.data.sort_index()
+        df['date'] = vals = pd.to_datetime(df[[]].reset_index().drop('id', 1))
+        df['date'].values[:] = vals
+        df.set_index('date', inplace=True)
+        chunksize = self.global_config.get('chunksize', 10 ** 6)
+        ddf = dd.from_pandas(df, chunksize=chunksize)
         cols = self.cols
         # m0
-        self.data = final = df[cols].corr()
+        self.data = final = ddf[cols].corr().compute(get=get, **kws)
         final.index.name = 'variable'
-        df['date'] = vals = pd.to_datetime(df[[]].reset_index().drop('id', 1))
         # make sure that the index is ignored
-        df['date'].values[:] = vals
-        df = df.set_index('date')
-        shifted = df.shift(freq=pd.datetools.day)
+        shifted = dd.from_pandas(df.shift(freq=pd.datetools.day),
+                                 chunksize=chunksize)
         # m1
         for col in cols:
             final[col + '1'] = 0
             for col2 in cols:
-                final.loc[col2, col + '1'] = df[col].corr(shifted[col2])
+                final.loc[col2, col + '1'] = ddf[col].corr(
+                    shifted[col2]).compute(get=get, **kws)
 
     def run(self, info, full_nml):
         cols = self.cols
