@@ -327,7 +327,7 @@ end do
 !$OMP FIRSTPRIVATE(old_id,keep), &
 !$OMP& PRIVATE(yr,mn,dy,hr,IB,LAT,LON,station_id,LO,ww,N,Nh, h,CL,CM,CH,AM,AH, &
 !$OMP&         UM,UH,IC,SA,RI,SLP,WS,WD,AT, DD,EL,IW,IP,fname,cid,i,ID,imonth, &
-!$OMP&         cyear,year,all_cfmt,iyear)
+!$OMP&         cyear,year,all_cfmt,iyear,j)
 do iyear = 1,size(years)
     year = years(iyear)
     ID = OMP_get_thread_num() + 1
