@@ -414,16 +414,28 @@ class QuantileEvaluation(Evaluator):
     def ds(self):
         """The dataset of the quantiles"""
         import xarray as xr
+        data = self.data.reset_index()
         ds = xr.Dataset.from_dataframe(
-            self.data.reset_index().set_index('pctl', append=True).swaplevel())
+            data.set_index('pctl', append=True).swaplevel())
+        full = xr.Dataset.from_dataframe(data).drop(list(chain(
+            self.data.index.names, ['pctl'])))
+        idx_name = full.tmax_sim.dims[-1]
+        full.rename({idx_name: 'full_index'}, inplace=True)
+        for vref, vsim in self.all_variables:
+            full.rename({vref: 'all_' + vref, vsim: 'all_' + vsim},
+                        inplace=True)
+        ds.merge(full, inplace=True)
         for orig, attrs, (vref, vsim) in zip(
                 self.names, self.names.values(), self.all_variables):
-            ds[vsim].attrs.update(attrs)
-            ds[vref].attrs.update(attrs)
-            ds[vsim].attrs['standard_name'] = orig
-            ds[vref].attrs['standard_name'] = orig
-            ds[vref].attrs['type'] = 'observed'
-            ds[vsim].attrs['type'] = 'simulated'
+            for prefix in ['', 'all_']:
+                ds[prefix + vsim].attrs.update(attrs)
+                ds[prefix + vref].attrs.update(attrs)
+                ds[prefix + vsim].attrs['standard_name'] = orig
+                ds[prefix + vref].attrs['standard_name'] = orig
+                ds[prefix + vref].attrs['type'] = 'observed'
+                ds[prefix + vsim].attrs['type'] = 'simulated'
+            ds['all_' + vsim].attrs['pctl'] = 'All'
+            ds['all_' + vsim].attrs['pctl'] = 'All'
         ds.pctl.attrs['long_name'] = 'Percentile'
         return ds
 
@@ -476,13 +488,17 @@ class QuantileEvaluation(Evaluator):
             kwargs = dict(precision=0.1) if vref.startswith('prcp') else {}
             psy.plot.densityreg(ds, name=vsim, coord=vref, fmt=self.fmt,
                                 pctl=range(ds.pctl.size), **kwargs)
+            psy.plot.densityreg(ds, name='all_' + vsim, coord='all_' + vref,
+                                fmt=self.fmt, title='All percentiles',
+                                **kwargs)
         return psy.gcp(True)[:]
 
     def make_run_config(self, sp, info):
         for orig in self.names:
             info[orig] = d = OrderedDict()
             for plotter in sp(standard_name=orig).plotters:
-                d[int(plotter.data.pctl.values)] = pctl_d = OrderedDict()
+                d[plotter.data.pctl if plotter.data.name.startswith('all') else
+                  int(plotter.data.pctl.values)] = pctl_d = OrderedDict()
                 for key in ['rsquared', 'slope', 'intercept']:
                         val = plotter.plot_data[1].attrs.get(key)
                         if val is not None:
