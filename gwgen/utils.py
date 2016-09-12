@@ -1237,6 +1237,8 @@ class TaskBase(object):
         for i, (dbname, kws) in enumerate(zip(safe_list(self.dbname),
                                               self._split_kwargs(kwargs))):
             data = self._get_data(i)
+            if not len(data):
+                continue
             if 'id' in data.columns:
                 data = data.set_index('id')
             dtype = self.sql_dtypes
@@ -1267,6 +1269,9 @@ class TaskBase(object):
         """Write the database to the :attr:`datafile` file"""
         for i, (datafile, kws) in enumerate(zip(safe_list(self.datafile),
                                                 self._split_kwargs(kwargs))):
+            data = self._get_data(i)
+            if not len(data):
+                continue
             lock = _file_locks.get(datafile)
             if lock:
                 self.logger.debug('Acquiring lock...')
@@ -1275,7 +1280,7 @@ class TaskBase(object):
             self.logger.debug('Writing data to %sexisting file %s',
                               'not ' if not exists else '', datafile)
             try:
-                safe_csv_append(self._get_data(i), datafile, **kws)
+                safe_csv_append(data, datafile, **kws)
             except:
                 raise
             finally:
