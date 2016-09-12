@@ -557,6 +557,10 @@ class KSEvaluation(QuantileEvaluation):
 
     requires = ['prepare', 'output']
 
+    _datafile = 'kolmogorov_evaluation.csv'
+
+    dbname = 'kolmogorov_evaluation'
+
     @staticmethod
     def calc(group):
         def calc(v1, v2, name):
@@ -623,7 +627,11 @@ class KSEvaluation(QuantileEvaluation):
 
     @classmethod
     def _modify_parser(cls, parser):
-        pass
+        cls.has_run = False
+        parser, setup_grp, run_grp = super(
+            QuantileEvaluation, cls)._modify_parser(parser)
+        cls.has_run = True
+        return parser, setup_grp, run_grp
 
 
 class SimulationQuality(Evaluator):
