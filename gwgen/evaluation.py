@@ -403,6 +403,7 @@ class QuantileEvaluation(Evaluator):
         bins=10,
         ideal=[0, 1],
         id_color='r',
+        sym_lims='max',
         )
 
     @property
