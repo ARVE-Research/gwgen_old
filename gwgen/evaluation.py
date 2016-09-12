@@ -26,10 +26,6 @@ class Evaluator(utils.TaskBase):
         """The directory where to store data"""
         return self.eval_dir
 
-    def task_output_dir(self):
-        """The directory where to save the output data"""
-        return self.eval_dir
-
 _PreparationConfigBase = namedtuple('_PreparationConfigBase',
                                     ['setup_raw', 'raw2db', 'raw2csv',
                                      'reference', 'input_path'])

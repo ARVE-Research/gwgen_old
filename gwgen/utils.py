@@ -645,10 +645,6 @@ class TaskBase(object):
         """The directory where to store data"""
         pass
 
-    def task_output_dir(self):
-        """The directory where to save the output data"""
-        return self.param_dir
-
     @property
     def datafile(self):
         """str. The path to the csv file where the data is stored by the
@@ -663,17 +659,17 @@ class TaskBase(object):
     @property
     def nc_file(self):
         """NetCDF file for the project"""
-        return osp.join(self.task_output_dir, self.name + '.nc')
+        return osp.join(self.task_data_dir, self.name + '.nc')
 
     @property
     def project_file(self):
         """Pickle file for the project"""
-        return osp.join(self.task_output_dir, self.name + '.pkl')
+        return osp.join(self.task_data_dir, self.name + '.pkl')
 
     @property
     def pdf_file(self):
         """pdf file with figures the project"""
-        return osp.join(self.task_output_dir, self.name + '.pdf')
+        return osp.join(self.task_data_dir, self.name + '.pdf')
 
     @property
     def engine(self):
