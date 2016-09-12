@@ -26,6 +26,10 @@ class Evaluator(utils.TaskBase):
         """The directory where to store data"""
         return self.eval_dir
 
+    def task_output_dir(self):
+        """The directory where to save the output data"""
+        return self.eval_dir
+
 _PreparationConfigBase = namedtuple('_PreparationConfigBase',
                                     ['setup_raw', 'raw2db', 'raw2csv',
                                      'reference', 'input_path'])
@@ -459,10 +463,12 @@ class QuantileEvaluation(Evaluator):
             df_map = HourlyCloud.from_task(self).eecra_ghcn_map()  # idx: id
             df_map['complete'] = True
             df.reset_index(['year', 'month', 'day'], inplace=True)  # idx: id
-            df = df.merge(df_map, left_index=True, right_index=True)
+            df = df.merge(df_map, left_index=True, right_index=True,
+                          how='left')
             cloud_names = ['mean_cloud_ref', 'mean_cloud_sim']
             df.ix[df.complete.isnull(), cloud_names] = np.nan
             df.set_index(['year', 'month', 'day'], append=True, inplace=True)
+            df.drop(df_map.columns, 1, inplace=True)
         # calculate the percentiles for each station and month
         g = df.sort_index().groupby(level=['id', 'year'])
         data = g.apply(self.calc)
