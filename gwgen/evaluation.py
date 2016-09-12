@@ -584,7 +584,8 @@ class KSEvaluation(QuantileEvaluation):
             n1 = len(v1)
             n2 = len(v2)
             n = np.sqrt((n1 + n2) / (n1 * n2))
-            print('%s,%s' % (statistic, n))
+            # if statistic > 1.36 * n, we reject the null hypothesis
+            # (alpha = 0.05)
             return {
                 name + '_stat': [statistic],
                 name + '_p': [p_value],
@@ -620,8 +621,9 @@ class KSEvaluation(QuantileEvaluation):
         Parameters
         ----------
         info: dict
-            The percentage of stations with no significant difference"""
+            The configuration dictionary"""
         def significance_fractions(vname):
+            "The percentage of stations with no significant difference"
             return 100. - (len(df[vname][df[vname].notnull() & (df[vname])]) /
                            df[vname].count())*100.
         logger = self.logger
