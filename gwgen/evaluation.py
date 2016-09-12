@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Evaluation module of the gwgen module"""
+from __future__ import division
 import os.path as osp
 import six
 from collections import namedtuple
@@ -440,6 +441,14 @@ class QuantileEvaluation(Evaluator):
         ds.pctl.attrs['long_name'] = 'Percentile'
         return ds
 
+    def setup_from_file(self, *args, **kwargs):
+        kwargs['index_col'] = ['id', 'year']
+        return super(QuantileEvaluation, self).setup_from_file(*args, **kwargs)
+
+    def setup_from_db(self, *args, **kwargs):
+        kwargs['index_col'] = ['id', 'year']
+        return super(QuantileEvaluation, self).setup_from_db(*args, **kwargs)
+
     def setup_from_scratch(self):
         df_ref = self.prepare.reference_data
         # create simulation dataframe
@@ -572,13 +581,16 @@ class KSEvaluation(QuantileEvaluation):
                     'n' + name + '_sim': [np.nan],
                     'n' + name + '_ref': [np.nan]}
             statistic, p_value = stats.ks_2samp(v1, v2)
-            n = np.sqrt((len(v1) + len(v2)) / (len(v1) * len(v2)))
+            n1 = len(v1)
+            n2 = len(v2)
+            n = np.sqrt((n1 + n2) / (n1 * n2))
+            print('%s,%s' % (statistic, n))
             return {
                 name + '_stat': [statistic],
                 name + '_p': [p_value],
                 name: [statistic > 1.36 * n],
-                'n' + name + '_sim': [len(v1)],
-                'n' + name + '_ref': [len(v2)]}
+                'n' + name + '_sim': [n1],
+                'n' + name + '_ref': [n2]}
         prcp_sim = group.prcp_sim.values[group.prcp_sim.values > 0]
         prcp_ref = group.prcp_ref.values[group.prcp_ref.values > 0]
         tmin_sim = group.tmin_sim.values[
