@@ -346,7 +346,7 @@ QuantileConfig = utils.enhanced_config(_QuantileConfig, 'QuantileConfig')
 
 @docstrings.dedent
 def default_quantile_config(
-        quantiles=[25, 50, 75, 90, 95, 99, 100], no_rounding=False,
+        quantiles=[1, 5, 10, 25, 50, 75, 90, 95, 99, 100], no_rounding=False,
         *args, **kwargs):
     """
     The default configuration for :class:`QuantileEvaluation` instances.
