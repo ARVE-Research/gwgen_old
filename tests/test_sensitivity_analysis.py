@@ -26,8 +26,8 @@ class SensitivityAnalysisTest(bt.BaseTest):
         experiment = self.organizer.experiment
         self.organizer.exp_config['eval_stations'] = self.stations_file
         self.organizer.parse_args(
-            '-id {} sens init -nml thresh,13,16 gp_shape,0.1,1.1,0.3'.format(
-                experiment).split())
+            ('-id {} sens init -nml thresh=13;14,16 '
+             'gp_shape=0.1;0.4,1.1,0.3').format(experiment).split())
         modelname = self.modelname
         threshs = np.arange(13, 16)
         shapes = np.arange(0.1, 1.1, 0.3)
@@ -40,8 +40,10 @@ class SensitivityAnalysisTest(bt.BaseTest):
         df = pd.DataFrame.from_dict([
             all_exps[exp_id]['namelist']['weathergen_ctl']
             for exp_id in exp_names])
-        self.assertEqual(df.thresh.values.tolist(), threshs.ravel().tolist())
-        self.assertEqual(df.gp_shape.values.tolist(), shapes.ravel().tolist())
+        self.assertAlmostArrayEqual(df.thresh.values,
+                                    threshs.ravel())
+        self.assertAlmostArrayEqual(
+            df.gp_shape.values, shapes.ravel())
 
     def test_init_and_param(self):
         self.test_setup()
@@ -50,8 +52,8 @@ class SensitivityAnalysisTest(bt.BaseTest):
         self.organizer.exp_config['param_stations'] = self.stations_file
         n_shape = 2
         self.organizer.parse_args(
-            ('-id {} sens init -nml thresh,10,16,5 '
-             'gp_shape,-1err,1err,{}').format(experiment, n_shape).split())
+            ('-id {} sens init -nml thresh=10,16,5 '
+             'gp_shape=-1err,1err,{}').format(experiment, n_shape).split())
         modelname = self.modelname
         threshs = np.arange(10, 16, 5)
         _, threshs = np.meshgrid(range(n_shape + 1), threshs)
@@ -63,7 +65,8 @@ class SensitivityAnalysisTest(bt.BaseTest):
         df = pd.DataFrame([
             all_exps[exp_id]['namelist']['weathergen_ctl']
             for exp_id in exp_names], index=exp_names)
-        self.assertEqual(df.thresh.values.tolist(), threshs.ravel().tolist())
+        self.assertAlmostArrayEqual(df.thresh.values,
+                                    threshs.ravel())
         # get the parameterization values
         df2 = pd.DataFrame([
             all_exps[exp_id].get('parameterization', {}).get('prcp', {})

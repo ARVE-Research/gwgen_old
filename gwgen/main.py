@@ -2292,12 +2292,9 @@ class ModelOrganizer(object):
             SensitivityAnalysis, SensitivityPlot)
 
         def params_type(s):
-            splitted = s.split(',')
+            splitted = s.split('=', 1)
             key = splitted[0]
-            if any('err' in s for s in splitted[1:]):
-                return key, splitted[1:]
-            import numpy as np
-            return key, np.arange(*list(map(float, splitted[1:])))
+            return key, utils.str_ranges(splitted[1])
 
         sps = parser.add_subparsers(help='Sensitivity analysis subroutines',
                                     chain=True)
@@ -2329,7 +2326,7 @@ class ModelOrganizer(object):
             provide up to three values in case on of them is a string with
             ``'err'`` in it, where the first value corresponds to the minimum,
             the second to  the maximum and the third to the number of steps.
-            """, metavar='nml_key,f1[,f2[,f3]]', nargs='+')
+            """, metavar='nml_key=f1[,f2[,f3]]', nargs='+')
         sp.update_arg('run_prepare', short='prep')
         sp.update_arg('no_move', short='nm')
         sp.create_arguments()
@@ -2865,9 +2862,6 @@ class ModelOrganizer(object):
         elif self.global_config.get('use_relative_links', True):
             os.symlink(osp.relpath(source, osp.dirname(target)), target)
         else:
-            print('-'*80)
-            print('linking', source, osp.abspath(source), target)
-            print('-'*80)
             os.symlink(osp.abspath(source), target)
 
     def __reduce__(self):

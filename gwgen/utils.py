@@ -78,6 +78,34 @@ def isstring(s):
     return isinstance(s, six.string_types)
 
 
+@docstrings.dedent
+def str_ranges(s):
+    """
+    Convert a string of comma separated values to an iterable
+
+    Parameters
+    ----------
+    s: str%(str_ranges.s_help)s
+
+    Returns
+    -------
+    list
+        The values in s converted to a list"""
+    def get_numbers(s):
+        splitted = s.split(',')
+        print(splitted)
+        try:
+            nums = list(map(float, s.split(',')))
+        except ValueError:
+            return splitted
+        if len(nums) == 1:
+            return nums
+        else:
+            import numpy as np
+            return np.arange(*nums)
+    return list(chain(*map(get_numbers, s.split(';'))))
+
+
 def unique_everseen(iterable, key=None):
     """List unique elements, preserving order. Remember all elements ever seen.
 
