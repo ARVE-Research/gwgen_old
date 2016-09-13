@@ -495,14 +495,18 @@ class QuantileEvaluation(Evaluator):
         import psyplot.project as psy
         import seaborn as sns
         sns.set_style('white')
-        for vref, vsim in self.all_variables:
+        for name, (vref, vsim) in zip(self.names, self.all_variables):
             self.logger.debug('Creating plots of %s', vsim)
             kwargs = dict(precision=0.1) if vref.startswith('prcp') else {}
-            psy.plot.densityreg(ds, name=vsim, coord=vref, fmt=self.fmt,
-                                pctl=range(ds.pctl.size), **kwargs)
             psy.plot.densityreg(ds, name='all_' + vsim, coord='all_' + vref,
                                 fmt=self.fmt, title='All percentiles',
+                                arr_names=['%s_all' % name],
                                 **kwargs)
+            arr_names = ['%s_%1.2f' % (name, p) for p in ds.pctl.values]
+            psy.plot.densityreg(ds, name=vsim, coord=vref, fmt=self.fmt,
+                                arr_names=arr_names, pctl=range(ds.pctl.size),
+                                **kwargs)
+        print(psy.gcp(True).arr_names)
         return psy.gcp(True)[:]
 
     def make_run_config(self, sp, info):
