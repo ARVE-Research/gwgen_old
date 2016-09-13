@@ -130,6 +130,36 @@ class BaseTest(unittest.TestCase):
             import urllib
             urllib.urlopen(url, *args, **kwargs)
 
+    def assertAlmostArrayEqual(self, actual, desired, rtol=1e-07, atol=0,
+                               msg=None, **kwargs):
+        """Asserts that the two given arrays are almost the same
+
+        This method uses the :func:`numpy.testing.assert_allclose` function
+        to compare the two given arrays.
+
+        Parameters
+        ----------
+        actual : array_like
+            Array obtained.
+        desired : array_like
+            Array desired.
+        rtol : float, optional
+            Relative tolerance.
+        atol : float, optional
+            Absolute tolerance.
+        equal_nan : bool, optional.
+            If True, NaNs will compare equal.
+        err_msg : str, optional
+            The error message to be printed in case of failure.
+        verbose : bool, optional
+            If True, the conflicting values are appended to the error message.
+        """
+        try:
+            np.testing.assert_allclose(actual, desired, rtol=rtol, atol=atol,
+                                       err_msg=msg or '', **kwargs)
+        except AssertionError as e:
+            self.fail(e.message)
+
 # check if we are online by trying to connect to google
 try:
     BaseTest._test_url('https://www.google.de')
