@@ -234,6 +234,16 @@ class SensitivityAnalysis(object):
                 for f in os.listdir(root_dir):
                     organizer._link(osp.join(root_dir, f),
                                     osp.join(paramdir, f))
+            if self.exp_config.get('database'):
+                organizer.exp_config['database'] = self.exp_config[
+                    'database']
+
+        def update_nml():
+            for nml_key, settings in self.exp_config.get(
+                    'namelist', {}).items():
+                for key, val in settings.items():
+                    organizer.exp_config['namelist'][nml_key].setdefault(
+                        key, val)
 
         def transposed_dict(iterable):
             return map(OrderedDict, starmap(zip, zip(
@@ -312,16 +322,14 @@ class SensitivityAnalysis(object):
             organizer.exp_config['reference'] = reference
             organizer.exp_config['eval_stations'] = eval_stations
             organizer.exp_config['base_exp'] = last = organizer.experiment
+            if use_param:
+                setup_paramdir(experiment)
+            update_nml()
             if not tasks:
                 organizer.exp_config['description'] = base_description.format(
                     *d.values())
             else:  # run the parameterization
                 organizer.exp_config['param_stations'] = param_stations
-                if use_param:
-                    setup_paramdir(experiment)
-                    if self.exp_config.get('database'):
-                        organizer.exp_config['database'] = self.exp_config[
-                            'database']
                 param_config = {t.name: {} for t in tasks}
                 for t, (nml_key, val) in zip(other_tasks, d.items()):
                     config_key = t.get_config_key(nml_key)
@@ -387,6 +395,7 @@ class SensitivityAnalysis(object):
                             self.experiment)
                     organizer.exp_config['namelist'] = {
                         'weathergen_ctl': combined}
+                    update_nml()
                     organizer.exp_config['input'] = input_file
                     organizer.exp_config['reference'] = reference
                     organizer.exp_config['eval_stations'] = eval_stations
