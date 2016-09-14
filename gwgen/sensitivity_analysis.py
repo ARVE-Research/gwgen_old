@@ -31,9 +31,11 @@ class SensitivityAnalysis(object):
     @property
     def experiments(self):
         modelname = self.modelname
-        all_exps = self.organizer.config.experiments
+        organizer = self.organizer
+        all_exps = organizer.config.experiments
         return [exp_id for exp_id, d in all_exps.items()
-                if d.get('model') == modelname]
+                if (not organizer.is_archived(exp_id) and
+                    d.get('model') == modelname)]
 
     @property
     def exp_config(self):
@@ -97,26 +99,31 @@ class SensitivityAnalysis(object):
             Keys must be the name of a command of the :attr:`organizer` of this
             analysis, values must be dictionaries for the corresponding command
         """
-        import multiprocessing as mp
+#        import multiprocessing as mp
+        from distributed import Executor
         experiments = self.experiments
         config = self.organizer.global_config
         all_kws = [
             {key: dict(chain([('experiment', exp)], kws[key].items()))
              for key in kws.keys()}
             for exp in experiments]
-        nprocs = config.get('nprocs', 'all')
-        if nprocs == 'all':
-            nprocs = mp.cpu_count()
+#        nprocs = config.get('nprocs', 'all')
+#        if nprocs == 'all':
+#            nprocs = mp.cpu_count()
         config['serial'] = True
-        self.logger.debug('Starting %i processes', nprocs)
-        pool = mp.Pool(nprocs)
-        res = pool.map_async(self, all_kws)
-        for (organizer, ns), experiment in zip(res.get(), experiments):
+#        self.logger.debug('Starting %i processes', nprocs)
+#        pool = mp.Pool(nprocs)
+        executor = Executor()
+#        res = pool.map_async(self, all_kws)
+        res = executor.map(self, all_kws)
+#        for (organizer, ns), experiment in zip(res.get(), experiments):
+        for (organizer, ns), experiment in zip(executor.gather(res),
+                                               experiments):
             changed = organizer.config.experiments[experiment]
             self.organizer.config.experiments[experiment] = changed
         config['serial'] = False
-        pool.close()
-        pool.terminate()
+#        pool.close()
+#        pool.terminate()
 
     def __call__(self, kws):
         """Call the :meth:`~gwgen.main.ModelOrganizer.start` of the
