@@ -84,6 +84,7 @@ docstrings.params['str_ranges.s_help'] = """
     converted to ``[2009,2012, 2013, 2014]`` and ``2009;2012,2015,2`` to
     ``[2009, 2012, 2015]``"""
 
+
 @docstrings.dedent
 def str_ranges(s):
     """
@@ -99,7 +100,6 @@ def str_ranges(s):
         The values in s converted to a list"""
     def get_numbers(s):
         splitted = s.split(',')
-        print(splitted)
         try:
             nums = list(map(float, s.split(',')))
         except ValueError:

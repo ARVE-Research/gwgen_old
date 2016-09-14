@@ -506,7 +506,6 @@ class QuantileEvaluation(Evaluator):
             psy.plot.densityreg(ds, name=vsim, coord=vref, fmt=self.fmt,
                                 arr_names=arr_names, pctl=range(ds.pctl.size),
                                 **kwargs)
-        print(psy.gcp(True).arr_names)
         return psy.gcp(True)[:]
 
     def make_run_config(self, sp, info):
