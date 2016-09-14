@@ -2319,14 +2319,16 @@ class ModelOrganizer(object):
             'init', help='Initialize the sensitivity analysis experiments')
         sp.setup_args(SensitivityAnalysis.init)
         sp.update_arg('experiment', short='id')
-        sp.update_arg('nml', long='namelist', type=params_type, help="""
-            A list from namelist parameters and their values to use. Range
-            parts might be lists of numbers or ``'<i>err'`` to use
-            ``'<i>'``-times the error from the parameterization. You might also
-            provide up to three values in case on of them is a string with
-            ``'err'`` in it, where the first value corresponds to the minimum,
-            the second to  the maximum and the third to the number of steps.
-            """, metavar='nml_key=f1[,f2[,f3]]', nargs='+')
+        sp.update_arg(
+            'nml', long='namelist', type=params_type,
+            help=docstrings.dedents("""
+                A list from namelist parameters and their values to use.
+                %(str_ranges.s_help)s.
+                You can also use ``'<i>err'`` in the list which will be
+                interpreted as ``'<i>'``-times the error from the
+                parameterization.
+                """),
+            metavar='nml_key=f1[;f21[,f22[,f23]]]', nargs='+')
         sp.update_arg('run_prepare', short='prep')
         sp.update_arg('no_move', short='nm')
         sp.create_arguments()

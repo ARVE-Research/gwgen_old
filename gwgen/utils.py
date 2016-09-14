@@ -77,6 +77,12 @@ def dir_contains(dirname, path, exists=True):
 def isstring(s):
     return isinstance(s, six.string_types)
 
+docstrings.params['str_ranges.s_help'] = """
+    A semicolon (``';'``) separated string. A single value in this string
+    represents one number, ranges can also be used via a separation by
+    comma (``','``). Hence, ``'2009;2012,2015'`` will be
+    converted to ``[2009,2012, 2013, 2014]`` and ``2009;2012,2015,2`` to
+    ``[2009, 2012, 2015]``"""
 
 @docstrings.dedent
 def str_ranges(s):
