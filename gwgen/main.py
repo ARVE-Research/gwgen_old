@@ -2339,7 +2339,8 @@ class ModelOrganizer(object):
             'run', help='Run the sensitivity analysis experiments')
         sp.setup_args(SensitivityAnalysis.run)
         sp.update_arg('remove', short='rm')
-        sp.update_arg('experiments', short='ids', nargs='+')
+        sp.update_arg('experiments', short='ids', type=lambda s: s.split(','),
+                      metavar='id1,id2,...')
         sp.create_arguments()
 
         # evaluate parser
@@ -2347,7 +2348,8 @@ class ModelOrganizer(object):
             'evaluate', help='Evaluate the sensitivity analysis experiments')
         sp.setup_args(SensitivityAnalysis.evaluate)
         sp.setup_args(self.evaluate)
-        sp.update_arg('experiments', short='ids', nargs='+')
+        sp.update_arg('experiments', short='ids', type=lambda s: s.split(','),
+                      metavar='id1,id2,...')
         self._modify_evaluate(sp, skip=['prepare', 'output'])
         sp.create_arguments()
 
