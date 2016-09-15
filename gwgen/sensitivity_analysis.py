@@ -84,7 +84,7 @@ class SensitivityAnalysis(object):
         Parameters
         ----------
         organizer: gwgen.main.ModelOrganizer
-            The organizer to perform the sensitivity analysis for
+            The organizer to perform thre sensitivity analysis for
         """
         self.organizer = organizer
 
@@ -104,29 +104,41 @@ class SensitivityAnalysis(object):
 #        import multiprocessing as mp
         from distributed import Client
         experiments = experiments or self.experiments
+        if len(experiments) == 1 and osp.exists(experiments[0]):
+            with open(experiments[0]) as f:
+                experiments = list(f.readlines())
         config = self.organizer.global_config
-        all_kws = (
-            {key: dict(chain([('experiment', exp)], kws[key].items()))
-             for key in kws.keys()}
-            for exp in experiments)
-#        nprocs = config.get('nprocs', 'all')
-#        if nprocs == 'all':
-#            nprocs = mp.cpu_count()
-        config['serial'] = True
-#        self.logger.debug('Starting %i processes', nprocs)
-#        pool = mp.Pool(nprocs)
-#        res = pool.map_async(self, all_kws)
-        args = (config['scheduler'], ) if config.get('scheduler') else ()
-        client = Client(*args)
-        res = client.map(self, all_kws, pure=False)
-#        for (organizer, ns), experiment in zip(res.get(), experiments):
-        for (organizer, ns), experiment in zip(client.gather(res),
-                                               experiments):
-            changed = organizer.config.experiments[experiment]
-            self.organizer.config.experiments[experiment] = changed
-        config['serial'] = False
-#        pool.close()
-#        pool.terminate()
+        commands = self.organizer.commands + self.organizer.parser_commands
+        if not config.get('serial'):
+            all_kws = (
+                {key: dict(chain([('experiment', exp)], kws[key].items()))
+                 for key in kws.keys() if key in commands}
+                for exp in experiments)
+    #        nprocs = config.get('nprocs', 'all')
+    #        if nprocs == 'all':
+    #            nprocs = mp.cpu_count()
+            config['serial'] = True
+    #        self.logger.debug('Starting %i processes', nprocs)
+    #        pool = mp.Pool(nprocs)
+    #        res = pool.map_async(self, all_kws)
+            args = (config['scheduler'], ) if config.get('scheduler') else ()
+            client = Client(*args)
+            res = client.map(self, all_kws, pure=False)
+    #        for (organizer, ns), experiment in zip(res.get(), experiments):
+            for (organizer, ns), experiment in zip(client.gather(res),
+                                                   experiments):
+                changed = organizer.config.experiments[experiment]
+                self.organizer.config.experiments[experiment] = changed
+            config['serial'] = False
+    #        pool.close()
+    #        pool.terminate()
+        else:
+            for experiment in experiments or self.experiments:
+                for key, val in kws.items():
+                    if key in commands:
+                        val['experiment'] = experiment
+                kws['experiment'] = experiment
+                self.sa_organizer.start(**kws)
 
     def __call__(self, kws):
         """Call the :meth:`~gwgen.main.ModelOrganizer.start` of the
@@ -436,13 +448,8 @@ class SensitivityAnalysis(object):
         experiments: list of str
             The experiment names. If None, all are used
         %(ModelOrganizer.run.parameters.remove)s"""
-        if not self.organizer.global_config.get('serial'):
-            self._parallelilze_command(dict(run=dict(remove=remove)),
-                                       experiments=experiments)
-        else:
-            organizer = self.sa_organizer
-            for experiment in experiments or self.experiments:
-                organizer.start(run=dict(experiment=experiment, remove=remove))
+        self._parallelilze_command(dict(run=dict(remove=remove)),
+                                   experiments=experiments)
 
     def evaluate(self, experiments=None, **kwargs):
         """
@@ -459,13 +466,8 @@ class SensitivityAnalysis(object):
                 kwargs[key] = val = vars(val)
             if isinstance(val, dict) and 'experiments' in val:
                 val.pop('experiments')
-        if not self.organizer.global_config.get('serial'):
-            self._parallelilze_command(dict(evaluate=kwargs),
-                                       experiments=experiments)
-        else:
-            for experiment in experiments or self.experiments:
-                kwargs['experiment'] = experiment
-                self.sa_organizer.start(evaluate=kwargs)
+        self._parallelilze_command(dict(evaluate=kwargs),
+                                   experiments=experiments)
 
     @docstrings.dedent
     def plot(self, indicators=['rsquared', 'slope', 'ks', 'quality'],
