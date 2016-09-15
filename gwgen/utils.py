@@ -25,6 +25,10 @@ float_patt = re.compile(r'[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?')
 logger = logging.getLogger(__name__)
 
 
+if six.PY2:
+    FileExistsError = OSError
+
+
 def download_file(url, target=None):
     """Download a file from the internet
 
