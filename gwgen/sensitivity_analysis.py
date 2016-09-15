@@ -106,7 +106,7 @@ class SensitivityAnalysis(object):
         experiments = experiments or self.experiments
         if len(experiments) == 1 and osp.exists(experiments[0]):
             with open(experiments[0]) as f:
-                experiments = list(f.readlines())
+                experiments = [l.rstrip() for l in f.readlines()]
         config = self.organizer.global_config
         commands = self.organizer.commands + list(
             self.organizer.parser_commands.values())
