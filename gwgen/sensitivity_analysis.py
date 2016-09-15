@@ -98,6 +98,8 @@ class SensitivityAnalysis(object):
         kws: dict
             Keys must be the name of a command of the :attr:`organizer` of this
             analysis, values must be dictionaries for the corresponding command
+        experiments: list of str
+            The experiments to use. If None, all experiments are used
         """
 #        import multiprocessing as mp
         from distributed import Client
@@ -452,6 +454,11 @@ class SensitivityAnalysis(object):
             The experiment names. If None, all are used
         %(ModelOrganizer.evaluate.parameters)s
         """
+        for key, val in kwargs.items():
+            if isinstance(val, Namespace):
+                kwargs[key] = val = vars(val)
+            if isinstance(val, dict) and 'experiments' in val:
+                val.pop('experiments')
         if not self.organizer.global_config.get('serial'):
             self._parallelilze_command(dict(evaluate=kwargs),
                                        experiments=experiments)
