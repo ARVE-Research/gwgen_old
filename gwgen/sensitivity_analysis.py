@@ -105,10 +105,10 @@ class SensitivityAnalysis(object):
         from distributed import Client
         experiments = experiments or self.experiments
         config = self.organizer.global_config
-        all_kws = [
+        all_kws = (
             {key: dict(chain([('experiment', exp)], kws[key].items()))
              for key in kws.keys()}
-            for exp in experiments]
+            for exp in experiments)
 #        nprocs = config.get('nprocs', 'all')
 #        if nprocs == 'all':
 #            nprocs = mp.cpu_count()
