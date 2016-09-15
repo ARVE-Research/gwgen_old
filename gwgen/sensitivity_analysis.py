@@ -99,26 +99,32 @@ class SensitivityAnalysis(object):
             Keys must be the name of a command of the :attr:`organizer` of this
             analysis, values must be dictionaries for the corresponding command
         """
-        import multiprocessing as mp
+#        import multiprocessing as mp
+        from distributed import Client
         experiments = self.experiments
         config = self.organizer.global_config
-        all_kws = [
+        all_kws = (
             {key: dict(chain([('experiment', exp)], kws[key].items()))
              for key in kws.keys()}
-            for exp in experiments]
-        nprocs = config.get('nprocs', 'all')
-        if nprocs == 'all':
-            nprocs = mp.cpu_count()
+            for exp in experiments)
+#        nprocs = config.get('nprocs', 'all')
+#        if nprocs == 'all':
+#            nprocs = mp.cpu_count()
         config['serial'] = True
-        self.logger.debug('Starting %i processes', nprocs)
-        pool = mp.Pool(nprocs)
-        res = pool.map_async(self, all_kws)
-        for (organizer, ns), experiment in zip(res.get(), experiments):
+#        self.logger.debug('Starting %i processes', nprocs)
+#        pool = mp.Pool(nprocs)
+#        res = pool.map_async(self, all_kws)
+        args = config['scheduler'] if config.get('scheduler') else ()
+        client = Client(*args)
+        res = client.map(self, all_kws, pure=False)
+#        for (organizer, ns), experiment in zip(res.get(), experiments):
+        for (organizer, ns), experiment in zip(client.gather(res),
+                                               experiments):
             changed = organizer.config.experiments[experiment]
             self.organizer.config.experiments[experiment] = changed
         config['serial'] = False
-        pool.close()
-        pool.terminate()
+#        pool.close()
+#        pool.terminate()
 
     def __call__(self, kws):
         """Call the :meth:`~gwgen.main.ModelOrganizer.start` of the
