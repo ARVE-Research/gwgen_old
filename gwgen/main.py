@@ -2210,6 +2210,7 @@ class ModelOrganizer(object):
 
     # ---------------------------- Evaluation ---------------------------------
 
+    @docstrings.get_sectionsf('ModelOrganizer.evaluate')
     @docstrings.dedent
     def evaluate(self, stations=None, other_exp=None,
                  setup_from=None, to_db=None, to_csv=None, database=None,
@@ -2338,12 +2339,15 @@ class ModelOrganizer(object):
             'run', help='Run the sensitivity analysis experiments')
         sp.setup_args(SensitivityAnalysis.run)
         sp.update_arg('remove', short='rm')
+        sp.update_arg('experiments', short='ids')
         sp.create_arguments()
 
         # evaluate parser
         sp = sps.add_parser(
             'evaluate', help='Evaluate the sensitivity analysis experiments')
+        sp.setup_args(SensitivityAnalysis.evaluate)
         sp.setup_args(self.evaluate)
+        sp.update_arg('experiments', short='ids')
         self._modify_evaluate(sp, skip=['prepare', 'output'])
         sp.create_arguments()
 

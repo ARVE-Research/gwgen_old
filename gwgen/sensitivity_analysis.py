@@ -88,7 +88,7 @@ class SensitivityAnalysis(object):
         """
         self.organizer = organizer
 
-    def _parallelilze_command(self, kws):
+    def _parallelilze_command(self, kws, experiments=None):
         """
         Run a ModelOrganizer command in parallel for all the experiments in
         this analysis
@@ -101,7 +101,7 @@ class SensitivityAnalysis(object):
         """
 #        import multiprocessing as mp
         from distributed import Client
-        experiments = self.experiments
+        experiments = experiments or self.experiments
         config = self.organizer.global_config
         all_kws = [
             {key: dict(chain([('experiment', exp)], kws[key].items()))
@@ -425,25 +425,38 @@ class SensitivityAnalysis(object):
     docstrings.keep_params('ModelOrganizer.run.parameters', 'remove')
 
     @docstrings.dedent
-    def run(self, remove=False):
+    def run(self, experiments=None, remove=False):
         """
         Run the analysis
 
         Parameters
         ----------
+        experiments: list of str
+            The experiment names. If None, all are used
         %(ModelOrganizer.run.parameters.remove)s"""
         if not self.organizer.global_config.get('serial'):
-            self._parallelilze_command(dict(run=dict(remove=remove)))
+            self._parallelilze_command(dict(run=dict(remove=remove)),
+                                       experiments=experiments)
         else:
             organizer = self.sa_organizer
-            for experiment in self.experiments:
+            for experiment in experiments or self.experiments:
                 organizer.start(run=dict(experiment=experiment, remove=remove))
 
-    def evaluate(self, **kwargs):
+    def evaluate(self, experiments=None, **kwargs):
+        """
+        Evaluate the experiments of the sensitivity analysis
+
+        Parameters
+        ----------
+        experiments: list of str
+            The experiment names. If None, all are used
+        %(ModelOrganizer.evaluate.parameters)s
+        """
         if not self.organizer.global_config.get('serial'):
-            self._parallelilze_command(dict(evaluate=kwargs))
+            self._parallelilze_command(dict(evaluate=kwargs),
+                                       experiments=experiments)
         else:
-            for experiment in self.experiments:
+            for experiment in experiments or self.experiments:
                 kwargs['experiment'] = experiment
                 self.sa_organizer.start(evaluate=kwargs)
 
