@@ -108,7 +108,8 @@ class SensitivityAnalysis(object):
             with open(experiments[0]) as f:
                 experiments = list(f.readlines())
         config = self.organizer.global_config
-        commands = self.organizer.commands + self.organizer.parser_commands
+        commands = self.organizer.commands + list(
+            self.organizer.parser_commands.values())
         if not config.get('serial'):
             all_kws = (
                 {key: dict(chain([('experiment', exp)], kws[key].items()))
