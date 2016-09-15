@@ -114,7 +114,7 @@ class SensitivityAnalysis(object):
 #        self.logger.debug('Starting %i processes', nprocs)
 #        pool = mp.Pool(nprocs)
 #        res = pool.map_async(self, all_kws)
-        args = config['scheduler'] if config.get('scheduler') else ()
+        args = (config['scheduler'], ) if config.get('scheduler') else ()
         client = Client(*args)
         res = client.map(self, all_kws, pure=False)
 #        for (organizer, ns), experiment in zip(res.get(), experiments):
