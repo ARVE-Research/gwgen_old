@@ -651,6 +651,32 @@ class KSEvaluation(QuantileEvaluation):
         return parser, setup_grp, run_grp
 
 
+_QualityConfig = namedtuple('_QualityConfig', ['quantiles'])
+
+
+_QualityConfig = utils.append_doc(_QualityConfig, docstrings.get_sections("""
+Parameters
+----------
+quantiles: list of floats
+    The quantiles to use for the quality analysis""", '_QuantileConfig'))
+
+
+QualityConfig = utils.enhanced_config(_QualityConfig, 'QualityConfig')
+
+
+@docstrings.dedent
+def default_quality_config(
+        quantiles=None, *args, **kwargs):
+    """
+    The default configuration for :class:`QualityConfig` instances.
+    See also the :attr:`QuantileEvaluation.default_config` attribute
+
+    Parameters
+    ----------
+    %(QualityConfig.parameters)s"""
+    return QualityConfig(quantiles, *utils.default_config(*args, **kwargs))
+
+
 class SimulationQuality(Evaluator):
     """Evaluator to provide one value characterizing the quality of the
     experiment
@@ -685,7 +711,16 @@ class SimulationQuality(Evaluator):
 
     @classmethod
     def _modify_parser(cls, parser):
+        parser.add_argument(
+            '-q', '--quantiles', metavar='q1[,q1[,q2[,...]]]',
+            help="The quantiles to use for the quality analysis",
+            type=lambda s: list(map(float, s.split(','))))
         return parser, None, None
+
+    @property
+    def default_config(self):
+        return default_quality_config()._replace(
+            **super(SimulationQuality, self).default_config._asdict())
 
     def setup_from_scratch(self):
         """Only sets an empty dataframe"""
@@ -704,8 +739,17 @@ class SimulationQuality(Evaluator):
         if missing:
             raise ValueError("%s requires that %s has been run before!" % (
                 self.name, ' and '.join(missing)))
+        quantiles = self.task_config.quantiles
+        if quantiles is None:
+            quantiles = slice(None)
         for v, v_ks in ks_info.items():
-            df = pd.DataFrame(quants_info[v])
+            #: Dataframe with intercept, rsquared and slope on index and
+            #: quantiles as columns
+            df = pd.DataFrame(quants_info[v]).loc[:, quantiles]
+            try:
+                del df['All']
+            except KeyError:
+                pass
             slope = float((1 - np.abs(1 - df.loc['slope'].values)).mean())
             rsquared = float(df.loc['rsquared'].values.mean())
             info[v] = OrderedDict([
