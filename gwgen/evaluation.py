@@ -658,7 +658,7 @@ _QualityConfig = utils.append_doc(_QualityConfig, docstrings.get_sections("""
 Parameters
 ----------
 quantiles: list of floats
-    The quantiles to use for the quality analysis""", '_QuantileConfig'))
+    The quantiles to use for the quality analysis""", '_QualityConfig'))
 
 
 QualityConfig = utils.enhanced_config(_QualityConfig, 'QualityConfig')
