@@ -1920,7 +1920,7 @@ class CrossCorrelation(Parameterizer):
     # days
     setup_requires = ['yearly_cdaily_cloud']
 
-    cols = ['tmax', 'tmin', 'mean_cloud']
+    cols = ['tmin', 'tmax', 'mean_cloud']
 
     namelist_keys = {'a': None, 'b': None}
 
