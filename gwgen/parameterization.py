@@ -194,7 +194,11 @@ class DailyGHCNData(Parameterizer):
             download = self.task_config.download
             msg = '%i Required files are not existent in %s' % (
                 len(missing), src_dir)
-            if download == 'single':
+            if download is None:
+                raise ValueError(
+                    msg + (". Set download to 'single' or 'all' to download "
+                           "the missing data!"))
+            elif download == 'single':
                 logger.debug(msg)
                 for f in missing:
                     utils.download_file(
@@ -1916,7 +1920,7 @@ class CrossCorrelation(Parameterizer):
     # days
     setup_requires = ['yearly_cdaily_cloud']
 
-    cols = ['tmin', 'tmax', 'mean_cloud']
+    cols = ['tmax', 'tmin', 'mean_cloud']
 
     namelist_keys = {'a': None, 'b': None}
 
@@ -1992,7 +1996,7 @@ class CrossCorrelation(Parameterizer):
         m0i = np.linalg.inv(m0)
         nml['a'] = np.dot(m1, m0i).tolist()
         nml['b'] = np.linalg.cholesky(
-            m0 - np.dot(np.dot(m1, m0i), m1.T)).T.tolist()
+            m0 - np.dot(np.dot(m1, m0i), m1.T)).tolist()
         info['M0'] = m0.values.tolist()
         info['M1'] = m1.values.tolist()
 
