@@ -90,7 +90,7 @@ real(sp)                 :: thresh = 15.0
 ! following Geng et al., 1986
 real(sp)                 :: g_scale_coeff = 1.24896
 ! shape parameter for the Generalized Pareto distribution
-real(sp)                 :: gp_shape = 0.08303 
+real(sp)                 :: gp_shape = 0.08303
 ! solved A and B matrices following Richardson_1984 equation (4)
 real(sp), dimension(3,3) :: A = reshape((/ &
   0.17161983, 0.4580536, -0.08026087, &
