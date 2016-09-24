@@ -2,6 +2,7 @@ from __future__ import division
 import inspect
 import os
 import os.path as osp
+import shutil
 import re
 import six
 import copy
@@ -12,6 +13,7 @@ from collections import namedtuple
 import pandas as pd
 import numpy as np
 import docrep
+from tempfile import mkdtemp
 from psyplot.compat.pycompat import OrderedDict, filterfalse
 from psyplot.config.rcsetup import safe_list
 
@@ -454,6 +456,18 @@ def _param_worker(kwargs):
     from gwgen.parameterization import Parameterizer
     return Parameterizer.process_data(
         db_locks=_db_locks, file_locks=_file_locks, **kwargs)
+
+
+def init_interprocess_locks(db_locks, file_locks, lock_dir):
+    from fasteners import InterProcessLock
+    logger.debug('Initializing %i locks', len(db_locks) + len(file_locks))
+    for db_lock in db_locks:
+        fname = osp.join(lock_dir, 'db_' + db_lock + '.lock')
+        _db_locks[db_lock] = InterProcessLock(fname)
+    for file_lock in file_locks:
+        fname = osp.join(lock_dir,
+                         'file_' + osp.basename(file_lock) + '.lock')
+        _file_locks[file_lock] = InterProcessLock(fname)
 
 
 def init_locks(db_locks, file_locks):
@@ -1323,6 +1337,7 @@ class TaskBase(object):
                 raise
             finally:
                 if lock:
+                    self.logger.debug('Release lock')
                     lock.release()
             self.logger.debug('Done')
 
@@ -1589,29 +1604,33 @@ class TaskManager(object):
             A list of :class:`Parameterizer` instances specified in `to_return`
             that hold the data
         """
-        # parallel processing
-        import multiprocessing as mp
         config = self.config
+        logger = self.logger
+        scheduler = config.get('scheduler')
+        if scheduler is not None:
+            from distributed import Client
+            args = (scheduler, ) if scheduler else ()
+            client = Client(*args)
+            lock_dir = mkdtemp(prefix='tmp_gwgen_locks_')
+            logger.debug('Temporary lock directory: %s', lock_dir)
+        else:
+            import multiprocessing as mp
         all_tasks = self.tasks
         grouped = [(key, list(tasks)) for key, tasks in groupby(
                        all_tasks, lambda task: task.setup_parallel)]
         ret_tasks = []
-        logger = self.logger
         orig_stations = stations
         for i, (key, tasks) in enumerate(grouped):
             self.tasks = tasks
             if key:
                 logger.info('Processing %s tasks in parallel', len(tasks))
-                # create locks
-                for task in self.tasks:
-                    for fname in safe_list(task.datafile):
-                        _file_locks[fname] = mp.Lock()
-                    for dbname in safe_list(task.dbname):
-                        _db_locks[dbname] = mp.Lock()
                 # initialize pool
                 nprocs = config.get('nprocs', 'all')
                 if nprocs == 'all':
-                    nprocs = mp.cpu_count()
+                    if scheduler is not None:
+                        nprocs = len(client.ncores().values())
+                    else:
+                        nprocs = mp.cpu_count()
                 # split up the stations for the workers
                 max_stations = min(int(np.ceil(len(orig_stations) / nprocs)),
                                    config.get('max_stations', 500))
@@ -1628,11 +1647,24 @@ class TaskManager(object):
                 # make sure we don't send a list of empty stations to a process
                 stations = stations[:nstations_lists]
                 nprocs = min(nprocs, nstations_lists)
-                # start the pool
-                self.logger.debug('Starting %s processes for %s station lists',
-                                  nprocs, len(stations))
-                pool = mp.Pool(nprocs, initializer=init_locks,
-                               initargs=(_db_locks, _file_locks))
+                if scheduler is None:
+                    # create locks
+                    for task in self.tasks:
+                        for fname in safe_list(task.datafile):
+                            _file_locks[fname] = mp.Lock()
+                        for dbname in safe_list(task.dbname):
+                            _db_locks[dbname] = mp.Lock()
+                    # start the pool
+                    logger.debug(
+                        'Starting %s processes for %s station lists',
+                        nprocs, len(stations))
+                    pool = mp.Pool(nprocs, initializer=init_locks,
+                                   initargs=(_db_locks, _file_locks))
+                else:
+                    file_locks = list(chain(*(
+                        safe_list(task.datafile) for task in self.tasks)))
+                    db_locks = list(chain(*(
+                        safe_list(task.datafile) for task in self.tasks)))
                 if i != len(grouped):
                     unsafe = list(chain(*grouped[i+1::2]))
                     _to_return = to_return + list(chain(*(
@@ -1641,10 +1673,20 @@ class TaskManager(object):
                     _to_return = to_return
                 args = [[s, _to_return, True] for s in stations]
                 # start the computation
-                res = pool.map_async(self, args)
-                tasks = res.get()
-                pool.close()
-                pool.terminate()
+                if scheduler is not None:
+                    try:
+                        kws = {'workers': set(client.cluster.workers[:nprocs])}
+                    except AttributeError:
+                        kws = {}
+                    for proc_args in args:
+                        proc_args.extend([file_locks, db_locks, lock_dir])
+                    res = client.map(self, args, pure=False, **kws)
+                    tasks = client.gather(res)
+                else:
+                    res = pool.map_async(self, args)
+                    tasks = res.get()
+                    pool.close()
+                    pool.terminate()
                 tasks = [
                     task.setup_from_instances(
                         next(t for t in all_tasks if t.name == task.name),
@@ -1657,6 +1699,9 @@ class TaskManager(object):
                         stations=orig_stations, to_return=to_return))
         _db_locks.clear()
         _file_locks.clear()
+        if scheduler is not None:
+            shutil.rmtree(lock_dir)
+            client.shutdown()
         return [task for task in ret_tasks if task.name in to_return]
 
     def __call__(self, t):
@@ -1665,7 +1710,8 @@ class TaskManager(object):
     docstrings.keep_params('TaskBase.parameters', 'stations')
 
     @docstrings.dedent
-    def _setup(self, stations, to_return=None, copy_tasks=False):
+    def _setup(self, stations, to_return=None, copy_tasks=False,
+               file_locks=None, db_locks=None, lock_dir=None):
         """
         Process the given stations
 
@@ -1684,6 +1730,9 @@ class TaskManager(object):
         -------
         %(TaskManager.setup.returns)s"""
         # sort the tasks for their requirements
+        if file_locks is not None:
+            init_interprocess_locks(db_locks=db_locks, file_locks=file_locks,
+                                    lock_dir=lock_dir)
         if to_return is None:
             to_return = [ini.name for ini in self.tasks if ini.has_run]
         for instance in self.tasks:
