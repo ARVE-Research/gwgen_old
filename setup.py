@@ -44,7 +44,7 @@ if six.PY2:
 
 
 setup(name='gwgen',
-      version='0.0.1.dev0',
+      version='0.1.0.dev0',
       description='Python package for interactive data visualization',
       long_description=readme(),
       classifiers=[
