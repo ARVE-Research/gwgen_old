@@ -1559,11 +1559,19 @@ class MonthlyCloud(CloudParameterizerBase):
                 ('sd_cloud_wet', [df.mean_cloud.ix[wet].std()]),
                 ('sd_cloud_dry', [df.mean_cloud.ix[~wet].std()]),
                 ('sd_cloud', [df.mean_cloud.std()]),
+                ('wind_wet', [df.mean_cloud.ix[wet].mean()]),
+                ('wind_dry', [df.mean_cloud.ix[~wet].mean()]),
+                ('wind', [df.mean_cloud.mean()]),
+                ('sd_wind_wet', [df.mean_cloud.ix[wet].std()]),
+                ('sd_wind_dry', [df.mean_cloud.ix[~wet].std()]),
+                ('sd_wind', [df.mean_cloud.std()]),
                 ]))
         else:
             return pd.DataFrame([], columns=[
                 'wet_day', 'mean_cloud_wet', 'mean_cloud_dry',
-                'mean_cloud', 'sd_cloud_wet', 'sd_cloud_dry', 'sd_cloud'])
+                'mean_cloud', 'sd_cloud_wet', 'sd_cloud_dry', 'sd_cloud',
+                'wind_wet', 'wind_dry',
+                'wind', 'sd_wind_wet', 'sd_wind_dry', 'sd_wind'])
 
     def setup_from_file(self, *args, **kwargs):
         kwargs['index_col'] = ['id', 'year', 'month']
@@ -1586,7 +1594,7 @@ class MonthlyCloud(CloudParameterizerBase):
         s = pd.to_datetime(df_nums.reset_index()[['year', 'month', 'day']])
         s.index = df_nums.index
         df_nums['ndays'] = ((s + pd.datetools.thisMonthEnd) - s).dt.days + 1
-        cols = ['wet_day', 'tmin', 'tmax', 'mean_cloud']
+        cols = ['wet_day', 'tmin', 'tmax', 'mean_cloud', 'wind']
         complete_cols = [col + '_complete' for col in cols]
         for col, tcol in zip(cols, complete_cols):
             df_nums[tcol] = df_nums[col] == df_nums.ndays
@@ -1646,8 +1654,10 @@ class CompleteMonthlyCloud(MonthlyCloud):
 
     summary = "Extract the months with complete cloud data"
 
+    cols = ['wet_day', 'mean_cloud']  # not 'tmin', 'tmax'
+
     def setup_from_scratch(self):
-        cols = ['wet_day', 'mean_cloud']  # not 'tmin', 'tmax'
+        cols = self.cols
         complete_cols = [col + '_complete' for col in cols]
         self.data = self.monthly_cloud.data[
             self.monthly_cloud.data[complete_cols].values.all(axis=1)]
@@ -1668,13 +1678,15 @@ class YearlyCompleteMonthlyCloud(CompleteMonthlyCloud):
 
     allow_files = False
 
+    cols = ['wet_day', 'mean_cloud']  # not 'tmin', 'tmax'
+
     def setup_from_scratch(self):
         def year_complete(series):
             """Check whether the data for the given is complete"""
             return series.astype(int).sum() == 12
         all_monthly = self.cmonthly_cloud.data
 
-        cols = ['wet_day', 'mean_cloud']  # not 'tmin', 'tmax'
+        cols = self.cols
 
         complete_cols = [col + '_complete' for col in cols]
 
@@ -1758,11 +1770,11 @@ class CloudParameterizer(CompleteMonthlyCloud):
         for t, state in product(['sd', 'mean'], ['', 'wet', 'dry']):
             vname = t + '_cloud' + (('_' + state) if state else '')
             varo = ds.variables[vname]
-            label = 'std. dev.' if t else 'mean'
+            label = 'std. dev.' if t == 'sd' else 'mean'
             varo.attrs['long_name'] = '%s cloud fraction' % (label)
             varo.attrs['units'] = '-'
             varo.attrs['symbol'] = 'c_\mathrm{{%s%s}}' % (
-                'sd' if t else '', (', ' + state) if state else '')
+                'sd' if t == 'sd' else '', (', ' + state) if state else '')
             varo.attrs['state'] = state or 'all'
         return ds
 
@@ -1834,6 +1846,194 @@ class CloudParameterizer(CompleteMonthlyCloud):
                 plotter.plot_data[1].attrs.get('a', 0))
 
 
+class CompleteMonthlyWind(CompleteMonthlyCloud):
+    """Parameterizer to extract the months with complete wind"""
+
+    name = 'cmonthly_wind'
+
+    setup_requires = ['monthly_cloud']
+
+    dbname = 'complete_monthly_wind'
+
+    _datafile = 'complete_monthly_wind.csv'
+
+    summary = "Extract the months with complete wind data"
+
+    cols = ['wet_day', 'wind']  # not 'tmin', 'tmax'
+
+
+class YearlyCompleteMonthlyWind(YearlyCompleteMonthlyCloud):
+    """Parameterizer to extract the months with complete wind"""
+
+    name = 'yearly_cmonthly_wind'
+
+    setup_requires = ['cmonthly_wind']
+
+    dbname = 'yearly_complete_monthly_wind'
+
+    _datafile = 'yearly_complete_monthly_wind.csv'
+
+    summary = "Extract the months with complete wind data in complete years"
+
+    cols = ['wet_day', 'wind']
+
+    @property
+    def cmonthly_cloud(self):
+        return self.cmonthly_wind
+
+
+class WindParameterizer(CompleteMonthlyWind):
+    """Parameterizer to extract the months with complete clouds"""
+
+    name = 'wind'
+
+    summary = 'Parameterize the wind data'
+
+    setup_requires = ['cmonthly_wind']
+
+    _datafile = 'wind_correlation.csv'
+
+    dbname = 'wind_correlation'
+
+    allow_files = False
+
+    fmt = dict(
+        legend={'loc': 'upper left'},
+        cmap='w_Reds',
+        xrange=(0, ['rounded', 95]),
+        yrange=(0, ['rounded', 95]),
+        legendlabels=[
+            '$%(symbol)s$ = %(intercept)1.4f + %(slope)1.4f * $%(xsymbol)s$'],
+        bounds=['minmax', 11, 0, 99],
+        cbar='',
+        bins=10,
+        xlabel='on %(state)s days',
+        )
+
+    has_run = True
+
+    namelist_keys = {
+        'wind_w1': 'wind_wet.intercept',
+        'wind_w2': 'wind_wet.slope',
+        'wind_d1': 'wind_dry.intercept',
+        'wind_d2': 'wind_dry.slope',
+        'wind_sd_w1': 'sd_wind_wet.intercept',
+        'wind_sd_w2': 'sd_wind_wet.slope',
+        'wind_sd_d1': 'sd_wind_dry.intercept',
+        'wind_sd_d2': 'sd_wind_dry.slope',
+        }
+
+#    namelist_keys = {
+#        'cldf_w': 'mean_cloud_wet.a',
+#        'cldf_d': 'mean_cloud_dry.a',
+#        'cldf_sd_w': 'sd_cloud_wet.a',
+#        'cldf_sd_d': 'sd_cloud_dry.a'}
+#
+#    error_keys = {
+#        'cldf_w': 'mean_cloud_wet.a_err',
+#        'cldf_d': 'mean_cloud_dry.a_err',
+#        'cldf_sd_w': 'sd_cloud_wet.a_err',
+#        'cldf_sd_d': 'sd_cloud_dry.a_err'}
+
+    @property
+    def sql_dtypes(self):
+        import sqlalchemy
+        ret = super(CloudParameterizer, self).sql_dtypes
+        ret['wet_day'] = sqlalchemy.REAL
+        return ret
+
+    def setup_from_file(self, *args, **kwargs):
+        kwargs['index_col'] = ['id', 'month']
+        return Parameterizer.setup_from_file(self, *args, **kwargs)
+
+    def setup_from_db(self, *args, **kwargs):
+        kwargs['index_col'] = ['id', 'month']
+        return Parameterizer.setup_from_db(self, *args, **kwargs)
+
+    @property
+    def ds(self):
+        """The dataframe of this parameterization task converted to a dataset
+        """
+        import xarray as xr
+        ds = xr.Dataset.from_dataframe(self.data.reset_index())
+        for t, state in product(['sd_', ''], ['', 'wet', 'dry']):
+            vname = t + 'wind' + (('_' + state) if state else '')
+            varo = ds.variables[vname]
+            label = 'std. dev. of ' if t else 'mean'
+            varo.attrs['long_name'] = '%s wind speed' % (label)
+            varo.attrs['units'] = 'm/s'
+            varo.attrs['symbol'] = 'w_\mathrm{{%s%s}}' % (
+                'sd' if t else '', (', ' + state) if state else '')
+            varo.attrs['state'] = state or 'all'
+        return ds
+
+    def setup_from_scratch(self):
+        g = self.cmonthly_wind.data.groupby(level=['id', 'month'])
+        data = g.mean()
+        cols = [col for col in data.columns if '_complete' not in col]
+        self.data = data[cols]
+
+    @docstrings.dedent
+    def create_project(self, ds):
+        """
+        Plot the relationship wet/dry cloud - mean cloud
+
+        Parameters
+        ----------
+        %(TaskBase.create_project.parameters)s"""
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+        import psyplot.project as psy
+
+        sns.set_style('white')
+
+        types = ['', 'sd_']
+
+        axes = np.concatenate([
+            plt.subplots(1, 2, figsize=(12, 4))[1] for _ in range(2)])
+        for fig in set(ax.get_figure() for ax in axes):
+            fig.subplots_adjust(bottom=0.25)
+        middle = (
+            axes[0].get_position().x0 + axes[1].get_position().x1) / 2.
+        axes = iter(axes)
+        for t in types:
+            psy.plot.densityreg(
+                ds, name='%swind_wet' % (t), ax=next(axes),
+                ylabel='%(long_name)s\non %(state)s days',
+                text=[(middle, 0.03, '%(long_name)s', 'fig', dict(
+                     weight='bold', ha='center'))], fmt=self.fmt,
+                coord='wind' + ('_wet' if t == 'sd' else ''))
+            psy.plot.densityreg(
+                ds, name='%swind_dry' % (t), ax=next(axes),
+                ylabel='on %(state)s days', fmt=self.fmt,
+                coord='wind' + ('_dry' if t == 'sd' else ''))
+        return psy.gcp(True)[:]
+
+    @docstrings.dedent
+    def make_run_config(self, sp, info, full_nml):
+        """
+        Configure with the wet/dry cloud - mean cloud correlation
+
+        Parameters
+        ----------
+        %(Parameterizer.make_run_config.parameters)s
+        """
+        nml = full_nml.setdefault('weathergen_ctl', OrderedDict())
+        states = ['wet', 'dry']
+        types = ['', 'sd_']
+        for t, state in product(types, states):
+            vname = '%swind_%s' % (t, state)
+            nml_name = 'wind%s_%s' % ("_sd" if t == 'sd_' else '', state[:1])
+            info[vname] = vinfo = {}
+            plotter = sp(name=vname).plotters[0]
+            for key in ['rsquared', 'slope', 'intercept']:
+                vinfo[key] = float(plotter.plot_data[1].attrs[key])
+            nml[nml_name + '1'] = float(
+                plotter.plot_data[1].attrs.get('intercept', 0))
+            nml[nml_name + '2'] = float(
+                plotter.plot_data[1].attrs.get('slope'))
+
+
 class CompleteDailyCloud(DailyCloud):
     """The parameterizer that calculates the days in complete months of cloud
     data"""
@@ -1848,12 +2048,14 @@ class CompleteDailyCloud(DailyCloud):
 
     summary = "Get the days of the complete daily cloud months"
 
+    cols = ['wet_day', 'tmin', 'tmax', 'mean_cloud', 'wind']
+
     def init_from_scratch(self):
         pass
 
     def setup_from_scratch(self):
         monthly = self.monthly_cloud.data
-        cols = ['wet_day', 'tmin', 'tmax', 'mean_cloud']
+        cols = self.cols
         complete_cols = [col + '_complete' for col in cols]
         self.data = self.daily_cloud.data.reset_index().merge(
             monthly[
@@ -1879,13 +2081,15 @@ class YearlyCompleteDailyCloud(CompleteDailyCloud):
 
     allow_files = False
 
+    cols = ['wet_day', 'mean_cloud', 'tmin', 'tmax', 'wind']
+
     def setup_from_scratch(self):
         def year_complete(series):
             """Check whether the data for the given is complete"""
             return series.astype(int).sum() == 12
         all_monthly = self.cmonthly_cloud.data
 
-        cols = ['wet_day', 'mean_cloud', 'tmin', 'tmax']
+        cols = self.cols
 
         complete_cols = [col + '_complete' for col in cols]
 
@@ -1920,7 +2124,7 @@ class CrossCorrelation(Parameterizer):
     # days
     setup_requires = ['yearly_cdaily_cloud']
 
-    cols = ['tmin', 'tmax', 'mean_cloud']
+    cols = ['tmin', 'tmax', 'mean_cloud', 'wind']
 
     namelist_keys = {'a': None, 'b': None}
 

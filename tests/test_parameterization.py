@@ -159,6 +159,17 @@ class _ParameterizerTestMixin(object):
                                                      df_ref.ix[mask]))
         return manager
 
+    def test_param_distributed(self, *args, **kwargs):
+        """Test the parameterization with the distributed package"""
+        if not self.organizer.global_config.get('serial'):
+            from distributed import LocalCluster
+            import multiprocessing as mp
+            c = LocalCluster(n_workers=mp.cpu_count(), diagnostics_port=None)
+            self.organizer.global_config['scheduler'] = c.scheduler_address
+            ret = self.test_param(*args, **kwargs)
+            c.close()
+            return ret
+
 
 class Test_DailyGHCNData(bt.BaseTest, _ParameterizerTestMixin):
     """Test case for the :class:`gwgen.parameterization.DailyGHCNData` task"""
@@ -377,6 +388,30 @@ class Test_CloudParameterizer(bt.BaseTest, _ParameterizerTestMixin,
     task"""
 
     param_cls = param.CloudParameterizer
+
+
+class Test_CompleteMonthlyWind(bt.BaseTest, _ParameterizerTestMixin,
+                               _CloudTestMixin):
+    """Test case for the :class:`gwgen.parameterization.CompleteMonthlyWind`
+    task"""
+
+    param_cls = param.CompleteMonthlyWind
+
+
+class Test_YearlyCompleteMonthlyWind(bt.BaseTest, _ParameterizerTestMixin,
+                                     _CloudTestMixin):
+    """Test case for the
+    :class:`gwgen.parameterization.YearlyCompleteMonthlyWind` task"""
+
+    param_cls = param.YearlyCompleteMonthlyWind
+
+
+class Test_WindParameterizer(bt.BaseTest, _ParameterizerTestMixin,
+                             _CloudTestMixin):
+    """Test case for the :class:`gwgen.parameterization.WindParameterizer`
+    task"""
+
+    param_cls = param.WindParameterizer
 
 
 class Test_CrossCorrelation(bt.BaseTest, _ParameterizerTestMixin):
