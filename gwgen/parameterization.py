@@ -1559,12 +1559,12 @@ class MonthlyCloud(CloudParameterizerBase):
                 ('sd_cloud_wet', [df.mean_cloud.ix[wet].std()]),
                 ('sd_cloud_dry', [df.mean_cloud.ix[~wet].std()]),
                 ('sd_cloud', [df.mean_cloud.std()]),
-                ('wind_wet', [df.mean_cloud.ix[wet].mean()]),
-                ('wind_dry', [df.mean_cloud.ix[~wet].mean()]),
-                ('wind', [df.mean_cloud.mean()]),
-                ('sd_wind_wet', [df.mean_cloud.ix[wet].std()]),
-                ('sd_wind_dry', [df.mean_cloud.ix[~wet].std()]),
-                ('sd_wind', [df.mean_cloud.std()]),
+                ('wind_wet', [df.wind.ix[wet].mean()]),
+                ('wind_dry', [df.wind.ix[~wet].mean()]),
+                ('wind', [df.wind.mean()]),
+                ('sd_wind_wet', [df.wind.ix[wet].std()]),
+                ('sd_wind_dry', [df.wind.ix[~wet].std()]),
+                ('sd_wind', [df.wind.std()]),
                 ]))
         else:
             return pd.DataFrame([], columns=[
