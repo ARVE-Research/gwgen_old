@@ -1968,10 +1968,17 @@ class WindParameterizer(CompleteMonthlyWind):
         return ds
 
     def setup_from_scratch(self):
-        g = self.cmonthly_wind.data.groupby(level=['id', 'month'])
-        data = g.mean()
-        cols = [col for col in data.columns if '_complete' not in col]
-        self.data = data[cols]
+        def mean(s):
+            try:
+                return s.mean()
+            except:
+                return np.nan
+        all_data = self.cmonthly_wind.data
+        cols = [col for col in all_data.columns if '_complete' not in col]
+        g = all_data[cols].groupby(level=['id', 'month'])
+        # HACK: somehow g.mean() turned into an Error
+        data = g.agg(mean)
+        self.data = data
 
     @docstrings.dedent
     def create_project(self, ds):
