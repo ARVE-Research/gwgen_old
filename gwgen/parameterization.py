@@ -1053,7 +1053,7 @@ class TemperatureParameterizer(Parameterizer):
                 ds, name=base + '_wet', ax=next(axes),
                 coord=v if not t else v + '_wet',
                 ylabel='%(long_name)s\non %(state)s days',
-                text=[(middle, 0.03, '%(long_name)s', 'fig', dict(
+                text=[(middle, 0.03, '%(xlong_name)s', 'fig', dict(
                      weight='bold', ha='center'))], fmt=self.fmt)
             psy.plot.densityreg(
                 ds, name=base + '_dry', ax=next(axes),
@@ -1812,7 +1812,7 @@ class CloudParameterizer(CompleteMonthlyCloud):
             psy.plot.densityreg(
                 ds, name='%s_cloud_wet' % (t), ax=next(axes),
                 ylabel='%(long_name)s\non %(state)s days',
-                text=[(middle, 0.03, '%(long_name)s', 'fig', dict(
+                text=[(middle, 0.03, '%(xlong_name)s', 'fig', dict(
                      weight='bold', ha='center'))], fmt=self.fmt,
                 fit=fit_funcs[t],
                 coord='mean_cloud' + ('_wet' if t == 'sd' else ''))
@@ -2007,13 +2007,13 @@ class WindParameterizer(CompleteMonthlyWind):
             psy.plot.densityreg(
                 ds, name='%swind_wet' % (t), ax=next(axes),
                 ylabel='%(long_name)s\non %(state)s days',
-                text=[(middle, 0.03, '%(long_name)s', 'fig', dict(
+                text=[(middle, 0.03, '%(xlong_name)s', 'fig', dict(
                      weight='bold', ha='center'))], fmt=self.fmt,
-                coord='wind' + ('_wet' if t == 'sd' else ''))
+                coord='wind' + ('_wet' if t == 'sd_' else ''))
             psy.plot.densityreg(
                 ds, name='%swind_dry' % (t), ax=next(axes),
                 ylabel='on %(state)s days', fmt=self.fmt,
-                coord='wind' + ('_dry' if t == 'sd' else ''))
+                coord='wind' + ('_dry' if t == 'sd_' else ''))
         return psy.gcp(True)[:]
 
     @docstrings.dedent
