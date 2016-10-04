@@ -2174,6 +2174,7 @@ class CrossCorrelation(Parameterizer):
             from dask.async import get_sync as get
             kws = {}
         df = self.yearly_cdaily_cloud.data.sort_index()
+        df['wind'] = df['wind'] ** 0.5
         df['date'] = vals = pd.to_datetime(df[[]].reset_index().drop('id', 1))
         df['date'].values[:] = vals
         df.set_index('date', inplace=True)
