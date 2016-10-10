@@ -12,6 +12,7 @@ import subprocess as spr
 from itertools import product
 import pandas as pd
 import numpy as np
+import dask.dataframe as dd
 import calendar
 import gwgen.utils as utils
 from gwgen.utils import docstrings
@@ -1261,7 +1262,7 @@ class HourlyCloud(CloudParameterizerBase):
 
     summary = 'Hourly cloud data'
 
-    _datafile = 'hourly_cloud.csv'
+    _datafile = 'hourly_cloud*.csv'
 
     dbname = 'hourly_cloud'
 
@@ -1285,44 +1286,51 @@ class HourlyCloud(CloudParameterizerBase):
         range(1, 13),
         "JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC".split()))
 
-    _continue = False
+    setup_parallel = False
 
     @property
     def sql_dtypes(self):
         import sqlalchemy
         ret = super(HourlyCloud, self).sql_dtypes
-        ret.update({"IB": sqlalchemy.SMALLINT,
-                    "lat": sqlalchemy.REAL,
-                    "lon": sqlalchemy.REAL,
-                    "station_id": sqlalchemy.INTEGER,
-                    "LO": sqlalchemy.SMALLINT,
-                    "ww": sqlalchemy.SMALLINT,
-                    "N": sqlalchemy.SMALLINT,
-                    "Nh": sqlalchemy.SMALLINT,
-                    "h": sqlalchemy.SMALLINT,
-                    "CL": sqlalchemy.SMALLINT,
-                    "CM": sqlalchemy.SMALLINT,
-                    "CH": sqlalchemy.SMALLINT,
-                    "AM": sqlalchemy.REAL,
-                    "AH": sqlalchemy.REAL,
-                    "UM": sqlalchemy.SMALLINT,
-                    "UH": sqlalchemy.SMALLINT,
-                    "IC": sqlalchemy.SMALLINT,
-                    "SA": sqlalchemy.REAL,
-                    "RI": sqlalchemy.REAL,
-                    "SLP": sqlalchemy.REAL,
-                    "WS": sqlalchemy.REAL,
-                    "WD": sqlalchemy.SMALLINT,
-                    "AT": sqlalchemy.REAL,
-                    "DD": sqlalchemy.REAL,
-                    "EL": sqlalchemy.SMALLINT,
-                    "IW": sqlalchemy.SMALLINT,
-                    "IP": sqlalchemy.SMALLINT})
+        ret.update({
+            "IB": sqlalchemy.SMALLINT,
+            "lat": sqlalchemy.REAL,
+            "lon": sqlalchemy.REAL,
+            "station_id": sqlalchemy.INTEGER,
+#            "LO": sqlalchemy.SMALLINT,
+            "ww": sqlalchemy.SMALLINT,
+            "N": sqlalchemy.SMALLINT,
+#            "Nh": sqlalchemy.SMALLINT,
+#            "h": sqlalchemy.SMALLINT,
+#            "CL": sqlalchemy.SMALLINT,
+#            "CM": sqlalchemy.SMALLINT,
+#            "CH": sqlalchemy.SMALLINT,
+#            "AM": sqlalchemy.REAL,
+#            "AH": sqlalchemy.REAL,
+#            "UM": sqlalchemy.SMALLINT,
+#            "UH": sqlalchemy.SMALLINT,
+#            "IC": sqlalchemy.SMALLINT,
+#            "SA": sqlalchemy.REAL,
+#            "RI": sqlalchemy.REAL,
+#            "SLP": sqlalchemy.REAL,
+            "WS": sqlalchemy.REAL,
+#            "WD": sqlalchemy.SMALLINT,
+            "AT": sqlalchemy.REAL,
+#            "DD": sqlalchemy.REAL,
+#            "EL": sqlalchemy.SMALLINT,
+#            "IW": sqlalchemy.SMALLINT,
+#            "IP": sqlalchemy.SMALLINT,
+                    })
         return ret
 
     years = range(1971, 2010)
 
     months = range(1, 13)
+
+    index_cols = ['id', 'year', 'month', 'day', 'hour']
+
+    cols = ['id', 'IB', 'AT', 'N', 'lat', 'lon', 'ww', 'WS',
+            'year', 'month', 'day', 'hour']
 
     @property
     def raw_dir(self):
@@ -1362,6 +1370,10 @@ class HourlyCloud(CloudParameterizerBase):
         c_yr = str(year)
         return c_mon + c_yr[-2:] + 'L' + ext
 
+    def write2file(self, *args, **kwargs):
+        kwargs.setdefault('index', False)
+        return super(HourlyCloud, self).write2file(*args, **kwargs)
+
     @classmethod
     @docstrings.dedent
     def get_eecra_url(cls, year, mon):
@@ -1375,14 +1387,6 @@ class HourlyCloud(CloudParameterizerBase):
         for (d0, d1), url in cls.urls.items():
             if (year, mon) >= d0 and (year, mon) <= d1:
                 return url + cls.eecra_fname(year, mon, '.Z')
-
-    def _download_worker(self, qin, qout):
-        while self._continue:
-            yrmon, fname = qin.get()
-            utils.download_file(self.get_eecra_url(*yrmon), fname)
-            spr.call(['gzip', '-d', fname])
-            qout.put((yrmon, osp.splitext(fname)[0]))
-            qin.task_done()
 
     def init_from_scratch(self):
         """Reimplemented to download the data if not existent"""
@@ -1441,8 +1445,9 @@ class HourlyCloud(CloudParameterizerBase):
             spr.call(['gzip', '-d', compressed_fname] + (['-k'] * keep))
 
     def setup_from_file(self, *args, **kwargs):
-        kwargs['index_col'] = ['id', 'year', 'month', 'day', 'hour']
-        return super(HourlyCloud, self).setup_from_file(*args, **kwargs)
+        kwargs['sample'] = 10 ** 9  # to make sure, we get the right dtypes
+        ret = super(HourlyCloud, self).setup_from_file(*args, **kwargs)
+        return ret
 
     def setup_from_db(self, *args, **kwargs):
         kwargs['index_col'] = ['id', 'year', 'month', 'day', 'hour']
@@ -1452,22 +1457,24 @@ class HourlyCloud(CloudParameterizerBase):
         """Set up the data"""
         if self.args_type == 'files':
             from gwgen.parse_eecra import parse_file
-            self.data = pd.concat(list(map(parse_file, self.stations))).rename(
-                columns={'station_id': 'id'})
-            self.data.set_index(['id', 'year', 'month', 'day', 'hour'],
-                                inplace=True)
-            self.data.sort_index(inplace=True)
+            df0 = parse_file(self.stations)
+            dsk = {('eecra', i): (parse_file, f)
+                   for i, f in enumerate(self.stations)}
+            partitions = [None] * (len(dsk) + 1)
+            self.dask_df = dd.DataFrame(dsk, 'eecra', df0.ix[1:0], partitions)
         else:
             files = self.src_files
             df_map = pd.DataFrame(
                 np.vstack([self.stations, self.eecra_stations]).T,
                 columns=['id', 'station_id'])
-            self.data = pd.concat(
-                [pd.read_csv(fname).merge(df_map, on='station_id', how='inner')
-                 for fname in files], ignore_index=False, copy=False)
-            self.data.set_index(['id', 'year', 'month', 'day', 'hour'],
-                                inplace=True)
-            self.data.sort_index(inplace=True)
+            df0 = pd.read_csv(files[0])
+            dsk = {('eecra', i): (pd.read_csv, f)
+                   for i, f in enumerate(files)}
+            partitions = [None] * (len(dsk) + 1)
+            self.dask_df = dd.DataFrame(
+                dsk, 'eecra', df0.ix[1:0], partitions).merge(
+                    df_map, on='station_id', how='inner')
+        self.dask_df = self.dask_df[self.cols]
 
 
 class DailyCloud(CloudParameterizerBase):
@@ -1559,12 +1566,12 @@ class MonthlyCloud(CloudParameterizerBase):
                 ('sd_cloud_wet', [df.mean_cloud.ix[wet].std()]),
                 ('sd_cloud_dry', [df.mean_cloud.ix[~wet].std()]),
                 ('sd_cloud', [df.mean_cloud.std()]),
-                ('wind_wet', [df.mean_cloud.ix[wet].mean()]),
-                ('wind_dry', [df.mean_cloud.ix[~wet].mean()]),
-                ('wind', [df.mean_cloud.mean()]),
-                ('sd_wind_wet', [df.mean_cloud.ix[wet].std()]),
-                ('sd_wind_dry', [df.mean_cloud.ix[~wet].std()]),
-                ('sd_wind', [df.mean_cloud.std()]),
+                ('wind_wet', [df.wind.ix[wet].mean()]),
+                ('wind_dry', [df.wind.ix[~wet].mean()]),
+                ('wind', [df.wind.mean()]),
+                ('sd_wind_wet', [df.wind.ix[wet].std()]),
+                ('sd_wind_dry', [df.wind.ix[~wet].std()]),
+                ('sd_wind', [df.wind.std()]),
                 ]))
         else:
             return pd.DataFrame([], columns=[

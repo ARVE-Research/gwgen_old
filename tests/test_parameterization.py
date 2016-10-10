@@ -5,6 +5,7 @@ an error within the setup"""
 import unittest
 import os
 import os.path as osp
+import glob
 import shutil
 import numpy as np
 import pandas as pd
@@ -84,7 +85,7 @@ class _ParameterizerTestMixin(object):
         setup_from_file = False
         for fname in filter(None, safe_list(task.datafile)):
             setup_from_file = True
-            self.assertTrue(osp.exists(fname),
+            self.assertTrue(len(glob.glob(fname)) > 0,
                             msg='Datafile %s of %s task does not exist!' % (
                                 fname, name))
         if check_index_duplicates:
@@ -131,6 +132,8 @@ class _ParameterizerTestMixin(object):
                 df = no_duplicates(df)
                 df_ref = no_duplicates(df_ref)
                 mask = (df != df_ref).values.any(axis=1)
+                print(pd.merge(df.dtypes.to_frame(), df_ref.dtypes.to_frame(),
+                               left_index=True, right_index=True))
                 self.assertIsNone(df_equals(df, df_ref),
                                   msg=df_diff_msg % (df.ix[mask],
                                                      df_ref.ix[mask]))

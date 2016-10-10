@@ -2,6 +2,7 @@ from __future__ import division
 import inspect
 import os
 import os.path as osp
+import glob
 import shutil
 import re
 import six
@@ -13,6 +14,7 @@ from collections import namedtuple
 import pandas as pd
 import numpy as np
 import docrep
+import dask.dataframe as dd
 from tempfile import mkdtemp
 from psyplot.compat.pycompat import OrderedDict, filterfalse
 from psyplot.config.rcsetup import safe_list
@@ -214,7 +216,7 @@ def safe_csv_append(df, path, *args, **kwargs):
                  if col not in idx_names]
     else:
         order = list(df.columns)
-    df[order].to_csv(path, mode='a', *args, header=not exists, **kwargs)
+    return df[order].to_csv(path, mode='a', *args, header=not exists, **kwargs)
 
 
 def ordered_move(d, to_move, pos):
@@ -317,6 +319,12 @@ def get_postgres_engine(database, user=None, host='127.0.0.1', port=None,
                 engine_str, poolclass=sqlalchemy.pool.NullPool)
     logger.debug('Done.')
     return engine, engine_str
+
+
+def glob_exists(patt):
+    """Convencience function accepts glob patterns to look if a matching file
+    exists"""
+    return bool(glob.glob(patt))
 
 
 def file_len(fname):
@@ -538,8 +546,39 @@ class TaskBase(object):
     #: str. name of the task
     name = None
 
+    #: The dask dataframe as intermediate result for the computation
+    dask_df = None
+
     #: pandas.DataFrame. The dataframe holding the daily data
-    data = None
+    _data = None
+
+    #: The columns that shall be used in the index
+    index_cols = ['id']
+
+    @property
+    def data(self):
+        """pandas.DataFrame. The dataframe holding the daily data"""
+        if self._data is None:
+            chunksize = self.global_config.get('chunksize', 10**5)
+            client, get, kws = self._get_get()
+            if isstring(self._datafile):
+                self._data = self.dask_df.compute(get=get, **kws)
+                self.dask_df = dd.from_pandas(self._data, chunksize=chunksize)
+                self._data.set_index(self.index_cols, inplace=True)
+            else:
+                self._data = [
+                    df.compute(get=get, **kws) for df in self.dask_df]
+                self.dask_df = [
+                    dd.from_pandas(df, chunksize=chunksize)
+                    for df in self.data]
+                for df in self._data:
+                    df.set_index(self.index_cols, inplace=True)
+            self._finish_compute(client)
+        return self._data
+
+    @data.setter
+    def data(self, value):
+        self._data = value
 
     #: str. The basename of the csv file where the data is stored by the
     #: :meth:`TaskBase.write2file` method and read by the
@@ -841,7 +880,7 @@ class TaskBase(object):
 
         if self.task_config.remove:
             for datafile in safe_list(self.datafile):
-                if osp.exists(datafile):
+                for f in glob.glob(datafile):
                     self.logger.debug('Removing %s', datafile)
                     os.remove(datafile)
 
@@ -930,7 +969,7 @@ class TaskBase(object):
         self._requirements = d
 
     def _get_setup(self):
-        if self._datafile and all(map(osp.exists, safe_list(self.datafile))):
+        if self._datafile and all(map(glob_exists, safe_list(self.datafile))):
             return 'file'
         if self.dbname:
             engine = self.engine
@@ -1009,17 +1048,20 @@ class TaskBase(object):
         return [{key: val[i] for key, val in kws.items()}
                 for i in range(len(self._datafile))]
 
-    def _get_data(self, i):
+    def _get_data(self, i, dask=False):
         """Get the data at position `i`
 
         Parameters
         ----------
         i: int
             The integer position where to set the data. If the
-            :attr:`_datafile` attribute is a string, `i` will be ignored."""
+            :attr:`_datafile` attribute is a string, `i` will be ignored.
+        dask: bool
+            If True, return the dask dataframe"""
+        data = self.dask_df if dask else self.data
         if isinstance(self._datafile, six.string_types):
-            return self.data
-        return self.data[i]
+            return data
+        return data[i]
 
     def _set_data(self, data, i):
         """Set the  data at position `i`
@@ -1032,9 +1074,15 @@ class TaskBase(object):
             The integer position where to set the data. If the
             :attr:`_datafile` attribute is a string, `i` will be ignored."""
         if isinstance(self._datafile, six.string_types):
-            self.data = data
+            if isinstance(data, dd.DataFrame):
+                self.dask_df = data
+            else:
+                self._data = data
         else:
-            self.data[i] = data
+            if isinstance(data, dd.DataFrame):
+                self.dask_df[i] = data
+            else:
+                self._data[i] = data
 
     def init_from_file(self):
         """Initialize the task from already stored files"""
@@ -1051,23 +1099,9 @@ class TaskBase(object):
     def setup_from_file(self, **kwargs):
         """Set up the task from already stored files"""
         kwargs = self._split_kwargs(kwargs)
-        chunksize = self.global_config.get('chunksize', 10 ** 5)
         for i, datafile in enumerate(safe_list(self.datafile)):
-            data = []
-            for all_data in pd.read_csv(datafile, chunksize=chunksize,
-                                        **kwargs[i]):
-                if 'id' in all_data.columns:
-                    all_data.set_index('id', inplace=True)
-                stations = list(self.stations)
-                if len(all_data.index.names) == 1:
-                    data.append(all_data.loc(axis=0)[stations])
-                else:
-                    names = all_data.index.names
-                    axis = names.index('id')
-                    key = [slice(None) for _ in range(axis)] + [stations] + [
-                        slice(None) for _ in range(axis, len(names) - 1)]
-                    data.append(all_data.sort_index().loc(axis=0)[tuple(key)])
-            self._set_data(pd.concat(data), i)
+            data = dd.read_csv(datafile, **kwargs[i])
+            self._set_data(data, i)
 
     def setup_from_db(self, **kwargs):
         """Set up the task from datatables already created"""
@@ -1288,7 +1322,7 @@ class TaskBase(object):
         :attr:`engine` attribute"""
         for i, (dbname, kws) in enumerate(zip(safe_list(self.dbname),
                                               self._split_kwargs(kwargs))):
-            data = self._get_data(i)
+            data = self._get_data(i, dask=False)
             if not len(data):
                 continue
             if 'id' in data.columns:
@@ -1319,9 +1353,13 @@ class TaskBase(object):
 
     def write2file(self, **kwargs):
         """Write the database to the :attr:`datafile` file"""
-        for i, (datafile, kws) in enumerate(zip(safe_list(self.datafile),
-                                                self._split_kwargs(kwargs))):
-            data = self._get_data(i)
+        use_dask = self._data is None
+        all_data = self.dask_df if use_dask else self._data
+        if isstring(self._datafile):
+            all_data = [all_data]
+        for i, (datafile, data, kws) in enumerate(zip(
+                safe_list(self.datafile), all_data,
+                self._split_kwargs(kwargs))):
             if not len(data):
                 continue
             lock = _file_locks.get(datafile)
@@ -1332,7 +1370,14 @@ class TaskBase(object):
             self.logger.debug('Writing data to %sexisting file %s',
                               'not ' if not exists else '', datafile)
             try:
-                safe_csv_append(data, datafile, **kws)
+                if use_dask:
+                    kws['compute'] = False
+                values = safe_csv_append(data, datafile, **kws)
+                if use_dask:
+                    from dask import compute
+                    client, get, kws = self._get_get()
+                    compute(*values, get=get, **kws)
+                    self._finish_compute(client)
             except:
                 raise
             finally:
@@ -1347,6 +1392,27 @@ class TaskBase(object):
         Return a manager of this class that can be used to setup and organize
         tasks"""
         return TaskManager(cls, *args, **kwargs)
+
+    def _get_get(self):
+        config = self.global_config
+        client = None
+        kws = {}
+        if config.get('serial'):
+            from dask.async import get_async as get
+        elif config.get('scheduler'):
+            from distributed import Client
+            client = Client(config['scheduler'])
+            get = client.get
+        else:
+            from dask.multiprocessing import get
+            nprocs = config.get('nprocs', 'all')
+            if nprocs != 'all':
+                kws['num_workers'] = nprocs
+        return client, get, kws
+
+    def _finish_compute(self, client=None):
+        if client is not None:
+            client.shutdown()
 
 
 class TaskManager(object):
