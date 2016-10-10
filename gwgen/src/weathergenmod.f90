@@ -37,11 +37,12 @@ type metvars_in
   real(sp) :: tmin    !minumum temperture (C)
   real(sp) :: tmax    !maximum temperture (C)
   real(sp) :: cldf    !cloud fraction (0=clear sky, 1=overcast) (fraction)
+  real(sp) :: wind    !wind speed (m/s)
 
   real(sp)               :: NI      !previous day's Nesterov index (degC 2)
   logical, dimension(2)  :: pday    !precipitation status: true if the day was a rain day
   type(randomstate)      :: rndst   !state of the random number generator
-  real(sp), dimension(3) :: resid   !previous day's weather residuals
+  real(sp), dimension(4) :: resid   !previous day's weather residuals
 
 end type metvars_in
 
@@ -61,7 +62,7 @@ type metvars_out
 
   logical, dimension(2)  :: pday    !precipitation state
   type(randomstate)      :: rndst   !state of the random number generator, 15 elements
-  real(sp), dimension(3) :: resid   !previous day's weather residuals
+  real(sp), dimension(4) :: resid   !previous day's weather residuals
 
 end type metvars_out
 
@@ -70,10 +71,12 @@ type daymetvars
   real(sp) :: tmax_mn     !maximum temperature monthly mean (degC)
   real(sp) :: tmin_mn     !minimum temperature mothly mean (degC)
   real(sp) :: cldf_mn     !mean cloud fraction (fraction)
+  real(sp) :: wind_mn     !wind speed
 
   real(sp) :: tmax_sd     !standard deviation of corresponding variable above
   real(sp) :: tmin_sd     ! "
   real(sp) :: cldf_sd     ! "
+  real(sp) :: wind_sd     ! "
 
 end type daymetvars
 
@@ -92,14 +95,16 @@ real(sp)                 :: g_scale_coeff = 1.24896
 ! shape parameter for the Generalized Pareto distribution
 real(sp)                 :: gp_shape = 0.08303
 ! solved A and B matrices following Richardson_1984 equation (4)
-real(sp), dimension(3,3) :: A = reshape((/ &
-  0.17161983, 0.4580536, -0.08026087, &
-  0.08199278, 0.8369891, -0.03056892, &
-  -0.05633449, -0.0121285, 0.57830321/), (/3, 3/))
-real(sp), dimension(3,3) :: B = reshape((/ &
-  0.816211174, 0.0000000, 0.00000, &
-  0.063561312, 0.4606832, 0.00000, &
-  0.001886549, 0.1498257, 0.79621/), (/3, 3/))
+real(sp), dimension(4,4) :: A = reshape((/ &
+    0.915395, 0.032931, -0.020349, 4.3e-05, &
+    0.500123, 0.138388, -0.072738, -0.047751, &
+    0.002037, -0.047249, 0.589393, 0.027476, &
+    0.009912, -0.0451, -0.018483, 0.673857 /), (/4, 4/))
+real(sp), dimension(4,4) :: B = reshape((/ &
+    0.35534,  0.0,       0.0,      0.0, &
+    0.115141, 0.792894,  0.0,      0.0, &
+    0.148959, -0.06072,  0.783592, 0.0, &
+    0.080738, -0.016318, 0.065818, 0.729933/), (/4, 4/))
 
 ! transition probability correlations
 real(sp) :: p11_1 = 0.2448, &
@@ -110,26 +115,41 @@ real(sp) :: p11_1 = 0.2448, &
             p001_2 = 0.7000
 
 ! temperature and cloud correlation parameters corresponding to wet or dry day
+! minimum temperature regression results
 real(sp) :: tmin_w1 = 1.0388, &
             tmin_w2 = 0.9633, &
-            tmax_w1 = -0.0909, &
-            tmax_w2 = 0.9316, &
-            cldf_w = -0.7085, &
             tmin_sd_w1 = 3.6244, &
             tmin_sd_w2 = -0.0978, &
-            tmax_sd_w1 = 4.2203, &
-            tmax_sd_w2 = -0.0497, &
             tmin_d1 = -0.5473, &
             tmin_d2 = 1.0253, &
+            tmin_sd_d1 = 4.1502, &
+            tmin_sd_d2 = -0.0959
+
+! maximum temperature regression results
+real(sp) :: tmax_w1 = -0.0909, &
+            tmax_w2 = 0.9316, &
+            tmax_sd_w1 = 4.2203, &
+            tmax_sd_w2 = -0.0497, &
             tmax_d1 = -0.1278, &
             tmax_d2 = 1.0295, &
-            cldf_d = 0.4555, &
-            tmin_sd_d1 = 4.1502, &
-            tmin_sd_d2 = -0.0959, &
             tmax_sd_d1 = 5.0683, &
-            tmax_sd_d2 = -0.0702, &
+            tmax_sd_d2 = -0.0702
+
+! cloud regression results
+real(sp) :: cldf_w = -0.7085, &
+            cldf_d = 0.4555, &
             cldf_sd_w = 1.0310, &
             cldf_sd_d = 1.0696
+
+! wind regression results
+real(sp) :: wind_w1 = -0.03854, &
+            wind_w2 = 1.05564, &
+            wind_d1 = 0.04884, &
+            wind_d2 = 0.96591, &
+            wind_sd_w1 = 0.44369, &
+            wind_sd_w2 = 0.29040, &
+            wind_sd_d1 = 0.48558, &
+            wind_sd_d2 = 0.32268
 
 ! -----------------------------------------------------------------------------
 ! ------------------- END. Defaults for the namelist parameters ---------------
@@ -164,10 +184,12 @@ subroutine init_weathergen(f_unit)
     p11_1, p11_2, p101_1, p101_2, p001_1, p001_2, &
     ! correlation parameters for wet days
     tmin_w1, tmin_w2, tmax_w1, tmax_w2, cldf_w, tmin_sd_w1, tmin_sd_w2, &
-    tmax_sd_w1, tmax_sd_w2, cldf_sd_w, &
+    tmax_sd_w1, tmax_sd_w2, cldf_sd_w, wind_w1, wind_w2, wind_sd_w1, &
+    wind_sd_w2, &
     ! correlation parameters for dry days
     tmin_d1, tmin_d2, tmax_d1, tmax_d2, cldf_d, tmin_sd_d1, tmin_sd_d2, &
-    tmax_sd_d1, tmax_sd_d2, cldf_sd_d
+    tmax_sd_d1, tmax_sd_d2, cldf_sd_d, wind_d1, wind_d2, wind_sd_d1, &
+    wind_sd_d2
 
   if (.not. present(f_unit)) then
       open(f_unit2, file='weathergen.nml', status='old')
@@ -252,17 +274,20 @@ real(sp) :: wetf   !fraction of days in month with precipitation (fraction)
 real(sp) :: tmn    !minumum temperture (C)
 real(sp) :: tmx    !maximum temperture (C)
 real(sp) :: cld    !cloud fraction (0=clear sky, 1=overcast) (fraction)
+real(sp) :: wnd   !wind (m/s)
 
 real(sp), pointer :: tmax_mn
 real(sp), pointer :: tmin_mn
 real(sp), pointer :: cldf_mn
+real(sp), pointer :: wind_mn
 real(sp), pointer :: tmax_sd
 real(sp), pointer :: tmin_sd
 real(sp), pointer :: cldf_sd
+real(sp), pointer :: wind_sd
 
 type(randomstate) :: rndst       !integer state of the random number generator
 logical,  dimension(2) :: pday   !element for yesterday and the day before yesterday
-real(sp), dimension(3) :: resid  !previous day's weather residuals
+real(sp), dimension(4) :: resid  !previous day's weather residuals
 
 real(sp) :: trange
 
@@ -272,6 +297,7 @@ real(sp) :: prec
 real(sp) :: tmin
 real(sp) :: tmax
 real(sp) :: cldf
+real(sp) :: wind
 real(sp) :: es
 real(sp) :: tdew
 real(sp) :: NI
@@ -288,7 +314,7 @@ real(kind=8) :: cdf_thresh, pdf_thresh  ! gamma cdf and gamma pdf at the thresho
 
 type(daymetvars), target :: dmetvars
 
-real(sp), dimension(3) :: unorm             !vector of uniformly distributed random numbers (0-1)
+real(sp), dimension(4) :: unorm             !vector of uniformly distributed random numbers (0-1)
 
 !---------------------------------------------------------
 !input
@@ -299,6 +325,7 @@ wetf  = met_in%wetf
 tmn   = met_in%tmin
 tmx   = met_in%tmax
 cld   = met_in%cldf
+wnd  = met_in%wind
 rndst = met_in%rndst
 pday  = met_in%pday
 resid = met_in%resid
@@ -309,9 +336,11 @@ NI    = met_in%NI
 tmin_mn => dmetvars%tmin_mn
 tmax_mn => dmetvars%tmax_mn
 cldf_mn => dmetvars%cldf_mn
+wind_mn => dmetvars%wind_mn
 tmin_sd => dmetvars%tmin_sd
 tmax_sd => dmetvars%tmax_sd
 cldf_sd => dmetvars%cldf_sd
+wind_sd => dmetvars%wind_sd
 
 tmean  = 0.5 * (tmx + tmn)
 trange = tmx - tmn
@@ -430,11 +459,11 @@ end if
 
 !calculate a baseline mean and SD for today's weather dependent on precip status
 
-call meansd(pday(1),tmn,tmx,cld,  dmetvars)
+call meansd(pday(1),tmn,tmx,cld,wnd,  dmetvars)
 
 !use random number generator for the normal distribution
 
-do i = 1,3
+do i = 1,4
   call ran_normal(rndst,unorm(i))
 end do
 
@@ -445,7 +474,9 @@ resid = matmul(A,resid) + matmul(B,unorm)  !Richardson 1981, eqn 5; WGEN tech re
 tmin = round(resid(1) * tmin_sd + tmin_mn,1)
 tmax = round(resid(2) * tmax_sd + tmax_mn,1)
 
- cldf = resid(3) * cldf_sd + cldf_mn
+cldf = resid(3) * cldf_sd + cldf_mn
+
+wind = (resid(4) * wind_sd**0.5 + wind_mn**0.5) ** 2
 !PRINT *, resid(3),cldf_sd,cldf_mn, cldf
 
 !---
@@ -453,6 +484,10 @@ tmax = round(resid(2) * tmax_sd + tmax_mn,1)
 if (cldf>1) then
     cldf = 1.0
 elseif (cldf < 0.0) then
+    cldf = 0.0
+end if
+
+if (wind<0) then
     cldf = 0.0
 end if
 
@@ -510,6 +545,7 @@ met_out%tmin  = tmin
 met_out%tmax  = tmax
 met_out%tdew  = tdew
 met_out%cldf  = cldf
+met_out%wind  = wind
 met_out%pday  = pday
 met_out%rndst = rndst
 met_out%resid = resid
@@ -521,7 +557,7 @@ end subroutine weathergen
 
 !------------------------------------------------------------------------------------------------------------
 
-subroutine meansd(pday,tmn,tmx,cld,dm)             !APRIL2011
+subroutine meansd(pday,tmn,tmx,cld,wind,dm)             !APRIL2011
 
 implicit none
 
@@ -531,6 +567,7 @@ logical,          intent(in)  :: pday    !precipitation status
 real(sp),         intent(in)  :: tmn     !smooth interpolation of monthly minimum temperature (degC)
 real(sp),         intent(in)  :: tmx     !smooth interpolation of monthly maximum temperature (degC)
 real(sp),         intent(in)  :: cld     !fraction (0-1)
+real(sp),         intent(in)  :: wind    !wind speed
 type(daymetvars), intent(out) :: dm
 
 !local variables
@@ -543,11 +580,15 @@ if (pday) then  !calculate mean and SD for a wet day
 
     dm%tmax_mn = tmax_w1 + tmax_w2 * tmx
 
+    dm%wind_mn = wind_w1 + wind_w2 * wind
+
     dm%cldf_mn = cldf_w1 / (cldf_w2 * cld + cldf_w3) + cldf_w4
 
     dm%tmin_sd = tmin_sd_w1 + tmin_sd_w2 * dm%tmin_mn
 
     dm%tmax_sd = tmax_sd_w1 + tmax_sd_w2 * dm%tmax_mn
+
+    dm%wind_sd = wind_sd_w1 + wind_sd_w2 * dm%wind_mn
 
     dm%cldf_sd = cldf_sd_w * dm%cldf_mn * (1. - dm%cldf_mn)
 
@@ -557,11 +598,15 @@ else  !dry day
 
     dm%tmax_mn = tmax_d1 + tmax_d2 * tmx
 
+    dm%wind_mn = wind_d1 + wind_d2 * wind
+
     dm%cldf_mn = cldf_d1 / (cldf_d2 * cld + cldf_d3) + cldf_d4
 
     dm%tmin_sd = tmin_sd_d1 + tmin_sd_d2 * dm%tmin_mn
 
     dm%tmax_sd = tmax_sd_d1 + tmax_sd_d2 * dm%tmax_mn
+
+    dm%wind_sd = wind_sd_d1 + wind_sd_d2 * dm%wind_mn
 
     dm%cldf_sd = cldf_sd_d * dm%cldf_mn * (1. - dm%cldf_mn)
 

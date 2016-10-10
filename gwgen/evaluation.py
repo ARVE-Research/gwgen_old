@@ -252,20 +252,23 @@ class EvaluationPreparation(Evaluator):
         self._manager.setup(self.stations, to_return='all')
         tasks = self._manager.tasks
         # save in the right order for the FORTRAN code
-        order = ['tmin', 'tmax', 'mean_cloud', 'prcp', 'wet_day']
+        order = ['tmin', 'tmax', 'mean_cloud', 'wind', 'prcp', 'wet_day']
 
         # daily reference
         cday = get(YearlyCompleteDailyGHCNData.name).data
         ccday = get(YearlyCompleteDailyCloud.name).data
         try:
             reference = cday.merge(
-                ccday[['mean_cloud']], left_index=True, right_index=True,
-                how='left')
-            reference.ix[reference.mean_cloud.isnull(), 'mean_cloud'] = 0
+                ccday[['mean_cloud', 'wind']], left_index=True,
+                right_index=True, how='left')
+            reference.ix[reference.mean_cloud.isnull(),
+                         ['mean_cloud', 'wind']] = 0
         except TypeError:  # indices to not match
             reference = cday.ix[1:0]  # create empty data frame
             reference['mean_cloud'] = np.array([],
                                                dtype=ccday.mean_cloud.dtype)
+            reference['wind'] = np.array([],
+                                         dtype=ccday.wind.dtype)
         reference['wet_day'] = (reference.prcp > 0).astype(int)
         self.reference_data = reference[order].sort_index()
 
@@ -274,13 +277,16 @@ class EvaluationPreparation(Evaluator):
         ccmonth = get(YearlyCompleteMonthlyCloud.name).data
         try:
             exp_input = cmonth.merge(
-                ccmonth[['mean_cloud']], left_index=True, right_index=True,
-                how='left')
-            exp_input.ix[exp_input.mean_cloud.isnull(), 'mean_cloud'] = 0
+                ccmonth[['mean_cloud', 'wind']], left_index=True,
+                right_index=True, how='left')
+            exp_input.ix[exp_input.mean_cloud.isnull(),
+                         ['mean_cloud', 'wind']] = 0
         except TypeError:  # indices do not match
             exp_input = cmonth.ix[1:0]  # create empty data frame
             exp_input['mean_cloud'] = np.array([],
                                                dtype=ccmonth.mean_cloud.dtype)
+            exp_input['wind'] = np.array([],
+                                         dtype=ccmonth.wind.dtype)
         inventory = self.station_list
         exp_input = exp_input.reset_index().merge(
             inventory[inventory.vname == 'PRCP'][['id', 'lon', 'lat']],
@@ -375,7 +381,9 @@ class QuantileEvaluation(Evaluator):
         ('tmax', {'long_name': 'Max. Temperature',
                   'units': 'degC'}),
         ('mean_cloud', {'long_name': 'Cloud fraction',
-                        'units': '-'})
+                        'units': '-'}),
+        ('wind', {'long_name': 'Wind Speed',
+                        'units': 'm/s'})
         ])
 
     all_variables = [[v + '_ref', v + '_sim'] for v in names]
@@ -462,7 +470,7 @@ class QuantileEvaluation(Evaluator):
         # merge reference and simulation into one single dataframe
         df = df_ref.merge(df_sim, left_index=True, right_index=True,
                           suffixes=['_ref', '_sim'])
-        if 'mean_cloud' in names:
+        if {'mean_cloud', 'wind'}.intersection(names):
             from gwgen.parameterization import HourlyCloud
             # mask out non-complete months for cloud validation
 
@@ -471,8 +479,12 @@ class QuantileEvaluation(Evaluator):
             df.reset_index(['year', 'month', 'day'], inplace=True)  # idx: id
             df = df.merge(df_map, left_index=True, right_index=True,
                           how='left')
-            cloud_names = ['mean_cloud_ref', 'mean_cloud_sim']
-            df.ix[df.complete.isnull(), cloud_names] = np.nan
+            eecra_names = []
+            if 'mean_cloud' in names:
+                eecra_names.extend(['mean_cloud_ref', 'mean_cloud_sim'])
+            if 'wind' in names:
+                eecra_names.extend(['wind_ref', 'wind_sim'])
+            df.ix[df.complete.isnull(), eecra_names] = np.nan
             df.set_index(['year', 'month', 'day'], append=True, inplace=True)
             df.drop(df_map.columns, 1, inplace=True)
         # calculate the percentiles for each station and month
@@ -612,11 +624,15 @@ class KSEvaluation(QuantileEvaluation):
         cloud_sl = group.mean_cloud_sim.notnull().values
         cloud_sim = group.mean_cloud_sim.values[cloud_sl]
         cloud_ref = group.mean_cloud_ref.values[cloud_sl]
+        wind_sl = group.wind_sim.notnull().values
+        wind_sim = group.wind_sim.values[wind_sl]
+        wind_ref = group.wind_ref.values[wind_sl]
         return pd.DataFrame.from_dict(dict(chain(*map(six.iteritems, starmap(
             calc, [(prcp_sim, prcp_ref, 'prcp'),
                    (tmin_sim, tmin_ref, 'tmin'),
                    (tmax_sim, tmax_ref, 'tmax'),
-                   (cloud_sim, cloud_ref, 'mean_cloud')])))))
+                   (cloud_sim, cloud_ref, 'mean_cloud'),
+                   (wind_sim, wind_ref, 'wind')])))))
 
     def run(self, info):
         """Run the evaluation

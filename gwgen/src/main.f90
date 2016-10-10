@@ -32,19 +32,22 @@ integer  :: mwet(n_tot) = 0      ! number of wet days of current month
 real(sp) :: mtmin(n_tot) = 0  ! min temperture of previous, current, next and the month after the next month
 real(sp) :: mtmax(n_tot) = 0  ! min temperture of previous, current, next and the month after the next month
 real(sp) :: mcloud(n_tot) = 0 ! cloudiness of previous, current, next and the month after the next month
+real(sp) :: mwind(n_tot) = 0 ! wind speed of previous, current, next and the month after the next month
 
 real(sp), target :: tmin_sm(n_tot * 31) = 0   ! smoothed daily values of min temperature
 real(sp), target :: tmax_sm(n_tot * 31) = 0   ! smoothed daily values of max temperature
 real(sp), target :: cloud_sm(n_tot * 31) = 0  ! smoothed daily values of cloudiness
+real(sp), target :: wind_sm(n_tot * 31) = 0   ! smoothed daily values of wind speed
 
 real(sp) :: bcond_tmin(2) = 0      ! boundary conditions of min temp for smoothing
 real(sp) :: bcond_tmax(2) = 0      ! boundary conditions of max temp for smoothing
 real(sp) :: bcond_cloud(2) = 0     ! boundary conditions of cloud for smoothing
+real(sp) :: bcond_wind(2) = 0      ! boundary conditions of wind speed for smoothing
 
 integer :: i_consecutives(n_tot - 1)
 
-! pointers to the tmin, tmax and cloud values of the current month
-real(sp), pointer :: mtmin_curr(:), mtmax_curr(:), mcloud_curr(:)
+! pointers to the tmin, tmax, cloud and wind speed values of the current month
+real(sp), pointer :: mtmin_curr(:), mtmax_curr(:), mcloud_curr(:), mwind_curr(:)
 
 integer  :: mwetd_sim, wet_day
 real(sp) :: mprec_sim
@@ -103,9 +106,9 @@ read(10,*)
 
 if (use_geohash) then
   do i=n_curr,n_tot-1
-    
+
     read(10,*)stationid(i),lon(i),lat(i),year(i), month(i),mtmin(i),mtmax(i), &
-               mcloud(i),mprec(i),mwet(i)
+               mcloud(i),mwind(i),mprec(i),mwet(i)
     ndm(i) = ndaymonth(year(i), month(i))
 
   end do
@@ -113,7 +116,7 @@ else
   do i=n_curr,n_tot-1
 
     read(10,*)stationid(i),year(i), month(i),mtmin(i),mtmax(i), &
-               mcloud(i),mprec(i),mwet(i)
+               mcloud(i),mwind(i),mprec(i),mwet(i)
     ndm(i) = ndaymonth(year(i), month(i))
 
   end do
@@ -124,7 +127,7 @@ endif
 dailyfile = trim(output)
 
 open(30,file=dailyfile,status='unknown')
-write(30,'(a)') "id,year,month,day,tmin,tmax,mean_cloud,prcp,wet_day"
+write(30,'(a)') "id,year,month,day,tmin,tmax,mean_cloud,wind,prcp,wet_day"
 
 do  !read the input file until the end
 
@@ -132,6 +135,7 @@ do  !read the input file until the end
   nullify(mtmin_curr)
   nullify(mtmax_curr)
   nullify(mcloud_curr)
+  nullify(mwind_curr)
 
   !initialize weather residuals and other variables that carry over from one day to the next
   !these and the random state below should be reset once per station
@@ -144,14 +148,16 @@ do  !read the input file until the end
   !read in one month of summary weather station data from a text file
   if (use_geohash) then
     read(10,*,end=99)stationid(n_tot),lon(n_tot),lat(n_tot),year(n_tot),month(n_tot), &
-                   mtmin(n_tot),mtmax(n_tot),mcloud(n_tot),mprec(n_tot),mwet(n_tot)
+                   mtmin(n_tot),mtmax(n_tot),mcloud(n_tot),mwind(n_tot),mprec(n_tot), &
+                   mwet(n_tot)
     ndm(n_tot) = ndaymonth(year(n_tot),month(n_tot))
     if (stationid(n_curr) /= stationid(n)) then
         call ran_seed(geohash(lon(n_curr), lat(n)),met_in%rndst)
     end if
   else
     read(10,*,end=99)stationid(n_tot),lon(n_tot),lat(n_tot),year(n_tot),month(n_tot), &
-                   mtmin(n_tot),mtmax(n_tot),mcloud(n_tot),mprec(n_tot),mwet(n_tot)
+                   mtmin(n_tot),mtmax(n_tot),mcloud(n_tot),mwind(n_tot),mprec(n_tot), &
+                   mwet(n_tot)
     ndm(n_tot) = ndaymonth(year(n_tot),month(n_tot))
   endif
 
@@ -172,6 +178,7 @@ do  !read the input file until the end
     bcond_tmin(1) = mtmin(lmin - 1)
     bcond_tmax(1) = mtmax(lmin - 1)
     bcond_cloud(1) = mcloud(lmin - 1)
+    bcond_wind(1) = mwind(lmin - 1)
   else
     lmin = 1
     ld = 1
@@ -182,17 +189,20 @@ do  !read the input file until the end
     bcond_tmin(2) = mtmin(rmin)
     bcond_tmax(2) = mtmax(rmin)
     bcond_cloud(2) = mcloud(rmin)
+    bcond_wind(2) = mwind(rmin)
   else
     rmin = n_tot
     bcond_tmin(2) = mtmin(n_tot)
     bcond_tmax(2) = mtmax(n_tot)
     bcond_cloud(2) = mcloud(n_tot)
+    bcond_wind(2) = mwind(n_tot)
   end if
   rd = SUM(ndm(:rmin))
 
   call rmsmooth(mtmin(lmin:rmin), ndm(lmin:rmin), bcond_tmin, tmin_sm(ld:rd))
   call rmsmooth(mtmax(lmin:rmin), ndm(lmin:rmin), bcond_tmax, tmax_sm(ld:rd))
   call rmsmooth(mcloud(lmin:rmin), ndm(lmin:rmin), bcond_cloud, cloud_sm(ld:rd))
+  call rmsmooth(mwind(lmin:rmin), ndm(lmin:rmin), bcond_wind, wind_sm(ld:rd))
 
   curr_start = sum(ndm(:n))
   curr_end = curr_start + ndm(n+1) - 1
@@ -200,6 +210,7 @@ do  !read the input file until the end
   mtmin_curr => tmin_sm(curr_start:curr_end)
   mtmax_curr => tmax_sm(curr_start:curr_end)
   mcloud_curr => cloud_sm(curr_start:curr_end)
+  mwind_curr => wind_sm(curr_start:curr_end)
 
   met_in%prec = mprec(n_curr)
   met_in%wetd = real(mwet(n_curr))
@@ -224,6 +235,7 @@ do  !read the input file until the end
       met_in%tmin  = mtmin_curr(d)
       met_in%tmax  = mtmax_curr(d)
       met_in%cldf  = real(mcloud_curr(d))
+      met_in%wind  = real(mwind_curr(d))
       met_in%pday  = met_out%pday
       met_in%resid = met_out%resid
 
@@ -279,9 +291,9 @@ do  !read the input file until the end
 !    write(30,'(a,3i5,2f10.1,f10.4,f10.1)')stationid(n_curr),year(n_curr),month(n_curr),&
 !        d,month_met(d)%tmin,month_met(d)%tmax,month_met(d)%cldf,month_met(d)%prec
     if (month_met(d)%prec > 0) then
-        wet_day = 1 
-    else 
-        wet_day = 0 
+        wet_day = 1
+    else
+        wet_day = 0
     end if
     call csv_write(30,stationid(n_curr),advance=.false.)
     call csv_write(30,year(n_curr),advance=.false.)
@@ -290,6 +302,7 @@ do  !read the input file until the end
     call csv_write(30,month_met(d)%tmin,advance=.false.)
     call csv_write(30,month_met(d)%tmax,advance=.false.)
     call csv_write(30,month_met(d)%cldf,advance=.false.)
+    call csv_write(30,month_met(d)%wind,advance=.false.)
     call csv_write(30,month_met(d)%prec,advance=.false.)
     call csv_write(30,wet_day,advance=.true.)
   end do
@@ -302,6 +315,7 @@ do  !read the input file until the end
   bcond_tmin(:) = (/ tmin_sm(ld), tmin_sm(rd) /)
   bcond_tmax(:) = (/ tmax_sm(ld), tmax_sm(rd) /)
   bcond_cloud(:) = (/ cloud_sm(ld), cloud_sm(rd) /)
+  bcond_wind(:) = (/ wind_sm(ld), wind_sm(rd) /)
 
   stationid(1:n_tot-1) = stationid(2:n_tot)
   year(1:n_tot-1) = year(2:n_tot)
@@ -311,6 +325,7 @@ do  !read the input file until the end
   mtmin(1:n_tot-1) = mtmin(2:n_tot)
   mtmax(1:n_tot-1) = mtmax(2:n_tot)
   mcloud(1:n_tot-1) = mcloud(2:n_tot)
+  mwind(1:n_tot-1) = mwind(2:n_tot)
   ndm(1:n_tot-1) = ndm(2:n_tot)
   lat(1:n_tot-1) = lat(2:n_tot)
   lon(1:n_tot-1) = lat(2:n_tot)
