@@ -476,7 +476,7 @@ tmax = round(resid(2) * tmax_sd + tmax_mn,1)
 
 cldf = resid(3) * cldf_sd + cldf_mn
 
-wind = (resid(4) * wind_sd**0.5 + wind_mn**0.5) ** 2
+wind = (resid(4) * wind_sd**0.5 + wind_mn**0.5)
 !PRINT *, resid(3),cldf_sd,cldf_mn, cldf
 
 !---
@@ -488,7 +488,7 @@ elseif (cldf < 0.0) then
 end if
 
 if (wind<0) then
-    cldf = 0.0
+    wind = 0.0
 end if
 
 !---
