@@ -825,6 +825,12 @@ class ModelOrganizer(object):
                 if osp.basename(dirname) not in ['experiments', '.archived']:
                     logger.debug('Adding %s', osp.join(root_dir, dirname))
                     add_dir(osp.join(root_dir, dirname), file_obj)
+
+        # close file_obj
+        if not dry_run:
+            file_obj.close()
+
+        # remove directories
         if not keep_exp:
             for exp in experiments:
                 exp_dir = exps2archive[exp]['expdir']
@@ -836,8 +842,6 @@ class ModelOrganizer(object):
             logger.debug('Removing %s', root_dir)
             if not dry_run:
                 shutil.rmtree(root_dir)
-        if not dry_run:
-            file_obj.close()
 
     def _modify_archive(self, parser):
         self._modify_main(parser)
@@ -961,12 +965,17 @@ class ModelOrganizer(object):
 
         # ---- if root is None, get it from the archive
         if root is None:
-            with extract_file(osp.join('.archived', '.model.yml')) as fmodel:
+            fmodel = extract_file(osp.join('.archived', '.model.yml'))
+            try:
                 modelname_arc, model_config = next(six.iteritems(
                     ordered_yaml_load(fmodel)))
                 # use the modelname in archive only, if nothing is specified
                 # here
                 modelname = modelname or modelname_arc
+            except:
+                raise
+            finally:
+                fmodel.close()
             # if the modelname is existent in our configuration and already
             # specified, use this one
             if modelname in self.config.models and not replace_model_config:
