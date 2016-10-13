@@ -512,7 +512,8 @@ class QuantileEvaluation(Evaluator):
         parser.setup_args(default_quantile_config)
         parser, setup_grp, run_grp = super(
             QuantileEvaluation, cls)._modify_parser(parser)
-        parser.update_arg('quantiles', short='q', group=run_grp, type=float)
+        parser.update_arg('quantiles', short='q', group=run_grp, type=float,
+                          nargs='+')
         parser.update_arg('no_rounding', short='nr', group=run_grp)
         parser.update_arg('names', short='n', group=setup_grp,
                           nargs='+', metavar='variable')
