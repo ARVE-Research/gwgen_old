@@ -76,7 +76,11 @@ def dir_contains(dirname, path, exists=True):
     if exists:
         dirname = osp.abspath(dirname)
         path = osp.abspath(path)
-        return osp.samefile(osp.commonpath([dirname, path]), dirname)
+        if six.PY3:
+            return osp.samefile(osp.commonpath([dirname, path]), dirname)
+        else:
+            return osp.exists(path) and osp.samefile(
+                osp.commonprefix([dirname, path]), dirname)
     return dirname in osp.commonprefix([dirname, path])
 
 
