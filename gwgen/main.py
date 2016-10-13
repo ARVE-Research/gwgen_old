@@ -2848,12 +2848,27 @@ class ModelOrganizer(object):
         dict
             The mapping from archive format to default file extension
         """
-        ext_map = {}
-        fmt_map = {}
-        for key, exts, desc in shutil.get_unpack_formats():
-            fmt_map[key] = exts[0]
-            for ext in exts:
-                ext_map[ext] = key
+        if six.PY3:
+            ext_map = {}
+            fmt_map = {}
+            for key, exts, desc in shutil.get_unpack_formats():
+                fmt_map[key] = exts[0]
+                for ext in exts:
+                    ext_map[ext] = key
+        else:
+            ext_map = {'.tar': 'tar',
+                       '.tar.bz2': 'bztar',
+                       '.tar.gz': 'gztar',
+                       '.tar.xz': 'xztar',
+                       '.tbz2': 'bztar',
+                       '.tgz': 'gztar',
+                       '.txz': 'xztar',
+                       '.zip': 'zip'}
+            fmt_map = {'bztar': '.tar.bz2',
+                       'gztar': '.tar.gz',
+                       'tar': '.tar',
+                       'xztar': '.tar.xz',
+                       'zip': '.zip'}
         return ext_map, fmt_map
 
     def _link(self, source, target):
