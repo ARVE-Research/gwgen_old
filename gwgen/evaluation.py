@@ -334,7 +334,8 @@ class OutputTask(Evaluator):
             "output of the model!")
 
 
-_QuantileConfig = namedtuple('_QuantileConfig', ['quantiles', 'no_rounding'])
+_QuantileConfig = namedtuple('_QuantileConfig', ['quantiles', 'no_rounding',
+                                                 'names'])
 
 
 _QuantileConfig = utils.append_doc(_QuantileConfig, docstrings.get_sections("""
@@ -345,7 +346,10 @@ quantiles: list of floats
 no_rounding: bool
     Do not round the simulation to the infered precision of the
     reference. The inferred precision is the minimum difference between
-    two values with in the entire data""", '_QuantileConfig'))
+    two values with in the entire data
+names: list of str
+    The list of variables use for calculation. If None, all variables will be
+    used""", '_QuantileConfig'))
 
 
 QuantileConfig = utils.enhanced_config(_QuantileConfig, 'QuantileConfig')
@@ -354,7 +358,7 @@ QuantileConfig = utils.enhanced_config(_QuantileConfig, 'QuantileConfig')
 @docstrings.dedent
 def default_quantile_config(
         quantiles=[1, 5, 10, 25, 50, 75, 90, 95, 99, 100], no_rounding=False,
-        *args, **kwargs):
+        names=None, *args, **kwargs):
     """
     The default configuration for :class:`QuantileEvaluation` instances.
     See also the :attr:`QuantileEvaluation.default_config` attribute
@@ -362,7 +366,7 @@ def default_quantile_config(
     Parameters
     ----------
     %(QuantileConfig.parameters)s"""
-    return QuantileConfig(quantiles, no_rounding,
+    return QuantileConfig(quantiles, no_rounding, names,
                           *utils.default_config(*args, **kwargs))
 
 
@@ -383,10 +387,12 @@ class QuantileEvaluation(Evaluator):
         ('mean_cloud', {'long_name': 'Cloud fraction',
                         'units': '-'}),
         ('wind', {'long_name': 'Wind Speed',
-                        'units': 'm/s'})
+                  'units': 'm/s'})
         ])
 
-    all_variables = [[v + '_ref', v + '_sim'] for v in names]
+    @property
+    def all_variables(self):
+        return [[v + '_ref', v + '_sim'] for v in self.names]
 
     setup_requires = ['prepare', 'output']
 
@@ -429,7 +435,7 @@ class QuantileEvaluation(Evaluator):
             data.set_index('pctl', append=True).swaplevel())
         full = xr.Dataset.from_dataframe(data).drop(list(chain(
             self.data.index.names, ['pctl'])))
-        idx_name = full.tmax_sim.dims[-1]
+        idx_name = full[next(v for v in self.names) + '_sim'].dims[-1]
         full.rename({idx_name: 'full_index'}, inplace=True)
         for vref, vsim in self.all_variables:
             full.rename({vref: 'all_' + vref, vsim: 'all_' + vsim},
@@ -448,6 +454,13 @@ class QuantileEvaluation(Evaluator):
             ds['all_' + vsim].attrs['pctl'] = 'All'
         ds.pctl.attrs['long_name'] = 'Percentile'
         return ds
+
+    def __init__(self, *args, **kwargs):
+        super(QuantileEvaluation, self).__init__(*args, **kwargs)
+        names = self.task_config.names
+        if names is not None:
+            self.names = OrderedDict(
+                t for t in self.names.items() if t[0] in names)
 
     def setup_from_file(self, *args, **kwargs):
         kwargs['index_col'] = ['id', 'year']
@@ -474,7 +487,7 @@ class QuantileEvaluation(Evaluator):
             from gwgen.parameterization import HourlyCloud
             # mask out non-complete months for cloud validation
 
-            df_map = HourlyCloud.from_task(self).eecra_ghcn_map()  # idx: id
+            df_map = HourlyCloud.from_task(self).eecra_ghcn_map()   # idx: id
             df_map['complete'] = True
             df.reset_index(['year', 'month', 'day'], inplace=True)  # idx: id
             df = df.merge(df_map, left_index=True, right_index=True,
@@ -499,8 +512,10 @@ class QuantileEvaluation(Evaluator):
         parser.setup_args(default_quantile_config)
         parser, setup_grp, run_grp = super(
             QuantileEvaluation, cls)._modify_parser(parser)
-        parser.update_arg('quantiles', short='q', group=run_grp)
+        parser.update_arg('quantiles', short='q', group=run_grp, type=float)
         parser.update_arg('no_rounding', short='nr', group=run_grp)
+        parser.update_arg('names', short='n', group=setup_grp,
+                          nargs='+', metavar='variable')
         return parser, setup_grp, run_grp
 
     def create_project(self, ds):
