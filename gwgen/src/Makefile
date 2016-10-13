@@ -1,4 +1,5 @@
-FC = gfortran
+#FC = gfortran
+FC = ifort
 
 #FCFLAGS = -warn all #-traceback -g -check -check noarg_temp_created -fpe0 #debugging
 
