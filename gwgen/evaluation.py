@@ -464,7 +464,7 @@ class QuantileEvaluation(Evaluator):
         names = self.names
         # load observed precision
         if self.task_config.no_rounding:
-            for name in set(names) - {'mean_cloud'}:
+            for name in names:
                 df_sim[name].values[:] = self.round_to_ref_prec(
                     df_ref[name].values, df_sim[name].values)
         # merge reference and simulation into one single dataframe
