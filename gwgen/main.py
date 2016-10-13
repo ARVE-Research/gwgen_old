@@ -262,13 +262,14 @@ class ModelOrganizer(object):
 
     commands = ['setup', 'compile_model', 'init', 'unarchive', 'configure',
                 'set_value', 'get_value', 'del_value', 'info',
-                'preproc', 'param', 'run', 'evaluate',
+                'preproc', 'param', 'run', 'evaluate', 'bias_correction',
                 'sensitivity_analysis', 'archive', 'remove']
 
     #: mapping from the name of the parser command to the method name. Will be
     #: filled by the :meth:`setup_parser` method
     parser_commands = {'compile_model': 'compile',
-                       'sensitivity_analysis': 'sens'}
+                       'sensitivity_analysis': 'sens',
+                       'bias_correction': 'bias'}
 
     #: The :class:`gwgen.parser.FuncArgParser` to use for initializing the
     #: model. This attribute is set by the :meth:`setup_parser` method and used
@@ -2264,6 +2265,45 @@ class ModelOrganizer(object):
     def _modify_evaluate(self, parser, *args, **kwargs):
         from gwgen.evaluation import Evaluator
         self._modify_task_parser(parser, Evaluator, *args, **kwargs)
+
+    @docstrings.dedent
+    def bias_correction(self, vname='wind', **kwargs):
+        """
+        Perform a bias correction for the data
+
+        Parameters
+        ----------
+        vname: str
+            The variable name to perform the bias correction for
+
+        Returns
+        -------
+        object
+            The statsmodel fit object"""
+        import pandas as pd
+        import statsmodels.formula.api as sf
+        from scipy import stats
+        self.main(**kwargs)
+        df = pd.DataFrame(
+            self.exp_config['evaluation']['quants'][vname]).T[['slope']]
+        try:
+            # drop all percentiles
+            df.drop('All', inplace=True)
+        except (ValueError, KeyError) as e:
+            pass
+        df.index.name = 'pctl'
+        df.reset_index(inplace=True)
+        df['unorm'] = stats.norm.ppf(df['pctl'].astype(float) / 100., 0, 1.0)
+        fit = sf.ols('slope ~ unorm', df).fit()
+        self.exp_config['namelist']['weathergen_ctl'][
+            vname + '_bias_intercept'] = float(fit.params['Intercept'])
+        self.exp_config['namelist']['weathergen_ctl'][
+            vname + '_bias_slope'] = float(fit.params['unorm'])
+        return fit
+
+    def _modify_bias_correction(self, parser):
+        self._modify_main(parser)
+        parser.update_arg('vname', short='v')
 
     # ----------------------- Sensitivity analysis ----------------------------
 

@@ -477,6 +477,11 @@ tmax = round(resid(2) * tmax_sd + tmax_mn,1)
 cldf = resid(3) * cldf_sd + cldf_mn
 
 wind = (resid(4) * wind_sd**0.5 + wind_mn**0.5) ** 2
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! TEST WISE IMPLEMENTATION
+wind = wind / (1.0159 + 0.6124 * unorm(4))
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !PRINT *, resid(3),cldf_sd,cldf_mn, cldf
 
 !---
