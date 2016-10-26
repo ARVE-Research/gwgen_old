@@ -159,16 +159,17 @@ class _ParameterizerTestMixin(object):
                                                      df_ref.ix[mask]))
         return manager
 
-    def test_param_distributed(self, *args, **kwargs):
-        """Test the parameterization with the distributed package"""
-        if not self.organizer.global_config.get('serial'):
-            from distributed import LocalCluster
-            import multiprocessing as mp
-            c = LocalCluster(n_workers=mp.cpu_count(), diagnostics_port=None)
-            self.organizer.global_config['scheduler'] = c.scheduler_address
-            ret = self.test_param(*args, **kwargs)
-            c.close()
-            return ret
+# the usage of distributed is not supported at the moment
+#    def test_param_distributed(self, *args, **kwargs):
+#        """Test the parameterization with the distributed package"""
+#        if not self.organizer.global_config.get('serial'):
+#            from distributed import LocalCluster
+#            import multiprocessing as mp
+#            c = LocalCluster(n_workers=mp.cpu_count(), diagnostics_port=None)
+#            self.organizer.global_config['scheduler'] = c.scheduler_address
+#            ret = self.test_param(*args, **kwargs)
+#            c.close()
+#            return ret
 
 
 class Test_DailyGHCNData(bt.BaseTest, _ParameterizerTestMixin):
