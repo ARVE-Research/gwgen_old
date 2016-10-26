@@ -10,7 +10,6 @@ import tempfile
 from gwgen.main import ModelOrganizer
 import gwgen.utils as utils
 from gwgen.config import setup_logging
-import socket
 
 test_root = osp.abspath(osp.dirname(__file__))
 
@@ -22,7 +21,7 @@ _eecra_test_stations = osp.join(test_root, 'eecra_test_stations.dat')
 setup_logging(osp.join(test_root, 'logging.yaml'))
 
 
-dbname = socket.gethostname().split('.')[0] + '_travis_ci_test'
+dbname = 'travis_ci_test'
 
 
 class BaseTest(unittest.TestCase):
@@ -52,8 +51,6 @@ class BaseTest(unittest.TestCase):
         if use_db:
             self._clear_db()
             global_conf['database'] = dbname
-            global_conf['user'] = 'arve'
-            global_conf['host'] = '10.0.1.8'
 
     def tearDown(self):
         if osp.exists(self.test_dir):
@@ -164,17 +161,16 @@ class BaseTest(unittest.TestCase):
             self.fail(e.message)
 
 # check if we are online by trying to connect to google
-#try:
-#    BaseTest._test_url('https://www.google.de')
-#    online = True
-#except:
-#    online = False
-online = False
+try:
+    BaseTest._test_url('https://www.google.de')
+    online = True
+except:
+    online = False
 
 
 # try to connect to a postgres database
 try:
-    utils.get_postgres_engine(dbname, user='arve', host='10.0.1.8', create=True, test=True)
+    utils.get_postgres_engine(dbname, create=True, test=True)
     use_db = True
 except:
     use_db = False

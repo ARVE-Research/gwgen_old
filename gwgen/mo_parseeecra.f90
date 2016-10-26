@@ -231,7 +231,7 @@ subroutine extract_data(ids, src_dir, odir, years, imonths)
     integer, dimension(size(ids)) :: ounits
     integer, dimension(100) :: inunits = 0
     character*350, dimension(size(ids)) :: ofiles
-    character(:), allocatable :: cfmt
+    character*90 :: cfmt
     character*300 :: all_cfmt
     character*350 :: fname
     character*10 :: cid

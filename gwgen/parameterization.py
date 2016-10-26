@@ -1938,7 +1938,7 @@ class WindParameterizer(CompleteMonthlyWind):
     @property
     def sql_dtypes(self):
         import sqlalchemy
-        ret = super(CloudParameterizer, self).sql_dtypes
+        ret = super(WindParameterizer, self).sql_dtypes
         ret['wet_day'] = sqlalchemy.REAL
         return ret
 
