@@ -2279,7 +2279,7 @@ class ModelOrganizer(object):
         keep: bool
             If not True, the experiment configuration files are not modified.
             Otherwise the `quants` section is kept for the given quantiles
-        quantile: list of float
+        quantiles: list of float
             The quantiles to use for the bias correction. Does not have an
             effect if `no_evaluation` is set to True
         new_project: bool
@@ -2330,7 +2330,7 @@ class ModelOrganizer(object):
             self.exp_config['evaluation']['quants'][vname]).T
         try:
             # drop all percentiles
-            df.drop(['All', 100], inplace=True)
+            df.drop(['All'], inplace=True)
         except (ValueError, KeyError) as e:
             pass
         df.index.name = 'pctl'
