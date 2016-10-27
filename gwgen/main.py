@@ -2270,7 +2270,7 @@ class ModelOrganizer(object):
     def wind_bias_correction(
             self, keep=False, quantiles=[1] + list(range(5, 100, 5)) + [99],
             new_project=False, plot_output=None, no_evaluation=False,
-            **kwargs):
+            close=True, **kwargs):
         """
         Perform a bias correction for the data
 
@@ -2291,6 +2291,8 @@ class ModelOrganizer(object):
         no_evaluation: bool
             If True, the existing evaluation in the configuration is used for
             the bias correction
+        close: bool
+            If True, close the project at the end
 
         Returns
         -------
@@ -2301,11 +2303,9 @@ class ModelOrganizer(object):
         np.ndarray
             The covriance matrix of the intercept fit"""
         import pandas as pd
-        import statsmodels.formula.api as sf
         from scipy import stats
-        from scipy.optimize import curve_fit
-        import matplotlib.pyplot as plt
-        from matplotlib.backends.backend_pdf import PdfPages
+        import xarray as xr
+        import psyplot.project as psy
 
         def intercept_fit(x, a, b, c):
             return a ** (b + c * x)
@@ -2320,11 +2320,12 @@ class ModelOrganizer(object):
             'postprocdir', osp.join(self.exp_config['expdir'], 'postproc'))
         if not osp.exists(postproc_dir):
             os.makedirs(postproc_dir)
-        quants_output = osp.join(postproc_dir, 'quants_bias')
+        quants_output = osp.join(postproc_dir, vname + '_bias')
         kwargs['quants'] = {'quantiles': quantiles, 'transform_wind': True,
                             'new_project': new_project, 'names': [vname],
                             'project_output': quants_output + '.pkl',
-                            'plot_output': quants_output + '.pdf'}
+                            'plot_output': quants_output + '.pdf',
+                            'nc_output': quants_output + '.nc'}
         self.evaluate(**kwargs)
         df = pd.DataFrame(
             self.exp_config['evaluation']['quants'][vname]).T
@@ -2335,20 +2336,28 @@ class ModelOrganizer(object):
             pass
         df.index.name = 'pctl'
         df.reset_index(inplace=True)
-        df['unorm'] = unorm = stats.norm.ppf(
+        df['unorm'] = stats.norm.ppf(
             df['pctl'].astype(float) / 100., 0, 1.0)
+        ds = xr.Dataset.from_dataframe(df)
 
         # --- slope bias correction
-        fit = sf.ols('slope ~ unorm', df).fit()
+        sp1 = psy.plot.lineplot(ds, name='slope', coord='unorm', linewidth=0)
+        sp2 = psy.plot.linreg(ds, name='slope', coord='unorm')
+        sp2.share(sp1[0], 'color')
+        arr = sp2.plotter.plot_data[0]
         nml = self.exp_config['namelist']['weathergen_ctl']
-        nml[vname + '_slope_bias_intercept'] = float(fit.params['Intercept'])
-        nml[vname + '_slope_bias_slope'] = float(fit.params['unorm'])
+        nml[vname + '_slope_bias_intercept'] = float(arr.attrs['intercept'])
+        nml[vname + '_slope_bias_slope'] = float(arr.attrs['slope'])
 
         # --- intercept bias correction
-        popt, pcov = curve_fit(intercept_fit, df['unorm'].values,
-                               df['intercept'].values)
-        for letter, p in zip('abc', popt):
-            nml[vname + '_intercept_bias_' + letter] = p
+        sp1 = psy.plot.lineplot(ds, name='intercept', coord='unorm',
+                                linewidth=0)
+        sp2 = psy.plot.linreg(ds, name='intercept', coord='unorm',
+                              fit=intercept_fit)
+        sp2.share(sp1[0], 'color')
+        arr = sp2.plotter.plot_data[0]
+        for letter in 'abc':
+            nml[vname + '_intercept_bias_' + letter] = float(arr.attrs[letter])
 
         # --- plots
         d = self.exp_config.setdefault('postproc', OrderedDict()).setdefault(
@@ -2357,23 +2366,18 @@ class ModelOrganizer(object):
         if plot_output is None:
             plot_output = osp.join(
                 postproc_dir, vname + '_bias_correction.pdf')
-        d['plot_output'] = [plot_output, quants_output + '.pdf']
+        project_output = osp.splitext(plot_output)[0] + '.pkl'
+        nc_output = osp.splitext(plot_output)[0] + '.nc'
+        d['plot_file'] = [plot_output, quants_output + '.pdf']
+        d['project_file'] = [project_output, quants_output + '.pkl']
+        d['nc_file'] = [nc_output, quants_output + '.nc']
 
-        pdf = PdfPages(plot_output)
-        # --- slope plot
-        fig, ax = plt.subplots()
-        df.plot('unorm', 'slope', marker='o', lw=0, ax=ax)
-        ax.plot(unorm,
-                fit.params['Intercept'] + fit.params['unorm'] * unorm)
-        pdf.savefig(fig)
-        # --- intercept plot
-        fig, ax = plt.subplots()
-        df.plot('unorm', 'intercept', marker='o', lw=0, ax=ax)
-        ax.plot(unorm, intercept_fit(unorm, *popt))
-        pdf.savefig(fig)
-
+        # --- save the data
         self.logger.info('Saving plots to %s', plot_output)
-        pdf.close()
+        mp = psy.gcp(True)
+        mp.export('plot_output')
+        self.logger.info('Saving project to %s', project_output)
+        mp.save_project(project_output, paths=[nc_output])
 
         if not keep:
             if old:
@@ -2381,7 +2385,8 @@ class ModelOrganizer(object):
             else:
                 self.exp_config['evaluation'].pop('quants')
 
-        return fit, popt, pcov
+        if close:
+            psy.gcp(True).close(True, True, True)
 
     def _modify_wind_bias_correction(self, parser):
         self._modify_main(parser)
