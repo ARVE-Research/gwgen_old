@@ -151,6 +151,15 @@ real(sp) :: wind_w1 = -0.03854, &
             wind_sd_d1 = 0.48558, &
             wind_sd_d2 = 0.32268
 
+! wind bias correction (Note: Default is no correction)
+! parameters of the slope - unorm best fit line
+real(sp) :: wind_slope_bias_intercept = 1.0, &  ! intercept of the slope correction
+            wind_slope_bias_slope = 0.0         ! slope of the slope correction
+! parameters of the intercept - unorm best fit line
+real(sp) :: wind_intercept_bias_a = 0.0, &
+            wind_intercept_bias_b = 1.0, &
+            wind_intercept_bias_c = 0.0
+
 ! -----------------------------------------------------------------------------
 ! ------------------- END. Defaults for the namelist parameters ---------------
 ! -----------------------------------------------------------------------------
@@ -189,7 +198,10 @@ subroutine init_weathergen(f_unit)
     ! correlation parameters for dry days
     tmin_d1, tmin_d2, tmax_d1, tmax_d2, cldf_d, tmin_sd_d1, tmin_sd_d2, &
     tmax_sd_d1, tmax_sd_d2, cldf_sd_d, wind_d1, wind_d2, wind_sd_d1, &
-    wind_sd_d2
+    wind_sd_d2, &
+    ! wind bias correction (Note: Default is no correction)
+    wind_slope_bias_intercept, wind_slope_bias_slope, wind_intercept_bias_a, &
+    wind_intercept_bias_b, wind_intercept_bias_c
 
   if (.not. present(f_unit)) then
       open(f_unit2, file='weathergen.nml', status='old')
@@ -309,6 +321,10 @@ real(sp) :: u        !uniformly distributed random number (0-1)
 real(sp) :: g_shape
 real(sp) :: g_scale
 real(sp) :: gp_scale
+
+! wind bias correction
+real(sp) :: slopecorr      ! slope correction
+real(sp) :: interceptcorr  ! intercept correction
 
 real(kind=8) :: cdf_thresh, pdf_thresh  ! gamma cdf and gamma pdf at the threshold
 
@@ -476,15 +492,15 @@ tmax = round(resid(2) * tmax_sd + tmax_mn,1)
 
 cldf = resid(3) * cldf_sd + cldf_mn
 
-wind = (resid(4) * wind_sd**0.5 + wind_mn**0.5) ** 2
+wind = resid(4) * wind_sd**0.5 + wind_mn**0.5
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! TEST WISE IMPLEMENTATION
-!wind = wind / (1.0079 + 0.7226 * unorm(4))
-wind = (wind - 0.68421791 ** (3.21182244 - 3.15247364 * unorm(4))) / & 
-       (1.007898 + 0.722561 * unorm(4))
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!PRINT *, resid(3),cldf_sd,cldf_mn, cldf
+! wind bias correction
+slopecorr = wind_slope_bias_intercept + wind_slope_bias_slope * resid(4)
+interceptcorr = wind_intercept_bias_a ** ( &
+    wind_intercept_bias_b + wind_intercept_bias_c * wind)
+wind = (wind - interceptcorr) / slopecorr
+
+wind = wind ** 2.0
 
 !---
 !add checks for invalid values here

@@ -335,7 +335,7 @@ class OutputTask(Evaluator):
 
 
 _QuantileConfig = namedtuple('_QuantileConfig', ['quantiles', 'no_rounding',
-                                                 'names'])
+                                                 'names', 'transform_wind'])
 
 
 _QuantileConfig = utils.append_doc(_QuantileConfig, docstrings.get_sections("""
@@ -349,7 +349,10 @@ no_rounding: bool
     two values with in the entire data
 names: list of str
     The list of variables use for calculation. If None, all variables will be
-    used""", '_QuantileConfig'))
+    used
+transform_wind: bool
+    If True, the square root of the wind is evaluated (as this is also
+    simulated in the weather generator)""", '_QuantileConfig'))
 
 
 QuantileConfig = utils.enhanced_config(_QuantileConfig, 'QuantileConfig')
@@ -358,7 +361,7 @@ QuantileConfig = utils.enhanced_config(_QuantileConfig, 'QuantileConfig')
 @docstrings.dedent
 def default_quantile_config(
         quantiles=[1, 5, 10, 25, 50, 75, 90, 95, 99, 100], no_rounding=False,
-        names=None, *args, **kwargs):
+        names=None, transform_wind=False, *args, **kwargs):
     """
     The default configuration for :class:`QuantileEvaluation` instances.
     See also the :attr:`QuantileEvaluation.default_config` attribute
@@ -366,7 +369,7 @@ def default_quantile_config(
     Parameters
     ----------
     %(QuantileConfig.parameters)s"""
-    return QuantileConfig(quantiles, no_rounding, names,
+    return QuantileConfig(quantiles, no_rounding, names, transform_wind,
                           *utils.default_config(*args, **kwargs))
 
 
@@ -500,6 +503,11 @@ class QuantileEvaluation(Evaluator):
             df.ix[df.complete.isnull().values, eecra_names] = np.nan
             df.set_index(['year', 'month', 'day'], append=True, inplace=True)
             df.drop(df_map.columns, 1, inplace=True)
+
+        # transform wind
+        if self.task_config.transform_wind and 'wind' in names:
+            df['wind_ref'] **= 0.5
+            df['wind_sim'] **= 0.5
         # calculate the percentiles for each station and month
         g = df.sort_index().groupby(level=['id', 'year'])
         data = g.apply(self.calc)
@@ -512,11 +520,15 @@ class QuantileEvaluation(Evaluator):
         parser.setup_args(default_quantile_config)
         parser, setup_grp, run_grp = super(
             QuantileEvaluation, cls)._modify_parser(parser)
-        parser.update_arg('quantiles', short='q', group=run_grp, type=float,
-                          nargs='+')
+        parser.update_arg(
+            'quantiles', short='q', group=run_grp, type=utils.str_ranges,
+            metavar='f1[;f21[,f22[,f23]]]', help=docstrings.dedents("""
+                The quantiles to use for calculating the percentiles.
+                %(str_ranges.s_help)s."""))
         parser.update_arg('no_rounding', short='nr', group=run_grp)
         parser.update_arg('names', short='n', group=setup_grp,
                           nargs='+', metavar='variable')
+        parser.update_arg('transform_wind', short='tw', group=setup_grp)
         return parser, setup_grp, run_grp
 
     def create_project(self, ds):

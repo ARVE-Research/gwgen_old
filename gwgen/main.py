@@ -262,14 +262,14 @@ class ModelOrganizer(object):
 
     commands = ['setup', 'compile_model', 'init', 'unarchive', 'configure',
                 'set_value', 'get_value', 'del_value', 'info',
-                'preproc', 'param', 'run', 'evaluate', 'bias_correction',
+                'preproc', 'param', 'run', 'evaluate', 'wind_bias_correction',
                 'sensitivity_analysis', 'archive', 'remove']
 
     #: mapping from the name of the parser command to the method name. Will be
     #: filled by the :meth:`setup_parser` method
     parser_commands = {'compile_model': 'compile',
                        'sensitivity_analysis': 'sens',
-                       'bias_correction': 'bias'}
+                       'wind_bias_correction': 'bias'}
 
     #: The :class:`gwgen.parser.FuncArgParser` to use for initializing the
     #: model. This attribute is set by the :meth:`setup_parser` method and used
@@ -2267,23 +2267,58 @@ class ModelOrganizer(object):
         self._modify_task_parser(parser, Evaluator, *args, **kwargs)
 
     @docstrings.dedent
-    def bias_correction(self, vname='wind', **kwargs):
+    def wind_bias_correction(
+            self, keep=False, quantiles=[1] + list(range(5, 100, 5)) + [99],
+            new_project=False, plot_output=None, no_evaluation=False,
+            **kwargs):
         """
         Perform a bias correction for the data
 
         Parameters
         ----------
-        vname: str
-            The variable name to perform the bias correction for
+        keep: bool
+            If not True, the experiment configuration files are not modified.
+            Otherwise the `quants` section is kept for the given quantiles
+        quantile: list of float
+            The quantiles to use for the bias correction. Does not have an
+            effect if `no_evaluation` is set to True
+        new_project: bool
+            If True, a new project will be created even if a file in
+            `project_output` exists already
+        plot_output: str
+            The name of the output file. If not specified, it defaults to
+            `<exp_dir>/postproc/<vname>_bias_correction.pdf`
+        no_evaluation: bool
+            If True, the existing evaluation in the configuration is used for
+            the bias correction
 
         Returns
         -------
         object
-            The statsmodel fit object"""
+            The statsmodel fit object for the slope ~ unorm fit
+        np.ndarray
+            The optimal fit parameters for the intercept fit
+        np.ndarray
+            The covriance matrix of the intercept fit"""
         import pandas as pd
         import statsmodels.formula.api as sf
         from scipy import stats
+        from scipy.optimize import curve_fit
+        import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_pdf import PdfPages
+
+        def intercept_fit(x, a, b, c):
+            return a ** (b + c * x)
+
+        vname = 'wind'
+
         self.main(**kwargs)
+        self.logger.debug('Calculating bias correction for experiment %s',
+                          self.experiment)
+        old = self.exp_config.get('evaluation', {}).get('quants')
+        kwargs['quants'] = {'quantiles': quantiles, 'transform_wind': True,
+                            'new_project': new_project, 'names': [vname]}
+        self.evaluate(**kwargs)
         df = pd.DataFrame(
             self.exp_config['evaluation']['quants'][vname]).T[['slope']]
         try:
@@ -2293,17 +2328,69 @@ class ModelOrganizer(object):
             pass
         df.index.name = 'pctl'
         df.reset_index(inplace=True)
-        df['unorm'] = stats.norm.ppf(df['pctl'].astype(float) / 100., 0, 1.0)
-        fit = sf.ols('slope ~ unorm', df).fit()
-        self.exp_config['namelist']['weathergen_ctl'][
-            vname + '_bias_intercept'] = float(fit.params['Intercept'])
-        self.exp_config['namelist']['weathergen_ctl'][
-            vname + '_bias_slope'] = float(fit.params['unorm'])
-        return fit
+        df['unorm'] = unorm = stats.norm.ppf(
+            df['pctl'].astype(float) / 100., 0, 1.0)
 
-    def _modify_bias_correction(self, parser):
+        # --- slope bias correction
+        fit = sf.ols('slope ~ unorm', df).fit()
+        nml = self.exp_config['namelist']['weathergen_ctl']
+        nml[vname + '_slope_bias_intercept'] = float(fit.params['Intercept'])
+        nml[vname + '_slope_bias_slope'] = float(fit.params['unorm'])
+
+        # --- intercept bias correction
+        popt, pcov = curve_fit(intercept_fit, df['unorm'].values,
+                               df['intercept'].values)
+        for letter, p in zip('abc', popt):
+            nml[vname + '_intercept_bias_' + letter] = p
+
+        # --- plots
+        d = self.exp_config.setdefault('postproc', OrderedDict()).setdefault(
+            'bias', OrderedDict()).get(vname, OrderedDict())
+        plot_output = plot_output or d.get('plot_output')
+        if plot_output is None:
+            postproc_dir = self.exp_config.setdefault(
+                'postprocdir', osp.join(self.exp_config['expdir'], 'postproc'))
+            if not osp.exists(postproc_dir):
+                os.makedirs(postproc_dir)
+            plot_output = osp.join(
+                postproc_dir, vname + '_bias_correction.pdf')
+        d['plot_output'] = plot_output
+
+        pdf = PdfPages(plot_output)
+        # --- slope plot
+        fig, ax = plt.subplots()
+        df.plot('unorm', 'slope', marker='o', lw=0, ax=ax)
+        ax.plot(unorm,
+                fit.params['Intercept'] + fit.params['unorm'] * unorm)
+        pdf.savefig(fig)
+        # --- intercept plot
+        fig, ax = plt.subplots()
+        df.plot('unorm', 'intercept', marker='o', lw=0, ax=ax)
+        ax.plot(unorm, intercept_fit(unorm, *popt))
+        pdf.savefig(fig)
+
+        self.logger.info('Saving plots to %s', plot_output)
+        pdf.close()
+
+        if not keep:
+            if old:
+                self.exp_config['evaluation']['quants'] = old
+            else:
+                self.exp_config['evaluation'].pop('quants')
+
+        return fit, popt, pcov
+
+    def _modify_wind_bias_correction(self, parser):
         self._modify_main(parser)
-        parser.update_arg('vname', short='v')
+        parser.update_arg('keep', short='k')
+        parser.update_arg(
+            'quantiles', short='q', type=utils.str_ranges,
+            metavar='f1[;f21[,f22[,f23]]]', help=docstrings.dedents("""
+                The quantiles to use for calculating the percentiles.
+                %(str_ranges.s_help)s."""))
+        parser.update_arg('new_project', short='np')
+        parser.update_arg('no_evaluation', short='ne')
+        parser.update_arg('plot_output', short='po')
 
     # ----------------------- Sensitivity analysis ----------------------------
 
