@@ -2330,7 +2330,7 @@ class ModelOrganizer(object):
             self.exp_config['evaluation']['quants'][vname]).T
         try:
             # drop all percentiles
-            df.drop('All', inplace=True)
+            df.drop(['All', 100], inplace=True)
         except (ValueError, KeyError) as e:
             pass
         df.index.name = 'pctl'
