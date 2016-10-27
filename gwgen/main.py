@@ -2316,8 +2316,11 @@ class ModelOrganizer(object):
         self.logger.debug('Calculating bias correction for experiment %s',
                           self.experiment)
         old = self.exp_config.get('evaluation', {}).get('quants')
+        quants_output = osp.join(self.exp_config['evaldir'], 'quants_bias')
         kwargs['quants'] = {'quantiles': quantiles, 'transform_wind': True,
-                            'new_project': new_project, 'names': [vname]}
+                            'new_project': new_project, 'names': [vname],
+                            'project_output': quants_output + '.pkl',
+                            'plot_output': quants_output + '.pdf'}
         self.evaluate(**kwargs)
         df = pd.DataFrame(
             self.exp_config['evaluation']['quants'][vname]).T[['slope']]
@@ -2354,7 +2357,7 @@ class ModelOrganizer(object):
                 os.makedirs(postproc_dir)
             plot_output = osp.join(
                 postproc_dir, vname + '_bias_correction.pdf')
-        d['plot_output'] = plot_output
+        d['plot_output'] = [plot_output, quants_output + '.pdf']
 
         pdf = PdfPages(plot_output)
         # --- slope plot
