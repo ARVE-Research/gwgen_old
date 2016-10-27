@@ -497,7 +497,7 @@ class QuantileEvaluation(Evaluator):
                 eecra_names.extend(['mean_cloud_ref', 'mean_cloud_sim'])
             if 'wind' in names:
                 eecra_names.extend(['wind_ref', 'wind_sim'])
-            df.ix[df.complete.isnull(), eecra_names] = np.nan
+            df.ix[df.complete.isnull().values, eecra_names] = np.nan
             df.set_index(['year', 'month', 'day'], append=True, inplace=True)
             df.drop(df_map.columns, 1, inplace=True)
         # calculate the percentiles for each station and month
