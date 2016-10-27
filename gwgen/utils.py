@@ -393,7 +393,8 @@ remove: bool
 
 _RunConfig = namedtuple(
     '_RunConfig',
-    ['plot_output', 'nc_output', 'project_output', 'new_project', 'project'])
+    ['plot_output', 'nc_output', 'project_output', 'new_project', 'project',
+     'close'])
 
 _RunConfig = append_doc(_RunConfig, docstrings.get_sections("""
 Configuration for the run of tasks via their :meth:`~TaskBase.setup`
@@ -412,12 +413,15 @@ new_project: bool
     exists already
 project: str
     The path to a psyplot project file to use for this parameterization
+close: bool
+    Close the project at the end
 """, '_RunConfig'))
 
 TaskConfig = namedtuple(
     'TaskConfig', _SetupConfig._fields + _RunConfig._fields)
 
-TaskConfig = append_doc(TaskConfig, docstrings.get_sections(docstrings.dedents("""
+TaskConfig = append_doc(TaskConfig, docstrings.get_sections(
+    docstrings.dedents("""
 Configuration of tasks for their :meth:`~TaskBase.setup` and
 :meth:`~TaskBase.run` methods.
 
@@ -431,7 +435,7 @@ Parameters
 def default_config(
         setup_from=None, to_csv=False, to_db=False, remove=False,
         plot_output=None, nc_output=None, project_output=None,
-        new_project=False, project=None):
+        new_project=False, project=None, close=True):
     """
     The default configuration for TaskBase instances. See also the
     :attr:`TaskBase.default_config` attribute
@@ -440,7 +444,7 @@ def default_config(
     ----------
     %(TaskConfig.parameters)s"""
     return TaskConfig(setup_from, to_csv, to_db, remove, plot_output,
-                      nc_output, project_output, new_project, project)
+                      nc_output, project_output, new_project, project, close)
 
 
 class TaskMeta(abc.ABCMeta):
@@ -1184,7 +1188,7 @@ class TaskBase(object):
         pdf.close()
 
         # ---- close the project
-        if kwargs.get('close', True):
+        if kwargs.get('close', True) or self.task_config.close:
             sp.close(True, True, True)
         self.logger.debug('Done.')
 
@@ -1281,6 +1285,7 @@ class TaskBase(object):
             parser.pop_key('project', 'action', None)
             # XXX
             parser.update_arg('project', short='p')
+            parser.pop_arg('close')
         return parser, setup_grp, run_grp
 
     def get_run_kws(self, kwargs):
