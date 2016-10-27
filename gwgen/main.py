@@ -2316,7 +2316,9 @@ class ModelOrganizer(object):
         self.logger.debug('Calculating bias correction for experiment %s',
                           self.experiment)
         old = self.exp_config.get('evaluation', {}).get('quants')
-        quants_output = osp.join(self.exp_config['evaldir'], 'quants_bias')
+        postproc_dir = self.exp_config.setdefault(
+            'postprocdir', osp.join(self.exp_config['expdir'], 'postproc'))
+        quants_output = osp.join(postproc_dir, 'quants_bias')
         kwargs['quants'] = {'quantiles': quantiles, 'transform_wind': True,
                             'new_project': new_project, 'names': [vname],
                             'project_output': quants_output + '.pkl',
@@ -2351,8 +2353,6 @@ class ModelOrganizer(object):
             'bias', OrderedDict()).get(vname, OrderedDict())
         plot_output = plot_output or d.get('plot_output')
         if plot_output is None:
-            postproc_dir = self.exp_config.setdefault(
-                'postprocdir', osp.join(self.exp_config['expdir'], 'postproc'))
             if not osp.exists(postproc_dir):
                 os.makedirs(postproc_dir)
             plot_output = osp.join(
