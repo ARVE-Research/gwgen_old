@@ -2327,7 +2327,7 @@ class ModelOrganizer(object):
                             'plot_output': quants_output + '.pdf'}
         self.evaluate(**kwargs)
         df = pd.DataFrame(
-            self.exp_config['evaluation']['quants'][vname]).T[['slope']]
+            self.exp_config['evaluation']['quants'][vname]).T
         try:
             # drop all percentiles
             df.drop('All', inplace=True)
