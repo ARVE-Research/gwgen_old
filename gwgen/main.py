@@ -2268,7 +2268,8 @@ class ModelOrganizer(object):
 
     @docstrings.dedent
     def wind_bias_correction(
-            self, keep=False, quantiles=[1] + list(range(5, 100, 5)) + [99],
+            self, keep=False,
+            quantiles=[1] + list(range(5, 80, 5)) + list(range(80, 100)),
             new_project=False, plot_output=None, no_evaluation=False,
             close=True, **kwargs):
         """
