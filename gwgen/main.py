@@ -2338,7 +2338,8 @@ class ModelOrganizer(object):
         ds = xr.Dataset.from_dataframe(df)
 
         # --- slope bias correction
-        sp1 = psy.plot.lineplot(ds, name='slope', coord='unorm', linewidth=0)
+        sp1 = psy.plot.lineplot(ds, name='slope', coord='unorm', linewidth=0,
+                                marker='o')
         sp2 = psy.plot.linreg(ds, name='slope', coord='unorm', ax=sp1[0].ax)
         sp2.share(sp1[0], 'color')
         arr = sp2.plotters[0].plot_data[0]
@@ -2347,8 +2348,8 @@ class ModelOrganizer(object):
         nml[vname + '_slope_bias_slope'] = float(arr.attrs['slope'])
 
         # --- intercept bias correction
-        sp1 = psy.plot.lineplot(ds, name='intercept', coord='unorm',
-                                linewidth=0)
+        sp1 = psy.plot.lineplot(
+            ds, name='intercept', coord='unorm', linewidth=0, marker='o')
         sp2 = psy.plot.linreg(ds, name='intercept', coord='unorm',
                               fit=_intercept_fit, ax=sp1[0].ax)
         sp2.share(sp1[0], 'color')
