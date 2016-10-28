@@ -2340,7 +2340,8 @@ class ModelOrganizer(object):
         # --- slope bias correction
         sp1 = psy.plot.lineplot(ds, name='slope', coord='unorm', linewidth=0,
                                 marker='o')
-        sp2 = psy.plot.linreg(ds, name='slope', coord='unorm', ax=sp1[0].ax)
+        sp2 = psy.plot.linreg(ds, name='slope', coord='unorm',
+                              fit=_slope_fit, ax=sp1[0].ax)
         sp2.share(sp1[0], 'color')
         arr = sp2.plotters[0].plot_data[0]
         nml = self.exp_config['namelist']['weathergen_ctl']
@@ -3037,6 +3038,10 @@ class ModelOrganizer(object):
 
 def _intercept_fit(x, a, b, c):
     return a ** (b + c * x)
+
+
+def _slope_fit(x, a, b, c, d):
+    return a + b * x + c * x * x + d * x * x * x
 
 
 def _get_parser():
