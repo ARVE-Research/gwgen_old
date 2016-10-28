@@ -2307,9 +2307,6 @@ class ModelOrganizer(object):
         import xarray as xr
         import psyplot.project as psy
 
-        def intercept_fit(x, a, b, c):
-            return a ** (b + c * x)
-
         vname = 'wind'
 
         self.main(**kwargs)
@@ -2353,7 +2350,7 @@ class ModelOrganizer(object):
         sp1 = psy.plot.lineplot(ds, name='intercept', coord='unorm',
                                 linewidth=0)
         sp2 = psy.plot.linreg(ds, name='intercept', coord='unorm',
-                              fit=intercept_fit)
+                              fit=_intercept_fit)
         sp2.share(sp1[0], 'color')
         arr = sp2.plotters[0].plot_data[0]
         for letter in 'abc':
@@ -3035,6 +3032,10 @@ class ModelOrganizer(object):
         return self.__class__, (self.name, self.config), {
             '_experiment': self._experiment, '_modelname': self._modelname,
             'no_modification': self.no_modification}
+
+
+def _intercept_fit(x, a, b, c):
+    return a ** (b + c * x)
 
 
 def _get_parser():
