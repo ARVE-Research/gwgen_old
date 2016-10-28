@@ -2345,8 +2345,10 @@ class ModelOrganizer(object):
         sp2.share(sp1[0], 'color')
         arr = sp2.plotters[0].plot_data[0]
         nml = self.exp_config['namelist']['weathergen_ctl']
-        nml[vname + '_slope_bias_intercept'] = float(arr.attrs['intercept'])
-        nml[vname + '_slope_bias_slope'] = float(arr.attrs['slope'])
+#        nml[vname + '_slope_bias_intercept'] = float(arr.attrs['intercept'])
+#        nml[vname + '_slope_bias_slope'] = float(arr.attrs['slope'])
+        for letter in 'abcd':
+            nml[vname + '_slope_bias_' + letter] = float(arr.attrs[letter])
 
         # --- intercept bias correction
         sp1 = psy.plot.lineplot(

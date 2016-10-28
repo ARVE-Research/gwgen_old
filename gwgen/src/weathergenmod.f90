@@ -153,8 +153,12 @@ real(sp) :: wind_w1 = -0.03854, &
 
 ! wind bias correction (Note: Default is no correction)
 ! parameters of the slope - unorm best fit line
-real(sp) :: wind_slope_bias_intercept = 1.0, &  ! intercept of the slope correction
-            wind_slope_bias_slope = 0.0         ! slope of the slope correction
+!real(sp) :: wind_slope_bias_intercept = 1.0, &  ! intercept of the slope correction
+!            wind_slope_bias_slope = 0.0         ! slope of the slope correction
+real(sp) :: wind_slope_bias_a = 1.0, &
+            wind_slope_bias_b = 0.0, &
+            wind_slope_bias_c = 0.0, &
+            wind_slope_bias_d = 0.0
 ! parameters of the intercept - unorm best fit line
 real(sp) :: wind_intercept_bias_a = 0.0, &
             wind_intercept_bias_b = 1.0, &
@@ -200,8 +204,9 @@ subroutine init_weathergen(f_unit)
     tmax_sd_d1, tmax_sd_d2, cldf_sd_d, wind_d1, wind_d2, wind_sd_d1, &
     wind_sd_d2, &
     ! wind bias correction (Note: Default is no correction)
-    wind_slope_bias_intercept, wind_slope_bias_slope, wind_intercept_bias_a, &
-    wind_intercept_bias_b, wind_intercept_bias_c
+!    wind_slope_bias_intercept, wind_slope_bias_slope, &
+    wind_slope_bias_a, wind_slope_bias_b, wind_slope_bias_c, wind_slope_bias_d, &
+    wind_intercept_bias_a, wind_intercept_bias_b, wind_intercept_bias_c
 
   if (.not. present(f_unit)) then
       open(f_unit2, file='weathergen.nml', status='old')
@@ -495,7 +500,9 @@ cldf = resid(3) * cldf_sd + cldf_mn
 wind = resid(4) * sqrt(wind_sd) + sqrt(wind_mn)
 
 ! wind bias correction
-slopecorr = wind_slope_bias_intercept + wind_slope_bias_slope * resid(4)
+!slopecorr = wind_slope_bias_intercept + wind_slope_bias_slope * resid(4)
+slopecorr = wind_slope_bias_a + wind_slope_bias_b * resid(4) + &
+    wind_slope_bias_c * resid(4) ** 2 + wind_slope_bias_d * resid(4) ** 3
 interceptcorr = wind_intercept_bias_a ** ( &
     wind_intercept_bias_b + wind_intercept_bias_c * resid(4))
 wind = (wind - interceptcorr) / slopecorr
