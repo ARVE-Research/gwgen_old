@@ -492,7 +492,7 @@ tmax = round(resid(2) * tmax_sd + tmax_mn,1)
 
 cldf = resid(3) * cldf_sd + cldf_mn
 
-wind = resid(4) * wind_sd**0.5 + wind_mn**0.5
+wind = resid(4) * sqrt(wind_sd) + sqrt(wind_mn)
 
 ! wind bias correction
 slopecorr = wind_slope_bias_intercept + wind_slope_bias_slope * resid(4)
@@ -500,7 +500,7 @@ interceptcorr = wind_intercept_bias_a ** ( &
     wind_intercept_bias_b + wind_intercept_bias_c * wind)
 wind = (wind - interceptcorr) / slopecorr
 
-wind = wind ** 2.0
+wind = wind * wind
 
 !---
 !add checks for invalid values here
