@@ -497,7 +497,7 @@ wind = resid(4) * sqrt(wind_sd) + sqrt(wind_mn)
 ! wind bias correction
 slopecorr = wind_slope_bias_intercept + wind_slope_bias_slope * resid(4)
 interceptcorr = wind_intercept_bias_a ** ( &
-    wind_intercept_bias_b + wind_intercept_bias_c * wind)
+    wind_intercept_bias_b + wind_intercept_bias_c * resid(4))
 wind = (wind - interceptcorr) / slopecorr
 
 wind = wind * wind
