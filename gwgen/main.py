@@ -2339,7 +2339,7 @@ class ModelOrganizer(object):
 
         # --- slope bias correction
         sp1 = psy.plot.lineplot(ds, name='slope', coord='unorm', linewidth=0)
-        sp2 = psy.plot.linreg(ds, name='slope', coord='unorm')
+        sp2 = psy.plot.linreg(ds, name='slope', coord='unorm', ax=sp1[0].ax)
         sp2.share(sp1[0], 'color')
         arr = sp2.plotters[0].plot_data[0]
         nml = self.exp_config['namelist']['weathergen_ctl']
@@ -2350,7 +2350,7 @@ class ModelOrganizer(object):
         sp1 = psy.plot.lineplot(ds, name='intercept', coord='unorm',
                                 linewidth=0)
         sp2 = psy.plot.linreg(ds, name='intercept', coord='unorm',
-                              fit=_intercept_fit)
+                              fit=_intercept_fit, ax=sp1[0].ax)
         sp2.share(sp1[0], 'color')
         arr = sp2.plotters[0].plot_data[0]
         for letter in 'abc':
@@ -2372,7 +2372,7 @@ class ModelOrganizer(object):
         # --- save the data
         self.logger.info('Saving plots to %s', plot_output)
         mp = psy.gcp(True)
-        mp.export('plot_output')
+        mp.export(plot_output)
         self.logger.info('Saving project to %s', project_output)
         mp.save_project(project_output, paths=[nc_output])
 
