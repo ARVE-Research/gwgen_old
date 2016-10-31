@@ -3044,7 +3044,7 @@ def _intercept_fit(x, a, b, c):
 
 
 def _slope_fit(x, a, b, c, d):
-    return a + b * x + c * x * x + d * x * x * x
+    return a + b * x + c * x ** 2 + d * x ** 3
 
 
 def _get_parser():
