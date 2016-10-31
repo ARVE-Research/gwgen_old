@@ -1907,6 +1907,7 @@ class WindParameterizer(CompleteMonthlyWind):
         bounds=['minmax', 11, 0, 99],
         cbar='',
         bins=10,
+        fix=0,
         xlabel='on %(state)s days',
         )
 
