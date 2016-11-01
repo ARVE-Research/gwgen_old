@@ -2346,7 +2346,7 @@ class ModelOrganizer(object):
         sp2.share(sp1[0], 'color')
         arr = sp2.plotters[0].plot_data[0]
         nml = self.exp_config['namelist']['weathergen_ctl']
-        for letter in 'abcd':
+        for letter in 'abc':
             nml[vname + '_slope_bias_' + letter] = float(arr.attrs[letter])
         nml['wind_max_bias'] = float(ds.unorm.max())
         nml['wind_min_bias'] = float(ds.unorm.min())
