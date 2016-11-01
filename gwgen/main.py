@@ -2348,6 +2348,8 @@ class ModelOrganizer(object):
         nml = self.exp_config['namelist']['weathergen_ctl']
         for letter in 'abcd':
             nml[vname + '_slope_bias_' + letter] = float(arr.attrs[letter])
+        nml['wind_max_bias'] = ds.unorm.max()
+        nml['wind_min_bias'] = ds.unorm.min()
 
         # --- plots
         d = self.exp_config.setdefault('postproc', OrderedDict()).setdefault(
