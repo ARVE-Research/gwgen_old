@@ -142,18 +142,18 @@ real(sp) :: cldf_w = -0.7085, &
             cldf_sd_d = 1.0696
 
 ! wind regression results
-real(sp) :: wind_w1 = -0.03854, &
+real(sp) :: wind_w1 = 0.0, &
             wind_w2 = 1.05564, &
-            wind_d1 = 0.04884, &
+            wind_d1 = 0.0, &
             wind_d2 = 0.96591, &
-            wind_sd_w1 = 0.44369, &
+            wind_sd_w1 = 0.0, &
             wind_sd_w2 = 0.29040, &
-            wind_sd_d1 = 0.48558, &
+            wind_sd_d1 = 0.0, &
             wind_sd_d2 = 0.32268
 
 ! wind bias correction (Note: Default is no correction)
 ! parameters of the slope - unorm best fit line
-real(sp) :: wind_slope_bias_a = 1.0, &
+real(sp) :: wind_slope_bias_a = 0.0, &
             wind_slope_bias_b = 0.0, &
             wind_slope_bias_c = 0.0, &
             wind_max_bias = 2.32634787, &  ! maximum value of the bias correction (99th percentile)
@@ -493,17 +493,18 @@ tmax = round(resid(2) * tmax_sd + tmax_mn,1)
 
 cldf = resid(3) * cldf_sd + cldf_mn
 
-wind = resid(4) * sqrt(wind_sd) + sqrt(wind_mn)
+wind = max(0.0, resid(4) * sqrt(max(0.0, wind_sd)) + sqrt(max(0.0, wind_mn)))
 
 ! wind bias correction
-!slopecorr = wind_slope_bias_intercept + wind_slope_bias_slope * resid(4)
-wind_resid = resid(4)
-if (wind_resid > wind_max_bias) wind_resid = wind_max_bias
-if (wind_resid < wind_min_bias) wind_resid = wind_min_bias
-slopecorr = wind_slope_bias_a / ( 1 + exp( - wind_slope_bias_b * ( &
-    wind_resid - wind_slope_bias_c)))
+if (wind_slope_bias_a > 0) then
+    wind_resid = resid(4)
+    if (wind_resid > wind_max_bias) wind_resid = wind_max_bias
+    if (wind_resid < wind_min_bias) wind_resid = wind_min_bias
+    slopecorr = wind_slope_bias_a / ( 1 + exp( - wind_slope_bias_b * ( &
+        wind_resid - wind_slope_bias_c)))
 
-wind = wind / slopecorr
+    wind = wind / slopecorr
+end if
 
 wind = wind * wind
 
