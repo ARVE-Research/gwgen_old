@@ -153,16 +153,12 @@ real(sp) :: wind_w1 = -0.03854, &
 
 ! wind bias correction (Note: Default is no correction)
 ! parameters of the slope - unorm best fit line
-!real(sp) :: wind_slope_bias_intercept = 1.0, &  ! intercept of the slope correction
-!            wind_slope_bias_slope = 0.0         ! slope of the slope correction
 real(sp) :: wind_slope_bias_a = 1.0, &
             wind_slope_bias_b = 0.0, &
             wind_slope_bias_c = 0.0, &
-            wind_slope_bias_d = 0.0
-! parameters of the intercept - unorm best fit line
-real(sp) :: wind_intercept_bias_a = 0.0, &
-            wind_intercept_bias_b = 1.0, &
-            wind_intercept_bias_c = 0.0
+            wind_slope_bias_d = 0.0, &
+            wind_max_bias = 2.32634787, &  ! maximum value of the bias correction (99th percentile)
+            wind_min_bias = -2.32634787, &  ! minimum value of the bias correction (1st percentile)
 
 ! -----------------------------------------------------------------------------
 ! ------------------- END. Defaults for the namelist parameters ---------------
@@ -204,9 +200,8 @@ subroutine init_weathergen(f_unit)
     tmax_sd_d1, tmax_sd_d2, cldf_sd_d, wind_d1, wind_d2, wind_sd_d1, &
     wind_sd_d2, &
     ! wind bias correction (Note: Default is no correction)
-!    wind_slope_bias_intercept, wind_slope_bias_slope, &
     wind_slope_bias_a, wind_slope_bias_b, wind_slope_bias_c, wind_slope_bias_d, &
-    wind_intercept_bias_a, wind_intercept_bias_b, wind_intercept_bias_c
+    wind_max_bias, wind_min_bias
 
   if (.not. present(f_unit)) then
       open(f_unit2, file='weathergen.nml', status='old')
@@ -336,6 +331,8 @@ real(kind=8) :: cdf_thresh, pdf_thresh  ! gamma cdf and gamma pdf at the thresho
 type(daymetvars), target :: dmetvars
 
 real(sp), dimension(4) :: unorm             !vector of uniformly distributed random numbers (0-1)
+
+real(sp) :: wind_resid
 
 !---------------------------------------------------------
 !input
@@ -501,11 +498,10 @@ wind = resid(4) * sqrt(wind_sd) + sqrt(wind_mn)
 
 ! wind bias correction
 !slopecorr = wind_slope_bias_intercept + wind_slope_bias_slope * resid(4)
-slopecorr = wind_slope_bias_a + wind_slope_bias_b * resid(4) + &
-    wind_slope_bias_c * resid(4) ** 2 + wind_slope_bias_d * resid(4) ** 3
-interceptcorr = wind_intercept_bias_a ** ( &
-    wind_intercept_bias_b + wind_intercept_bias_c * resid(4))
-wind = (wind - interceptcorr) / slopecorr
+wind_resid = max(min(resid(4), wind_max_bias), wind_min_bias)
+slopecorr = wind_slope_bias_a + wind_slope_bias_b * wind_resid + &
+    wind_slope_bias_c * wind_resid ** 2 + wind_slope_bias_d * wind_resid ** 3
+wind = wind / slopecorr
 
 wind = wind * wind
 
