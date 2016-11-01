@@ -3029,12 +3029,12 @@ class ModelOrganizer(object):
             'no_modification': self.no_modification}
 
 
-def _intercept_fit(x, a, b, c):
-    return a ** (b + c * x)
+#def _slope_fit(x, a, b, c, d):
+#    return a + b * x + c * x ** 2 + d * x ** 3
 
 
-def _slope_fit(x, a, b, c, d):
-    return a + b * x + c * x ** 2 + d * x ** 3
+def _slope_fit(x, a, b, c):
+    return a / (1 + np.exp(-b * (x - c)))
 
 
 def _get_parser():
