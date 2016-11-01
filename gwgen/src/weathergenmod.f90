@@ -158,7 +158,7 @@ real(sp) :: wind_slope_bias_a = 1.0, &
             wind_slope_bias_c = 0.0, &
             wind_slope_bias_d = 0.0, &
             wind_max_bias = 2.32634787, &  ! maximum value of the bias correction (99th percentile)
-            wind_min_bias = -2.32634787, &  ! minimum value of the bias correction (1st percentile)
+            wind_min_bias = -2.32634787    ! minimum value of the bias correction (1st percentile)
 
 ! -----------------------------------------------------------------------------
 ! ------------------- END. Defaults for the namelist parameters ---------------
