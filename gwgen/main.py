@@ -2338,29 +2338,45 @@ class ModelOrganizer(object):
             df['pctl'].astype(float) / 100., 0, 1.0)
         ds = xr.Dataset.from_dataframe(df)
 
+        project_output = osp.splitext(plot_output)[0] + '.pkl'
+        nc_output = osp.splitext(plot_output)[0] + '.nc'
+
         # --- slope bias correction
-        sp1 = psy.plot.lineplot(ds, name='slope', coord='unorm', linewidth=0,
-                                marker='o')
-        sp2 = psy.plot.linreg(ds, name='slope', coord='unorm',
-                              fit=_slope_fit, ax=sp1[0].ax)
-        sp2.share(sp1[0], 'color')
+        if osp.exists(project_output) and not new_project:
+            mp = psy.Project.load_project(project_output, datasets=[ds])
+            sp2 = mp.linreg
+        else:
+            sp1 = psy.plot.lineplot(ds, name='slope', coord='unorm',
+                                    linewidth=0, marker='o', legend=False)
+            sp2 = psy.plot.linreg(
+                 ds, name='slope', ax=sp1[0].ax,
+                 coord='unorm', fit=logistic_function,
+                 ylabel=('$\\sqrt{{\\mathrm{{Simulated}} / '
+                         '\\mathrm{{Observed}}\\, \\mathrm{{wind}}}}$'),
+                 legendlabels=(
+                     '$\\sqrt{{'
+                     '\\frac{{\\mathrm{{Simulated}}\\, \\mathrm{{wind}}}}'
+                     '{{\\mathrm{{Observed}}\\, \\mathrm{{wind}}}}}} = '
+                     '\\frac{{%(L)4.3f}}{{1 + \\mathrm{{e}}^{{'
+                     '%(k)4.3f\\cdot(x - %(x0)4.3f)}}}}$'),
+                 legend={'fontsize': 'x-large', 'loc': 'upper left'},
+                 xlabel='Random number from normal distribution')
+            sp2.share(sp1[0], ['color', 'xlim', 'ylim'])
         arr = sp2.plotters[0].plot_data[0]
         nml = self.exp_config['namelist']['weathergen_ctl']
-        for letter in 'abc':
+        for letter in ['L', 'k', 'x0']:
             nml[vname + '_slope_bias_' + letter] = float(arr.attrs[letter])
 
         # --- plots
         d = self.exp_config.setdefault('postproc', OrderedDict()).setdefault(
             'bias', OrderedDict()).get(vname, OrderedDict())
+        d['plot_file'] = [plot_output, quants_output + '.pdf']
+        d['project_file'] = [project_output, quants_output + '.pkl']
+        d['nc_file'] = [nc_output, quants_output + '.nc']
         plot_output = plot_output or d.get('plot_output')
         if plot_output is None:
             plot_output = osp.join(
                 postproc_dir, vname + '_bias_correction.pdf')
-        project_output = osp.splitext(plot_output)[0] + '.pkl'
-        nc_output = osp.splitext(plot_output)[0] + '.nc'
-        d['plot_file'] = [plot_output, quants_output + '.pdf']
-        d['project_file'] = [project_output, quants_output + '.pkl']
-        d['nc_file'] = [nc_output, quants_output + '.nc']
 
         # --- save the data
         self.logger.info('Saving plots to %s', plot_output)
@@ -3027,12 +3043,30 @@ class ModelOrganizer(object):
             'no_modification': self.no_modification}
 
 
-#def _slope_fit(x, a, b, c, d):
-#    return a + b * x + c * x ** 2 + d * x ** 3
+def logistic_function(x, L, k, x0):
+    """Logistic function used in :meth:`ModelOrganizer.wind_bias_correction`
 
+    The function is defined as
 
-def _slope_fit(x, a, b, c):
-    return a / (1 + np.exp(-b * (x - c)))
+    .. math::
+
+        f(x) = \frac{L}{1 + \mathrm e^{-k(x-x_0)}}
+
+    Parameters
+    ----------
+    x: numpy.ndarray
+        The x-data
+    L: float
+        the curve's maximum value
+    k: float
+        The steepness of the curve
+    x0: the x-value of the sigmoid's midpoint
+
+    Returns
+    -------
+    np.ndarray
+        The calculated :math:`f(x)`"""
+    return L / (1 + np.exp(-k * (x - x0)))
 
 
 def _get_parser():

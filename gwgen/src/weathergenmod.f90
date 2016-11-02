@@ -153,9 +153,9 @@ real(sp) :: wind_w1 = 0.0, &
 
 ! wind bias correction (Note: Default is no correction)
 ! parameters of the slope - unorm best fit line
-real(sp) :: wind_slope_bias_a = 0.0, &
-            wind_slope_bias_b = 0.0, &
-            wind_slope_bias_c = 0.0
+real(sp) :: wind_slope_bias_L = 0.0, &
+            wind_slope_bias_k = 0.0, &
+            wind_slope_bias_x0 = 0.0
 
 ! -----------------------------------------------------------------------------
 ! ------------------- END. Defaults for the namelist parameters ---------------
@@ -197,7 +197,7 @@ subroutine init_weathergen(f_unit)
     tmax_sd_d1, tmax_sd_d2, cldf_sd_d, wind_d1, wind_d2, wind_sd_d1, &
     wind_sd_d2, &
     ! wind bias correction (Note: Default is no correction)
-    wind_slope_bias_a, wind_slope_bias_b, wind_slope_bias_c
+    wind_slope_bias_L, wind_slope_bias_k, wind_slope_bias_x0
 
   if (.not. present(f_unit)) then
       open(f_unit2, file='weathergen.nml', status='old')
@@ -491,9 +491,9 @@ cldf = resid(3) * cldf_sd + cldf_mn
 wind = max(0.0, resid(4) * sqrt(max(0.0, wind_sd)) + sqrt(max(0.0, wind_mn)))
 
 ! wind bias correction
-if (wind_slope_bias_a > 0) then
-    slopecorr = wind_slope_bias_a / ( 1 + exp( - wind_slope_bias_b * ( &
-        resid(4) - wind_slope_bias_c)))
+if (wind_slope_bias_L > 0) then
+    slopecorr = wind_slope_bias_L / ( 1 + exp( - wind_slope_bias_k * ( &
+        resid(4) - wind_slope_bias_x0)))
 
     wind = wind / slopecorr
 end if
