@@ -127,15 +127,6 @@ class EvaluationPreparation(Evaluator):
                             index=np.arange(len(station_ids)))
 
     @property
-    def inventory(self):
-        fname = self.ghcnd_inventory_file
-        station_ids, lat, lon = np.loadtxt(
-            fname, usecols=[0, 1, 2], dtype='S11', unpack=True).astype(np.str_)
-        return pd.DataFrame({'id': station_ids, 'lat': lat.astype(float),
-                             'lon': lon.astype(float)},
-                            index=np.arange(len(station_ids)))
-
-    @property
     def reference_data(self):
         """The reference :class:`~pandas.DataFrame`"""
         return self.data[0]
