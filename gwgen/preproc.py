@@ -105,6 +105,9 @@ class CloudInventory(CloudPreproc):
                 ['lat', 'lon', 'year']]
             df = g.mean()
             df['counts'] = g.size()
+            std = g.std()
+            df['lon_std'] = std.lon
+            df['lat_std'] = std.lat
             return df
 
         self.data = pd.concat(list(map(compute, self.stations)))
@@ -131,9 +134,15 @@ class CloudInventory(CloudPreproc):
             total_counts = g.counts.transform("sum")
             df['lat'] = df.counts / total_counts * df.lat
             df['lon'] = df.counts / total_counts * df.lon
+            df['lat_std'] = (df.counts / total_counts) * df.lat_std ** 2
+            df['lon_std'] = (df.counts / total_counts) * df.lon_std ** 2
             eecra = g.agg(OrderedDict([
-                    ('lat', 'sum'), ('lon', 'sum'), ('year', ('min', 'max'))]))
-            eecra.columns = ['lat', 'lon', 'firstyear', 'lastyear']
+                    ('lat', 'sum'), ('lon', 'sum'), ('lat_std', 'sum'),
+                    ('lon_std', 'sum'),
+                    ('year', ('min', 'max')), ('counts', 'sum')]))
+            eecra.columns = ['lat', 'lon', 'lat_std', 'lon_std',
+                             'firstyear', 'lastyear', 'counts']
+            eecra[['lat_std', 'lon_std']] **= 0.5
 
             use_xstall = self.task_config.xstall
 
