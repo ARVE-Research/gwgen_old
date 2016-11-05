@@ -1764,6 +1764,10 @@ class TaskManager(object):
             # parallel processing
             for i, task in enumerate(ret[:]):
                 ret[i] = copy.copy(task)
+            for task in filter(lambda ini: ini.name not in to_return,
+                               self.tasks):
+                del task.data
+        print(ret)
         return ret
 
     def run(self, full_info, *args):
