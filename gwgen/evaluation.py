@@ -703,8 +703,8 @@ QualityConfig = utils.enhanced_config(_QualityConfig, 'QualityConfig')
 def default_quality_config(
         quantiles=None, *args, **kwargs):
     """
-    The default configuration for :class:`QualityConfig` instances.
-    See also the :attr:`QuantileEvaluation.default_config` attribute
+    The default configuration for :class:`SimulationQuality` instances.
+    See also the :attr:`SimulationQuality.default_config` attribute
 
     Parameters
     ----------
@@ -778,6 +778,8 @@ class SimulationQuality(Evaluator):
         if quantiles is None:
             quantiles = slice(None)
         for v, v_ks in ks_info.items():
+            if v not in quants_info:
+                continue
             #: Dataframe with intercept, rsquared and slope on index and
             #: quantiles as columns
             df = pd.DataFrame(quants_info[v]).loc[:, quantiles]
