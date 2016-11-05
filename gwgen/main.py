@@ -1176,6 +1176,7 @@ class ModelOrganizer(object):
                 os.remove(target)
             self._link(osp.join(src_dir, f), target)
         spr.call(['make', '-C', bin_dir, 'all'])
+        self.logger.debug('Compilation done.')
 
     def _modify_compile_model(self, parser):
         """Does nothing since compile takes no special arguments"""
@@ -2430,6 +2431,7 @@ class ModelOrganizer(object):
         # to make sure, we already called the choose the right experiment and
         # modelname
         experiment = self.experiment
+        self.logger.debug('Running sensitivity analysis for %s', experiment)
         sa = SensitivityAnalysis(self)
         self.fix_paths(self.exp_config)
         self.fix_paths(self.model_config)
