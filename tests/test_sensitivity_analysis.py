@@ -21,18 +21,25 @@ class SensitivityAnalysisTest(bt.BaseTest):
         self.assertTrue(osp.exists(
             self.organizer.config.models[modelname]['root']))
 
-    def test_init(self):
+    def test_init(self, sparse=False):
         self.test_setup()
         experiment = self.organizer.experiment
         self.organizer.exp_config['eval_stations'] = self.stations_file
-        self.organizer.parse_args(
-            ('-id {} sens init -nml thresh=13;14,16 '
-             'gp_shape=0.1;0.4,1.1,0.3').format(experiment).split())
-        modelname = self.modelname
-        threshs = np.arange(13, 16)
-        shapes = np.arange(0.1, 1.1, 0.3)
+        if not sparse:
+            self.organizer.parse_args(
+                ('-id {} sens init -nml thresh=13;14,16 '
+                 'gp_shape=0.1;0.4,1.1,0.3').format(experiment).split())
+            threshs = np.arange(13, 16)
+            shapes = np.arange(0.1, 1.1, 0.3)
+        else:
+            self.organizer.parse_args(
+                ('-id {} sens init -nml thresh=13,15 '
+                 'gp_shape=0.1,0.5,0.3').format(experiment).split())
+            threshs = np.arange(13, 15)
+            shapes = np.arange(0.1, 0.5, 0.3)
         shapes, threshs = np.meshgrid(shapes, threshs)
         n = threshs.size
+        modelname = self.modelname
         all_exps = self.organizer.config.experiments
         exp_names = [exp_id for exp_id in all_exps
                      if all_exps[exp_id]['model'] == modelname]
@@ -96,7 +103,7 @@ class SensitivityAnalysisTest(bt.BaseTest):
         if param:
             self.test_init_and_param()
         else:
-            self.test_init()
+            self.test_init(sparse=True)
         self.organizer.sensitivity_analysis(
             compile={}, run={}, experiment=self.organizer.experiment)
         modelname = self.modelname
@@ -112,20 +119,26 @@ class SensitivityAnalysisTest(bt.BaseTest):
                             msg='Missing output file %s for experiment %s' % (
                             all_exps[exp]['outdata'], exp))
 
-    def test_evaluate(self, param=False):
+    def test_evaluate(self, param=False, full=False):
         self.test_run(param=param)
         orig_serial = self.organizer.global_config.get('serial')
         # parallel does not work due to matplotlib
         self.organizer.global_config['serial'] = True
+        if not full:
+            to_evaluate = ['testexp1_sens1', 'testexp1_sens2']
+        else:
+            to_evaluate = None
         self.organizer.sensitivity_analysis(
-            evaluate={'quants': {}, 'ks': {}},
+            evaluate={'quants': {'names': ['prcp']}, 'ks': {},
+                      'experiments': to_evaluate},
             experiment=self.organizer.experiment)
         self.organizer.global_config['serial'] = orig_serial
-        modelname = self.modelname
         all_exps = self.organizer.config.experiments
-        exp_names = [exp_id for exp_id in all_exps
-                     if all_exps[exp_id]['model'] == modelname]
-        for exp in exp_names:
+        if full:
+            modelname = self.modelname
+            to_evaluate = [exp_id for exp_id in all_exps
+                           if all_exps[exp_id]['model'] == modelname]
+        for exp in to_evaluate:
             self.assertIn('quants', all_exps[exp]['evaluation'],
                           msg='No quantile evaluation made for %s' % exp)
             self.assertIn('ks', all_exps[exp]['evaluation'],
@@ -140,14 +153,15 @@ class SensitivityAnalysisTest(bt.BaseTest):
         self._test_plot(True)
 
     def _test_plot(self, param=False):
-        self.test_evaluate(param=param)
+        self.test_evaluate(param=param, full=True)
         plot1d_output = osp.join(self.test_dir, 'plot1d.pdf')
         plot2d_output = osp.join(self.test_dir, 'plot2d.pdf')
         self.organizer.sensitivity_analysis(
             experiment=self.organizer.experiment,
             evaluate={'quality': {}},
             plot={'plot1d': {'plot_output': plot1d_output},
-                  'plot2d': {'plot_output': plot2d_output}})
+                  'plot2d': {'plot_output': plot2d_output},
+                  'names': ['prcp']})
         self.assertTrue(osp.exists(plot1d_output),
                         msg='File %s is missing!' % plot1d_output)
         self.assertTrue(osp.exists(plot2d_output),
