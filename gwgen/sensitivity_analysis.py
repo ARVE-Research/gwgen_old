@@ -101,8 +101,8 @@ class SensitivityAnalysis(object):
         experiments: list of str
             The experiments to use. If None, all experiments are used
         """
-#        import multiprocessing as mp
-        from distributed import Client
+        import multiprocessing as mp
+#        from distributed import Client
         experiments = experiments or self.experiments
         if len(experiments) == 1 and osp.exists(experiments[0]):
             with open(experiments[0]) as f:
@@ -115,24 +115,24 @@ class SensitivityAnalysis(object):
                 {key: dict(chain([('experiment', exp)], kws[key].items()))
                  for key in kws.keys() if key in commands}
                 for exp in experiments)
-    #        nprocs = config.get('nprocs', 'all')
-    #        if nprocs == 'all':
-    #            nprocs = mp.cpu_count()
+            nprocs = config.get('nprocs', 'all')
+            if nprocs == 'all':
+                nprocs = mp.cpu_count()
             config['serial'] = True
-    #        self.logger.debug('Starting %i processes', nprocs)
-    #        pool = mp.Pool(nprocs)
-    #        res = pool.map_async(self, all_kws)
-            args = (config['scheduler'], ) if config.get('scheduler') else ()
-            client = Client(*args)
-            res = client.map(self, all_kws, pure=False)
-    #        for (organizer, ns), experiment in zip(res.get(), experiments):
-            for (organizer, ns), experiment in zip(client.gather(res),
-                                                   experiments):
+            self.logger.debug('Starting %i processes', nprocs)
+            pool = mp.Pool(nprocs)
+            res = pool.map_async(self, all_kws)
+#            args = (config['scheduler'], ) if config.get('scheduler') else ()
+#            client = Client(*args)
+#            res = client.map(self, all_kws, pure=False)
+#            for (organizer, ns), experiment in zip(client.gather(res),
+#                                                   experiments):
+            for (organizer, ns), experiment in zip(res.get(), experiments):
                 changed = organizer.config.experiments[experiment]
                 self.organizer.config.experiments[experiment] = changed
             config['serial'] = False
-    #        pool.close()
-    #        pool.terminate()
+            pool.close()
+            pool.terminate()
         else:
             for experiment in experiments or self.experiments:
                 for key, val in kws.items():
@@ -472,8 +472,8 @@ class SensitivityAnalysis(object):
 
     @docstrings.dedent
     def plot(self, indicators=['rsquared', 'slope', 'ks', 'quality'],
-             variables=['prcp', 'tmin', 'tmax', 'mean_cloud'], meta=None,
-             **kwargs):
+             names=['prcp', 'tmin', 'tmax', 'mean_cloud', 'wind'],
+             meta=None, **kwargs):
         """
         Plot the result of the sensitivity analysis
 
@@ -506,7 +506,7 @@ class SensitivityAnalysis(object):
             self.config['additional_meta'] = meta
         for task, d in list(kwargs.items()):
             d = kwargs[task] = vars(d) if isinstance(d, Namespace) else dict(d)
-            d['variables'] = variables
+            d['names'] = names
             d['indicators'] = indicators
             d['meta'] = meta
             d['config'] = self.exp_config
@@ -529,7 +529,7 @@ class SensitivityAnalysis(object):
 
 SensitivityPlotConfig = namedtuple(
     'SensitivityPlotConfig',
-    ('sa', 'indicators', 'variables', 'meta') + utils.TaskConfig._fields)
+    ('sa', 'indicators', 'names', 'meta') + utils.TaskConfig._fields)
 
 SensitivityPlotConfig = utils.append_doc(SensitivityPlotConfig, """
 Parameters
@@ -538,12 +538,29 @@ sa: SensitivityAnalysis
     The analyser to use
 indicators: str or list of str
     The name of the indicators from the `quality` evaluation task
-variables: str or list of str
+names: str or list of str
     The name of the variables to plot
 meta: dict
     Alternative meta information for the data set
 %(TaskConfig.parameters)s
 """)
+
+
+@docstrings.dedent
+def default_sens_config(
+        sa=None, indicators=['rsquared', 'slope', 'ks', 'quality'],
+        names=['prcp', 'tmin', 'tmax', 'mean_cloud', 'wind'],
+        meta={}, *args, **kwargs):
+    """
+    The default configuration for :class:`SensitivityPlot` instances.
+    See also the :attr:`SensitivityPlot.default_config` attribute
+
+    Parameters
+    ----------
+    %(SensitivityPlotConfig.parameters)s"""
+    return SensitivityPlotConfig(
+            sa, indicators, names, meta,
+            *utils.default_config(*args, **kwargs))
 
 
 class SensitivityPlot(utils.TaskBase):
@@ -605,10 +622,24 @@ class SensitivityPlot(utils.TaskBase):
 
     @property
     def default_config(self):
-        return SensitivityPlotConfig(
-            None, ['rsquared', 'slope', 'ks', 'quality'],
-            ['prcp', 'tmin', 'tmax', 'mean_cloud'], {},
-            *super(SensitivityPlot, self).default_config)
+        return default_sens_config()._replace(
+            **super(SensitivityPlot, self).default_config._asdict())
+
+    @classmethod
+    def _modify_parser(cls, parser):
+        parser.setup_args(default_sens_config)
+        parser, setup_grp, run_grp = super(
+            SensitivityPlot, cls)._modify_parser(parser)
+        defaults = default_sens_config()
+        parser.update_arg('names', short='n', group=setup_grp,
+                          nargs='+', metavar='variable',
+                          choices=defaults.names)
+        parser.update_arg('indicators', short='i', group=setup_grp,
+                          nargs='+', metavar='indicator',
+                          choices=defaults.indicators)
+        parser.pop_arg('sa')
+        parser.pop_arg('meta')
+        return parser, setup_grp, run_grp
 
     @property
     def sql_dtypes(self):
@@ -650,7 +681,7 @@ class SensitivityPlot(utils.TaskBase):
         experiments = self.stations
         all_exps = self.organizer.config.experiments
         dfs = []
-        for variable in self.task_config.variables:
+        for variable in self.task_config.names:
             df = pd.DataFrame(
                 [all_exps[exp]['evaluation']['quality'][variable]
                  for exp in experiments],
@@ -747,7 +778,7 @@ class SensitivityPlot2D(SensitivityPlot):
         pdf = PdfPages(plot_output)
         all_exps = self.organizer.config.experiments
         for ind in self.task_config.indicators:
-            for variable in self.task_config.variables:
+            for variable in self.task_config.names:
                 df = full_df[full_df.vname == variable]
                 vals = {
                     key: group[ind] for key, group in df.groupby('thresh')}
