@@ -17,6 +17,7 @@ Command Line API Reference
     gwgen.param
     gwgen.run
     gwgen.evaluate
+    gwgen.bias
     gwgen.sens
     gwgen.archive
     gwgen.remove

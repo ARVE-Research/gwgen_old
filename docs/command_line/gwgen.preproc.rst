@@ -6,6 +6,7 @@ gwgen preproc
 
     gwgen.preproc.select
     gwgen.preproc.cloud
+    gwgen.preproc.test
 
 .. argparse::
    :module: gwgen.main

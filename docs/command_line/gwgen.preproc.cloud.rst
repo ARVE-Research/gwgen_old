@@ -4,8 +4,8 @@ gwgen preproc cloud
 .. toctree::
     :maxdepth: 1
 
-    gwgen.preproc.cloud.eecra_ghcn_map
     gwgen.preproc.cloud.eecra_inventory
+    gwgen.preproc.cloud.eecra_ghcn_map
 
 .. argparse::
    :module: gwgen.main

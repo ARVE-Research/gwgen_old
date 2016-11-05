@@ -39,13 +39,12 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
     'sphinx.ext.mathjax',
+    'sphinx.ext.napoleon',
     'matplotlib.sphinxext.plot_directive',
     'IPython.sphinxext.ipython_console_highlighting',
     'IPython.sphinxext.ipython_directive',
     'sphinxarg.ext',
-    'psyplot.sphinxext.extended_napoleon',
-    'psyplot.sphinxext.no_data',
-    'psyplot.sphinxext.extended_autodoc',
+    'autodocsumm',
     # 'psyplot.sphinxext.example_gallery',
 ]
 
