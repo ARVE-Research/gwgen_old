@@ -1,4 +1,5 @@
 """Module holding the parameterization scripts for the weather generator"""
+from __future__ import division
 import os
 import os.path as osp
 import tempfile
