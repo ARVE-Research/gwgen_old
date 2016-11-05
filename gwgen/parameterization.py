@@ -734,7 +734,8 @@ class MarkovChain(Parameterizer):
         bounds=['minmax', 11, 0, 99],
         cbar='',
         ci=None,
-        legendlabels=['$%(symbol)s$ = %(slope)1.4f * %(xname)s'],
+        legendlabels=['$%(symbol)s$ = %(slope)1.4f * %(xname)s, '
+                      '$R^2$ = %(rsquared)1.3f'],
         )
 
     @property
@@ -857,7 +858,7 @@ class MarkovChain(Parameterizer):
         sp(name='p11').update(
             fix=[(1., 1.)], legendlabels=[
                 '$%(symbol)s$ = %(intercept)1.4f + '
-                '%(slope)1.4f * %(xname)s'])
+                '%(slope)1.4f * %(xname)s, $R^2$ = %(rsquared)1.3f'])
         sp(ax=axes[-1]).update(xlabel='%(long_name)s')
         return sp
 
