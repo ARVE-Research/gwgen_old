@@ -527,11 +527,11 @@ class SensitivityAnalysis(object):
                         *args, **kwargs))
 
 
-SensitivityPlotConfig = namedtuple(
-    'SensitivityPlotConfig',
-    ('sa', 'indicators', 'names', 'meta') + utils.TaskConfig._fields)
+_SensitivityPlotConfig = namedtuple(
+    '_SensitivityPlotConfig', ('sa', 'indicators', 'names', 'meta'))
 
-SensitivityPlotConfig = utils.append_doc(SensitivityPlotConfig, """
+_SensitivityPlotConfig = utils.append_doc(
+    _SensitivityPlotConfig, docstrings.get_sections("""
 Parameters
 ----------
 sa: SensitivityAnalysis
@@ -542,8 +542,10 @@ names: str or list of str
     The name of the variables to plot
 meta: dict
     Alternative meta information for the data set
-%(TaskConfig.parameters)s
-""")
+""", '_SensitivityPlotConfig'))
+
+SensitivityPlotConfig = utils.enhanced_config(_SensitivityPlotConfig,
+                                              'SensitivityPlotConfig')
 
 
 @docstrings.dedent

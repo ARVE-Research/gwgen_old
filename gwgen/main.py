@@ -3052,7 +3052,7 @@ def logistic_function(x, L, k, x0):
 
     .. math::
 
-        f(x) = \frac{L}{1 + \mathrm e^{-k(x-x_0)}}
+        f(x) = \\frac{L}{1 + \\mathrm e^{-k(x-x_0)}}
 
     Parameters
     ----------
