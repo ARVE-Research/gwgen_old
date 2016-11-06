@@ -2343,6 +2343,9 @@ class ModelOrganizer(object):
         d = self.exp_config.setdefault('postproc', OrderedDict()).setdefault(
             'bias', OrderedDict()).get(vname, OrderedDict())
         plot_output = plot_output or d.get('plot_output')
+        if plot_output is None:
+            plot_output = osp.join(
+                postproc_dir, vname + '_bias_correction.pdf')
 
         project_output = osp.splitext(plot_output)[0] + '.pkl'
         nc_output = osp.splitext(plot_output)[0] + '.nc'
@@ -2350,9 +2353,6 @@ class ModelOrganizer(object):
         d['plot_file'] = [plot_output, quants_output + '.pdf']
         d['project_file'] = [project_output, quants_output + '.pkl']
         d['nc_file'] = [nc_output, quants_output + '.nc']
-        if plot_output is None:
-            plot_output = osp.join(
-                postproc_dir, vname + '_bias_correction.pdf')
 
         # --- slope bias correction
         if osp.exists(project_output) and not new_project:
