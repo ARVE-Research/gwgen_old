@@ -1248,7 +1248,7 @@ class ModelOrganizer(object):
         if any(paths.values()):
             for key, val in paths.items():
                 if val:
-                    print(getattr(self.config, key))
+                    return self.print_(getattr(self.config, key))
             return
         if archives:
             base = OrderedDict()

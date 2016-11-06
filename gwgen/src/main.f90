@@ -65,7 +65,7 @@ integer :: ndm(n_tot) = 0
 
 real(sp) :: prec_t
 
-integer :: i_count
+integer :: i_count, i_linecount = 0
 
 type(metvars_out), dimension(31) :: month_met
 
@@ -136,6 +136,8 @@ do  !read the input file until the end
   nullify(mtmax_curr)
   nullify(mcloud_curr)
   nullify(mwind_curr)
+
+  i_linecount = i_linecount + 1
 
   !initialize weather residuals and other variables that carry over from one day to the next
   !these and the random state below should be reset once per station
@@ -222,6 +224,15 @@ do  !read the input file until the end
   prec_t = max(0.5,0.05 * mprec(n_curr))  !set quality threshold for preciptation amount
 
   i_count = 1
+
+  if (met_in%prec < 0.0 .and. met_in%prec > -0.1) then
+    met_in%prec = 0.0
+  elseif (met_in%prec < -0.1) then
+    print *, "Invalid precipitation value", met_in%prec, "at line ", i_linecount
+    stop 1
+  endif
+
+
 
   do
 
