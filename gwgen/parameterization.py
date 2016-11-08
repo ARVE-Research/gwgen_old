@@ -491,7 +491,8 @@ class PrcpDistParams(Parameterizer):
         xrange=(0, ['rounded', 95]),
         yrange=(0, ['rounded', 95]),
         fix=0,
-        legendlabels=['$\\theta$ = %(slope)1.4f * $\\bar{{p}}_d$'],
+        legendlabels=['$\\theta$ = %(slope)1.4f * $\\bar{{p}}_d$, '
+                      '$R^2$ = %(rsquared)1.3f'],
         bounds=['minmax', 11, 0, 99],
         cbar='',
         bins=10,
@@ -1054,8 +1055,8 @@ class TemperatureParameterizer(Parameterizer):
             psy.plot.densityreg(
                 ds, name=base + '_wet', ax=next(axes),
                 coord=v if not t else v + '_wet',
-                ylabel='%(long_name)s\non %(state)s days',
-                text=[(middle, 0.03, '%(xlong_name)s', 'fig', dict(
+                ylabel='%(long_name)s [$^\circ$C]\non %(state)s days',
+                text=[(middle, 0.03, '%(xlong_name)s [$^\circ$C]', 'fig', dict(
                      weight='bold', ha='center'))], fmt=self.fmt)
             psy.plot.densityreg(
                 ds, name=base + '_dry', ax=next(axes),
@@ -2009,9 +2010,10 @@ class WindParameterizer(CompleteMonthlyWind):
         for t in types:
             psy.plot.densityreg(
                 ds, name='%swind_wet' % (t), ax=next(axes),
-                ylabel='%(long_name)s\non %(state)s days',
-                text=[(middle, 0.03, '%(xlong_name)s', 'fig', dict(
-                     weight='bold', ha='center'))], fmt=self.fmt,
+                ylabel='%(long_name)s [%(units)s]\non %(state)s days',
+                text=[(middle, 0.03,
+                       'square root of %(xlong_name)s [%(xunits)s]', 'fig',
+                       dict(weight='bold', ha='center'))], fmt=self.fmt,
                 coord='wind' + ('_wet' if t == 'sd_' else ''))
             psy.plot.densityreg(
                 ds, name='%swind_dry' % (t), ax=next(axes),
