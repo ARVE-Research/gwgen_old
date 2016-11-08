@@ -2513,10 +2513,10 @@ class ModelOrganizer(object):
             'plot', help='Plot the results sensitivity analysis experiments')
         sp.setup_args(SensitivityAnalysis.plot)
         defaults = default_sens_config()
-        parser.update_arg('names', short='n', nargs='+', metavar='variable',
-                          choices=defaults.names)
-        parser.update_arg('indicators', short='i', nargs='+',
-                          metavar='indicator', choices=defaults.indicators)
+        sp.update_arg('names', short='n', nargs='+', metavar='variable',
+                      choices=defaults.names)
+        sp.update_arg('indicators', short='i', nargs='+',
+                      metavar='indicator', choices=defaults.indicators)
         sp.update_arg('meta', metavar='<yaml-file>')
         tasks = utils.unique_everseen(
             SensitivityPlot.get_manager().sort_by_requirement(
