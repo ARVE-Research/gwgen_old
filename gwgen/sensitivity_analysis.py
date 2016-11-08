@@ -491,8 +491,8 @@ class SensitivityAnalysis(object):
         ----------
         indicators: str or list of str
             The name of the indicators from the `quality` evaluation task
-        variables: str or list of str
-            The name of the variables to plot
+        names: str or list of str
+            The name(s) of the variable(s) to plot
         meta: dict or path to yaml configuration file
             Alternative meta information for the data set
         ``**kwargs``
