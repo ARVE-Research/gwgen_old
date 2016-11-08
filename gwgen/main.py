@@ -2359,6 +2359,8 @@ class ModelOrganizer(object):
             mp = psy.Project.load_project(project_output, datasets=[ds])
             sp2 = mp.linreg
         else:
+            import seaborn as sns
+            sns.set_style('white')
             sp1 = psy.plot.lineplot(ds, name='slope', coord='unorm',
                                     linewidth=0, marker='o', legend=False)
             sp2 = psy.plot.linreg(
@@ -2443,7 +2445,7 @@ class ModelOrganizer(object):
 
     def _modify_sensitivity_analysis(self, parser):
         from gwgen.sensitivity_analysis import (
-            SensitivityAnalysis, SensitivityPlot)
+            SensitivityAnalysis, SensitivityPlot, default_sens_config)
 
         def params_type(s):
             splitted = s.split('=', 1)
@@ -2510,12 +2512,11 @@ class ModelOrganizer(object):
         sp = sps.add_parser(
             'plot', help='Plot the results sensitivity analysis experiments')
         sp.setup_args(SensitivityAnalysis.plot)
-        sp.update_arg('indicators', short='ind', nargs='+',
-                      metavar='indicator',
-                      choices=['rsquared', 'slope', 'ks', 'quality'])
-        sp.update_arg('variables', short='v', nargs='+',
-                      metavar='variable',
-                      choices=['prcp', 'tmin', 'tmax', 'mean_cloud'])
+        defaults = default_sens_config()
+        parser.update_arg('names', short='n', nargs='+', metavar='variable',
+                          choices=defaults.names)
+        parser.update_arg('indicators', short='i', nargs='+',
+                          metavar='indicator', choices=defaults.indicators)
         sp.update_arg('meta', metavar='<yaml-file>')
         tasks = utils.unique_everseen(
             SensitivityPlot.get_manager().sort_by_requirement(

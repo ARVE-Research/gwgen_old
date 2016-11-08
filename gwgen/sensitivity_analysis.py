@@ -632,13 +632,8 @@ class SensitivityPlot(utils.TaskBase):
         parser.setup_args(default_sens_config)
         parser, setup_grp, run_grp = super(
             SensitivityPlot, cls)._modify_parser(parser)
-        defaults = default_sens_config()
-        parser.update_arg('names', short='n', group=setup_grp,
-                          nargs='+', metavar='variable',
-                          choices=defaults.names)
-        parser.update_arg('indicators', short='i', group=setup_grp,
-                          nargs='+', metavar='indicator',
-                          choices=defaults.indicators)
+        parser.pop_arg('names')
+        parser.pop_arg('meta')
         parser.pop_arg('sa')
         parser.pop_arg('meta')
         return parser, setup_grp, run_grp
