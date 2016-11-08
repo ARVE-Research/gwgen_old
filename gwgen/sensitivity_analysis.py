@@ -633,7 +633,7 @@ class SensitivityPlot(utils.TaskBase):
         parser, setup_grp, run_grp = super(
             SensitivityPlot, cls)._modify_parser(parser)
         parser.pop_arg('names')
-        parser.pop_arg('meta')
+        parser.pop_arg('indicators')
         parser.pop_arg('sa')
         parser.pop_arg('meta')
         return parser, setup_grp, run_grp
