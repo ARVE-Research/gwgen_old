@@ -718,30 +718,56 @@ class KSEvaluation(QuantileEvaluation):
         from matplotlib.backends.backend_pdf import PdfPages
         import cartopy.crs as ccrs
         import matplotlib.pyplot as plt
-        df = self.data
         names = list(self.names)
-        df_fract = df.groupby(level='id').agg(dict(zip(
+        df = self.data[names]
+        for n in names:
+            df[n] = df.pop(n).astype(float)
+        g = df.groupby(level='id')
+        df_fract = g.agg(dict(zip(
             names, repeat(self.significance_fractions))))
+        df_fract = df_fract.merge(
+            g.agg(dict(zip(names, repeat('sum')))), left_index=True,
+            right_index=True, suffixes=['', '_sum'])
         df_lola = EvaluationPreparation.from_task(self).station_list
-
+        df_lola = df_lola.ix[~df_lola.duplicated('id').values]
+        df_lola.set_index('id', inplace=True)
         df_plot = df_lola.merge(df_fract, how='right', left_index=True,
                                 right_index=True)
         pdf = PdfPages(self.pdf_file)
         for name in names:
             fig = plt.figure()
             ax = plt.axes(projection=ccrs.PlateCarree())
+            ax.set_title(self.names[name]['long_name'])
             ax.coastlines()
             ax.background_patch.set_facecolor('0.95')
             ax.set_global()
             df_plot.sort_values(name, ascending=False).plot.scatter(
                 'lon', 'lat', c=name, ax=ax, colorbar=False,
-                transform=ccrs.PlateCarree(), cmap='Reds_r', s=5)
+                transform=ccrs.PlateCarree(), cmap='Reds_r', s=5,
+                edgecolor='none')
 
             cbar = fig.colorbar(ax.collections[-1], orientation='horizontal')
             cbar.set_label(
                 'Percentage of years not differing significantly[%]')
 
             pdf.savefig(fig, bbox_inches='tight')
+
+            fig = plt.figure()
+            ax = plt.axes(projection=ccrs.PlateCarree())
+            ax.set_title(self.names[name]['long_name'])
+            ax.coastlines()
+            ax.background_patch.set_facecolor('0.95')
+            ax.set_global()
+            df_plot.sort_values(name, ascending=False).plot.scatter(
+                'lon', 'lat', c=name + '_sum', ax=ax, colorbar=False,
+                transform=ccrs.PlateCarree(), cmap='Reds', s=5,
+                edgecolor='none')
+
+            cbar = fig.colorbar(ax.collections[-1], orientation='horizontal')
+            cbar.set_label('Significantly differing years')
+
+            pdf.savefig(fig, bbox_inches='tight')
+        pdf.close()
 
     @classmethod
     def _modify_parser(cls, parser):
