@@ -5,7 +5,7 @@ import os.path as osp
 import six
 from collections import namedtuple
 from psyplot.compat.pycompat import OrderedDict
-from itertools import chain, starmap
+from itertools import chain, starmap, repeat
 import numpy as np
 from scipy import stats
 import pandas as pd
@@ -653,6 +653,11 @@ class KSEvaluation(QuantileEvaluation):
                    (cloud_sim, cloud_ref, 'mean_cloud'),
                    (wind_sim, wind_ref, 'wind')])))))
 
+    def significance_fractions(self, series):
+        "The percentage of stations with no significant difference"
+        return 100. - (len(series.ix[series.notnull() & (series)]) /
+                       series.count())*100.
+
     def run(self, info):
         """Run the evaluation
 
@@ -660,29 +665,60 @@ class KSEvaluation(QuantileEvaluation):
         ----------
         info: dict
             The configuration dictionary"""
-        def significance_fractions(vname):
-            "The percentage of stations with no significant difference"
-            return 100. - (len(df[vname][df[vname].notnull() & (df[vname])]) /
-                           df[vname].count())*100.
         logger = self.logger
         logger.info('Calculating %s evaluation', self.name)
 
         df = self.data
         names = ['prcp', 'tmin', 'tmax', 'mean_cloud']
         for name in names:
-            info[name] = float(significance_fractions(name))
+            info[name] = float(self.significance_fractions(df[name]))
 
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug('Done. Stations without significant difference:')
             for name, val in info.items():
                 logger.debug('    %s: %6.3f %%' % (name, val))
 
+        self.plot_map()
+        info['plot_file'] = self.pdf_file
+
+    def plot_map(self):
+        from matplotlib.backends.backend_pdf import PdfPages
+        import cartopy.crs as ccrs
+        import matplotlib.pyplot as plt
+        df = self.data
+        names = self.task_config.names
+        df_fract = df.groupby(level='id').agg(dict(zip(
+            names, repeat(self.significance_fractions))))
+        df_lola = EvaluationPreparation.from_task(self).station_list
+
+        df_plot = df_lola.merge(df_fract, how='right', left_index=True,
+                                right_index=True)
+        pdf = PdfPages(self.pdf_file)
+        for name in names:
+            fig = plt.figure()
+            ax = plt.axes(projection=ccrs.PlateCarree())
+            ax.coastlines()
+            ax.background_patch.set_facecolor('0.95')
+            ax.set_global()
+            df_plot.sort_values(name, ascending=False).plot.scatter(
+                'lon', 'lat', c=name, ax=ax, colorbar=False,
+                transform=ccrs.PlateCarree(), cmap='Reds_r', s=5)
+
+            cbar = fig.colorbar(ax.collections[-1], orientation='horizontal')
+            cbar.set_label(
+                'Percentage of years not differing significantly[%]')
+
+            pdf.savefig(fig, bbox_inches='tight')
+
+
     @classmethod
     def _modify_parser(cls, parser):
-        cls.has_run = False
         parser, setup_grp, run_grp = super(
             QuantileEvaluation, cls)._modify_parser(parser)
-        cls.has_run = True
+        parser.pop_arg('nc_output', None)
+        parser.pop_arg('project_output', None)
+        parser.pop_arg('new_project', None)
+        parser.pop_arg('project', None)
         return parser, setup_grp, run_grp
 
 
