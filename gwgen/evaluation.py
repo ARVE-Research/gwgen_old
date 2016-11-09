@@ -325,7 +325,7 @@ class OutputTask(Evaluator):
             "output of the model!")
 
 
-_KSConfig = namedtuple('_KSConfig', ['no_rounding', 'names'])
+_KSConfig = namedtuple('_KSConfig', ['no_rounding', 'names', 'transform_wind'])
 
 
 _KSConfig = utils.append_doc(_KSConfig, docstrings.get_sections("""
@@ -337,7 +337,10 @@ no_rounding: bool
     two values with in the entire data
 names: list of str
     The list of variables use for calculation. If None, all variables will be
-    used""", '_KSConfig'))
+    used
+transform_wind: bool
+    If True, the square root of the wind is evaluated (as this is also
+    simulated in the weather generator)""", '_KSConfig'))
 
 
 KSConfig = utils.enhanced_config(_KSConfig, 'KSConfig')
@@ -345,7 +348,7 @@ KSConfig = utils.enhanced_config(_KSConfig, 'KSConfig')
 
 @docstrings.dedent
 def default_ks_config(
-        no_rounding=False, names=None, *args, **kwargs):
+        no_rounding=False, names=None, transform_wind=False, *args, **kwargs):
     """
     The default configuration for :class:`KSEvaluation` instances.
     See also the :attr:`KSEvaluation.default_config` attribute
@@ -353,29 +356,22 @@ def default_ks_config(
     Parameters
     ----------
     %(KSConfig.parameters)s"""
-    return KSConfig(no_rounding, names, *utils.default_config(*args, **kwargs))
+    return KSConfig(no_rounding, names, transform_wind,
+                    *utils.default_config(*args, **kwargs))
 
 
 _QuantileConfig = namedtuple(
     '_QuantileConfig',
-    list(_KSConfig._fields) + ['quantiles', 'transform_wind'])
+    list(_KSConfig._fields) + ['quantiles'])
 
 
 _QuantileConfig = utils.append_doc(_QuantileConfig, docstrings.get_sections("""
 Parameters
 ----------
+%(_KSConfig.parameters)
 quantiles: list of floats
     The quantiles to use for calculating the percentiles
-transform_wind: bool
-    If True, the square root of the wind is evaluated (as this is also
-    simulated in the weather generator)
-no_rounding: bool
-    Do not round the simulation to the infered precision of the
-    reference. The inferred precision is the minimum difference between
-    two values with in the entire data
-names: list of str
-    The list of variables use for calculation. If None, all variables will be
-    used""", '_QuantileConfig'))
+""", '_QuantileConfig'))
 
 
 QuantileConfig = utils.enhanced_config(_QuantileConfig, 'QuantileConfig')
@@ -383,8 +379,7 @@ QuantileConfig = utils.enhanced_config(_QuantileConfig, 'QuantileConfig')
 
 @docstrings.dedent
 def default_quantile_config(
-        quantiles=[1, 5, 10, 25, 50, 75, 90, 95, 99, 100],
-        transform_wind=False, *args, **kwargs):
+        quantiles=[1, 5, 10, 25, 50, 75, 90, 95, 99, 100], *args, **kwargs):
     """
     The default configuration for :class:`QuantileEvaluation` instances.
     See also the :attr:`QuantileEvaluation.default_config` attribute
@@ -392,8 +387,7 @@ def default_quantile_config(
     Parameters
     ----------
     %(QuantileConfig.parameters)s"""
-    return QuantileConfig(quantiles, transform_wind,
-                          *default_ks_config(*args, **kwargs))
+    return QuantileConfig(quantiles, *default_ks_config(*args, **kwargs))
 
 
 class QuantileEvaluation(Evaluator):
@@ -540,6 +534,7 @@ class QuantileEvaluation(Evaluator):
 
     @classmethod
     def _modify_parser(cls, parser):
+        parser.setup_args(default_ks_config)
         parser.setup_args(default_quantile_config)
         parser, setup_grp, run_grp = super(
             QuantileEvaluation, cls)._modify_parser(parser)
@@ -757,6 +752,7 @@ class KSEvaluation(QuantileEvaluation):
         parser.update_arg('names', short='n', group=setup_grp,
                           nargs='+', metavar='variable',
                           choices=list(cls.names))
+        parser.update_arg('transform_wind', short='tw', group=setup_grp)
         parser.pop_arg('nc_output', None)
         parser.pop_arg('project_output', None)
         parser.pop_arg('new_project', None)
