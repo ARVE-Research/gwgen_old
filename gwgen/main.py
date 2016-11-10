@@ -505,8 +505,9 @@ class ModelOrganizer(object):
             except KeyError:
                 pass
 
-    def _get_main_kwargs(self, kwargs):
-        return {key: kwargs.pop(key) for key in list(kwargs)
+    def _get_main_kwargs(self, kwargs, keep=False):
+        get = kwargs.get if keep else kwargs.pop
+        return {key: get(key) for key in list(kwargs)
                 if key in inspect.getargspec(self.main)[0]}
 
     # -------------------------------------------------------------------------
@@ -2270,7 +2271,8 @@ class ModelOrganizer(object):
 
     @property
     def bias_correction_methods(self):
-        return {'wind': self.wind_bias_correction}
+        return {'wind': self.wind_bias_correction,
+                'tmin': self.tmin_bias_correction}
 
     @docstrings.dedent
     def bias_correction(
@@ -2301,7 +2303,7 @@ class ModelOrganizer(object):
             The results of the underlying bias correction methods"""
         methods = self.bias_correction_methods
 
-        main_kws = self._get_main_kwargs(kwargs)
+        main_kws = self._get_main_kwargs(kwargs, keep=True)
         bias_kws = {
             key: kwargs.pop(key) for key in set(methods).intersection(kwargs)}
 
@@ -2358,14 +2360,20 @@ class ModelOrganizer(object):
         # -- wind
         sp = sps.add_parser('wind')
         sp.setup_args(self.wind_bias_correction)
-        parser.update_arg('new_project', short='np')
+        sp.update_arg('new_project', short='np')
         sp.update_arg('plot_output', short='po')
+        sp.pop_arg('info')
+        sp.pop_arg('close')
+        sp.create_arguments()
 
         # -- tmin
-#        sp = sps.add_parser('tmin')
-#        sp.setup_args(self.tmin_bias_correction)
-#        parser.update_arg('new_project', short='np')
-#        sp.update_arg('plot_output', short='po')
+        sp = sps.add_parser('tmin')
+        sp.setup_args(self.tmin_bias_correction)
+        sp.update_arg('new_project', short='np')
+        sp.update_arg('plot_output', short='po')
+        sp.pop_arg('info')
+        sp.pop_arg('close')
+        sp.create_arguments()
 
     @docstrings.dedent
     def wind_bias_correction(self, info, new_project=False, plot_output=None,
@@ -2460,6 +2468,105 @@ class ModelOrganizer(object):
         nml = self.exp_config['namelist']['weathergen_ctl']
         for letter in ['L', 'k', 'x0']:
             nml[vname + '_slope_bias_' + letter] = float(arr.attrs[letter])
+
+        # --- save the data
+        self.logger.info('Saving plots to %s', plot_output)
+        mp = psy.gcp(True)
+        mp.export(plot_output)
+        self.logger.info('Saving project to %s', project_output)
+        mp.save_project(project_output, paths=[nc_output])
+
+        if close:
+            psy.gcp(True).close(True, True, True)
+
+    @docstrings.dedent
+    def tmin_bias_correction(self, info, new_project=False, plot_output=None,
+                             close=True):
+        """
+        Perform a bias correction for the minimum temperature data
+
+        Parameters
+        ----------
+        info: dict
+            The configuration of the quantile evaluation
+        new_project: bool
+            If True, a new project will be created even if a file in
+            `project_output` exists already
+        plot_output: str
+            The name of the output file. If not specified, it defaults to
+            `<exp_dir>/postproc/<vname>_bias_correction.pdf`
+        close: bool
+            If True, close the project at the end
+
+        Returns
+        -------
+        object
+            The statsmodel fit object for the slope ~ unorm fit
+        np.ndarray
+            The optimal fit parameters for the intercept fit
+        np.ndarray
+            The covriance matrix of the intercept fit"""
+        import pandas as pd
+        from scipy import stats
+        import xarray as xr
+        import psyplot.project as psy
+
+        vname = 'tmin'
+
+        self.logger.debug('Calculating tmin bias correction for experiment %s',
+                          self.experiment)
+        postproc_dir = self.exp_config.setdefault(
+            'postprocdir', osp.join(self.exp_config['expdir'], 'postproc'))
+
+        df = pd.DataFrame(info[vname]).T
+        try:
+            # drop all percentiles
+            df.drop('All', inplace=True)
+        except (ValueError, KeyError) as e:
+            pass
+        df.index.name = 'pctl'
+        df.reset_index(inplace=True)
+        df['unorm'] = stats.norm.ppf(
+            df['pctl'].astype(float) / 100., 0, 1.0)
+        ds = xr.Dataset.from_dataframe(df)
+
+        # --- plots
+        d = self.exp_config.setdefault('postproc', OrderedDict()).setdefault(
+            'bias', OrderedDict()).setdefault(vname, OrderedDict())
+        plot_output = plot_output or d.get('plot_output')
+        if plot_output is None:
+            plot_output = osp.join(
+                postproc_dir, vname + '_bias_correction.pdf')
+
+        project_output = osp.splitext(plot_output)[0] + '.pkl'
+        nc_output = osp.splitext(plot_output)[0] + '.nc'
+
+        d['plot_file'] = plot_output
+        d['project_file'] = project_output
+        d['nc_file'] = nc_output
+
+        # --- slope bias correction
+        if osp.exists(project_output) and not new_project:
+            mp = psy.Project.load_project(project_output, datasets=[ds])
+            sp2 = mp.linreg
+        else:
+            import seaborn as sns
+            sns.set_style('white')
+            sp1 = psy.plot.lineplot(ds, name='intercept', coord='unorm',
+                                    linewidth=0, marker='o', legend=False)
+            sp2 = psy.plot.linreg(
+                 ds, name='intercept', ax=sp1[0].ax,
+                 coord='unorm', fit='poly3',
+                 ylabel='Bias [$^\circ$C]',
+                 legendlabels=(
+                     'Simulated - Observed = $%(c0)4.3f + %(c1)4.3fx + '
+                     '%(c2)4.3fx^2 + %(c3)4.3fx^3$'),
+                 legend={'fontsize': 'x-large', 'loc': 'upper left'},
+                 xlabel='Random number from normal distribution')
+            sp2.share(sp1[0], ['color', 'xlim', 'ylim'])
+        attrs = sp2.plotters[0].plot_data[0].attrs
+        nml = self.exp_config['namelist']['weathergen_ctl']
+        nml['tmin_bias_coeffs'] = [float(attrs['c%i' % i]) for i in range(4)]
 
         # --- save the data
         self.logger.info('Saving plots to %s', plot_output)
