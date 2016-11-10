@@ -176,7 +176,7 @@ do  !read the input file until the end
 
   if (any(i_consecutives(n:1:-1) == 0)) then
     lmin = n_curr - minloc(i_consecutives(n:1:-1), 1) + 1
-    ld = SUM(ndm(:lmin - 1))
+    ld = max(1, SUM(ndm(:lmin - 1)))
     bcond_tmin(1) = mtmin(lmin - 1)
     bcond_tmax(1) = mtmax(lmin - 1)
     bcond_cloud(1) = mcloud(lmin - 1)
