@@ -81,7 +81,19 @@ class OrganizerTest(bt.BaseTest):
             ['info', '-M', '-m', modelname, '-nf']).info)
         self.assertEqual(d, organizer.config.models[modelname])
 
-
+    def test_wind_bias_correction(self):
+        """Test gwgen bias wind"""
+#        self.organizer.global_config['serial'] = True
+        self._test_init()
+        self.organizer.parse_args(
+            ('evaluate -s %s prepare -to-csv' % self.stations_file).split())
+        self.organizer.parse_args(['run'])
+#        self.organizer.global_config['nprocs'] = 2
+        self.organizer.parse_args('bias wind'.split())
+        self.organizer.fix_paths(self.organizer.exp_config)
+        ofile = self.organizer.exp_config['postproc']['bias']['wind'][
+            'plot_file']
+        self.assertTrue(osp.exists(ofile), msg=ofile + ' is missing')
 
 
 class ParserTest(unittest.TestCase):

@@ -262,14 +262,14 @@ class ModelOrganizer(object):
 
     commands = ['setup', 'compile_model', 'init', 'unarchive', 'configure',
                 'set_value', 'get_value', 'del_value', 'info',
-                'preproc', 'param', 'run', 'evaluate', 'wind_bias_correction',
+                'preproc', 'param', 'run', 'evaluate', 'bias_correction',
                 'sensitivity_analysis', 'archive', 'remove']
 
     #: mapping from the name of the parser command to the method name. Will be
     #: filled by the :meth:`setup_parser` method
     parser_commands = {'compile_model': 'compile',
                        'sensitivity_analysis': 'sens',
-                       'wind_bias_correction': 'bias'}
+                       'bias_correction': 'bias'}
 
     #: The :class:`gwgen.parser.FuncArgParser` to use for initializing the
     #: model. This attribute is set by the :meth:`setup_parser` method and used
@@ -2166,8 +2166,9 @@ class ModelOrganizer(object):
         exp_config['input'] = ifile
         exp_config['indir'] = osp.dirname(ifile)
         exp_config['workdir'] = work_dir
-        nml = exp_config.get('namelist',
-                             {'weathergen_ctl': {}, 'main_ctl': {}})
+        nml = exp_config.setdefault(
+            'namelist', {'weathergen_ctl': OrderedDict(),
+                         'main_ctl': OrderedDict()})
         for key in ['weathergen_ctl', 'main_ctl']:
             nml.setdefault(key, {})
 
@@ -2267,12 +2268,15 @@ class ModelOrganizer(object):
         from gwgen.evaluation import Evaluator
         self._modify_task_parser(parser, Evaluator, *args, **kwargs)
 
+    @property
+    def bias_correction_methods(self):
+        return {'wind': self.wind_bias_correction}
+
     @docstrings.dedent
-    def wind_bias_correction(
+    def bias_correction(
             self, keep=False,
             quantiles=[1] + list(range(5, 80, 5)) + list(range(80, 100)),
-            new_project=False, plot_output=None, no_evaluation=False,
-            close=True, **kwargs):
+            no_evaluation=False, new_project=False, **kwargs):
         """
         Perform a bias correction for the data
 
@@ -2284,15 +2288,101 @@ class ModelOrganizer(object):
         quantiles: list of float
             The quantiles to use for the bias correction. Does not have an
             effect if `no_evaluation` is set to True
+        no_evaluation: bool
+            If True, the existing evaluation in the configuration is used for
+            the bias correction
+        new_project: bool
+            If True, a new project will be created even if a file in
+            `project_output` exists already
+
+        Returns
+        -------
+        dict
+            The results of the underlying bias correction methods"""
+        methods = self.bias_correction_methods
+
+        main_kws = self._get_main_kwargs(kwargs)
+        bias_kws = {
+            key: kwargs.pop(key) for key in set(methods).intersection(kwargs)}
+
+        self.main(**main_kws)
+        self.logger.debug('Calculating bias correction for experiment %s',
+                          self.experiment)
+        old = self.exp_config.get('evaluation', {}).get('quants')
+        postproc_dir = self.exp_config.setdefault(
+            'postprocdir', osp.join(self.exp_config['expdir'], 'postproc'))
+        if not osp.exists(postproc_dir):
+            os.makedirs(postproc_dir)
+        quants_output = osp.join(postproc_dir, 'quants_bias')
+        kwargs['quants'] = {'quantiles': quantiles, 'transform_wind': True,
+                            'new_project': new_project,
+                            'names': list(bias_kws),
+                            'project_output': quants_output + '.pkl',
+                            'plot_output': quants_output + '.pdf',
+                            'nc_output': quants_output + '.nc'}
+        self.evaluate(**kwargs)
+
+        d = self.exp_config.setdefault('postproc', OrderedDict()).setdefault(
+            'bias', OrderedDict())
+
+        d['plot_file'] = quants_output + '.pdf'
+        d['project_file'] = quants_output + '.pkl'
+        d['nc_file'] = quants_output + '.nc'
+
+        for name, kws in bias_kws.items():
+            if isinstance(kws, Namespace):
+                kws = vars(kws)
+                for key in ['keep', 'quantiles', 'no_evaluation']:
+                    kws.pop(key, None)
+            methods[name](self.exp_config['evaluation']['quants'], **kws)
+
+        if not keep:
+            if old:
+                self.exp_config['evaluation']['quants'] = old
+            else:
+                self.exp_config['evaluation'].pop('quants')
+
+    def _modify_bias_correction(self, parser):
+        self._modify_main(parser)
+        parser.update_arg('keep', short='k')
+        parser.update_arg(
+            'quantiles', short='q', type=utils.str_ranges,
+            metavar='f1[;f21[,f22[,f23]]]', help=docstrings.dedents("""
+                The quantiles to use for calculating the percentiles.
+                %(str_ranges.s_help)s."""))
+        parser.update_arg('new_project', short='np')
+        parser.update_arg('no_evaluation', short='ne')
+
+        sps = parser.add_subparsers(chain=True)
+
+        # -- wind
+        sp = sps.add_parser('wind')
+        sp.setup_args(self.wind_bias_correction)
+        parser.update_arg('new_project', short='np')
+        sp.update_arg('plot_output', short='po')
+
+        # -- tmin
+#        sp = sps.add_parser('tmin')
+#        sp.setup_args(self.tmin_bias_correction)
+#        parser.update_arg('new_project', short='np')
+#        sp.update_arg('plot_output', short='po')
+
+    @docstrings.dedent
+    def wind_bias_correction(self, info, new_project=False, plot_output=None,
+                             close=True):
+        """
+        Perform a bias correction for the data
+
+        Parameters
+        ----------
+        info: dict
+            The configuration of the quantile evaluation
         new_project: bool
             If True, a new project will be created even if a file in
             `project_output` exists already
         plot_output: str
             The name of the output file. If not specified, it defaults to
             `<exp_dir>/postproc/<vname>_bias_correction.pdf`
-        no_evaluation: bool
-            If True, the existing evaluation in the configuration is used for
-            the bias correction
         close: bool
             If True, close the project at the end
 
@@ -2311,23 +2401,12 @@ class ModelOrganizer(object):
 
         vname = 'wind'
 
-        self.main(**kwargs)
         self.logger.debug('Calculating bias correction for experiment %s',
                           self.experiment)
-        old = self.exp_config.get('evaluation', {}).get('quants')
         postproc_dir = self.exp_config.setdefault(
             'postprocdir', osp.join(self.exp_config['expdir'], 'postproc'))
-        if not osp.exists(postproc_dir):
-            os.makedirs(postproc_dir)
-        quants_output = osp.join(postproc_dir, vname + '_bias')
-        kwargs['quants'] = {'quantiles': quantiles, 'transform_wind': True,
-                            'new_project': new_project, 'names': [vname],
-                            'project_output': quants_output + '.pkl',
-                            'plot_output': quants_output + '.pdf',
-                            'nc_output': quants_output + '.nc'}
-        self.evaluate(**kwargs)
-        df = pd.DataFrame(
-            self.exp_config['evaluation']['quants'][vname]).T
+
+        df = pd.DataFrame(info[vname]).T
         try:
             # drop all percentiles
             df.drop('All', inplace=True)
@@ -2341,7 +2420,7 @@ class ModelOrganizer(object):
 
         # --- plots
         d = self.exp_config.setdefault('postproc', OrderedDict()).setdefault(
-            'bias', OrderedDict()).get(vname, OrderedDict())
+            'bias', OrderedDict()).setdefault(vname, OrderedDict())
         plot_output = plot_output or d.get('plot_output')
         if plot_output is None:
             plot_output = osp.join(
@@ -2350,9 +2429,9 @@ class ModelOrganizer(object):
         project_output = osp.splitext(plot_output)[0] + '.pkl'
         nc_output = osp.splitext(plot_output)[0] + '.nc'
 
-        d['plot_file'] = [plot_output, quants_output + '.pdf']
-        d['project_file'] = [project_output, quants_output + '.pkl']
-        d['nc_file'] = [nc_output, quants_output + '.nc']
+        d['plot_file'] = plot_output
+        d['project_file'] = project_output
+        d['nc_file'] = nc_output
 
         # --- slope bias correction
         if osp.exists(project_output) and not new_project:
@@ -2389,26 +2468,8 @@ class ModelOrganizer(object):
         self.logger.info('Saving project to %s', project_output)
         mp.save_project(project_output, paths=[nc_output])
 
-        if not keep:
-            if old:
-                self.exp_config['evaluation']['quants'] = old
-            else:
-                self.exp_config['evaluation'].pop('quants')
-
         if close:
             psy.gcp(True).close(True, True, True)
-
-    def _modify_wind_bias_correction(self, parser):
-        self._modify_main(parser)
-        parser.update_arg('keep', short='k')
-        parser.update_arg(
-            'quantiles', short='q', type=utils.str_ranges,
-            metavar='f1[;f21[,f22[,f23]]]', help=docstrings.dedents("""
-                The quantiles to use for calculating the percentiles.
-                %(str_ranges.s_help)s."""))
-        parser.update_arg('new_project', short='np')
-        parser.update_arg('no_evaluation', short='ne')
-        parser.update_arg('plot_output', short='po')
 
     # ----------------------- Sensitivity analysis ----------------------------
 
