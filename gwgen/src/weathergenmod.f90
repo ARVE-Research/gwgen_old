@@ -507,7 +507,7 @@ end if
 wind = wind * wind
 
 ! ----- tmin bias correction
-tmin = tmin - sum(tmin_bias_coeffs(:) * (/ 1.0, tmin, tmin**2, tmin**3 /))
+tmin = tmin - sum(tmin_bias_coeffs(:) * (resid(1) ** (/ 0, 1, 2, 3 /)))
 
 
 !---
