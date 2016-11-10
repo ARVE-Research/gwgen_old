@@ -1,7 +1,7 @@
 program weathergen_precip
 
 use csv_file,      only : csv_write
-use parametersmod, only : sp
+use parametersmod, only : sp, tfreeze
 use weathergenmod, only : metvars_in, metvars_out, weathergen, init_weathergen, &
                           rmsmooth
 use randomdistmod, only : ran_seed
@@ -65,7 +65,7 @@ integer :: ndm(n_tot) = 0
 
 real(sp) :: prec_t
 
-integer :: i_count, i_linecount = 0
+integer :: i_count, i_linecount = 1
 
 type(metvars_out), dimension(31) :: month_met
 
@@ -229,6 +229,12 @@ do  !read the input file until the end
     met_in%prec = 0.0
   elseif (met_in%prec < -0.1) then
     print *, "Invalid precipitation value", met_in%prec, "at line ", i_linecount
+    stop 1
+  elseif (met_in%tmin < tfreeze) then
+    print *, "Invalid minimum temperature value", met_in%tmin, "at line ", i_linecount
+    stop 1
+  elseif (met_in%tmax < tfreeze) then
+    print *, "Invalid maximum temperature value", met_in%tmax, "at line ", i_linecount
     stop 1
   endif
 
