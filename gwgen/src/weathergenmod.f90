@@ -324,9 +324,9 @@ real(sp) :: g_shape
 real(sp) :: g_scale
 real(sp) :: gp_scale
 
-! wind bias correction
-real(sp) :: slopecorr      ! slope correction
-real(sp) :: interceptcorr  ! intercept correction
+! bias correction
+real(sp) :: slopecorr      ! slope correction for wind
+real(sp) :: tmin_bias      ! intercept correction for tmin
 
 real(kind=8) :: cdf_thresh, pdf_thresh  ! gamma cdf and gamma pdf at the threshold
 
@@ -507,7 +507,8 @@ end if
 wind = wind * wind
 
 ! ----- tmin bias correction
-tmin = tmin - sum(tmin_bias_coeffs(:) * (resid(1) ** (/ 0, 1, 2, 3 /)))
+tmin_bias = sum(tmin_bias_coeffs(:) * (resid(1) ** (/ 0, 1, 2, 3 /)))
+tmin = tmin - tmin_bias
 
 
 !---
@@ -529,7 +530,8 @@ end if
 !see, e.g., Glassy & Running, Ecological Applications, 1994
 
 if (tmin+Tfreeze < 0.) then
-  write(0,*)'Unphysical temperature with ', tmin, 'K from a monthly mean ', tmin_mn, 'degC'
+  write(0,*)'Unphysical temperature with ', tmin, 'K from a monthly mean ', &
+      tmin_mn, 'degC with bias correction ', tmin_bias, 'K for residual', resid(4)
   stop 1
 end if
 !
