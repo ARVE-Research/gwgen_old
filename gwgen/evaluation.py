@@ -494,6 +494,11 @@ class QuantileEvaluation(Evaluator):
         df_ref = self.prepare.reference_data
         # create simulation dataframe
         df_sim = self.output.data
+        if len(df_ref) == 0 or len(df_sim) == 0:
+            self.logger.debug(
+                'Skipping %s because reference data contains no information!',
+                self.name)
+            return
         names = self.names
         # load observed precision
         if self.task_config.no_rounding:
@@ -615,6 +620,8 @@ class QuantileEvaluation(Evaluator):
         np.ndarray
             Rounded `sim`"""
         ref_sorted = np.unique(ref)
+        if len(ref_sorted) < 2:
+            return sim
         precision = (ref_sorted[1:] - ref_sorted[:-1]).min()
         return func((sim / precision) * precision)
 
