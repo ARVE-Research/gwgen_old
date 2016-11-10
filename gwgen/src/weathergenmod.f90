@@ -528,14 +528,14 @@ end if
 !this makes the asumption that there is a close correlation between Tmin and dewpoint
 !see, e.g., Glassy & Running, Ecological Applications, 1994
 
-if (tmin+Tfreeze < 0.) then
-  write(0,*)tmn,tmin_mn,tmin
-  stop
-end if
-
-es = 0.01 * esat(tmin+Tfreeze) !saturation vapor pressure (mbar)
-
-tdew = 34.07 + 4157. / log(2.1718e8 / es) !Josey et al., Eqn. 10 (K)
+!if (tmin+Tfreeze < 0.) then
+!  write(0,*)tmn,tmin_mn,tmin
+!  stop
+!end if
+!
+!es = 0.01 * esat(tmin+Tfreeze) !saturation vapor pressure (mbar)
+!
+!tdew = 34.07 + 4157. / log(2.1718e8 / es) !Josey et al., Eqn. 10 (K)
 
 !---
 !convert calculated temperatures from K to degC
