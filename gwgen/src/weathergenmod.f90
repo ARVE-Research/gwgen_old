@@ -157,6 +157,10 @@ real(sp) :: wind_slope_bias_L = 0.0, &
             wind_slope_bias_k = 0.0, &
             wind_slope_bias_x0 = 0.0
 
+! coefficients for the bias correction of minimum temperature
+! (Note: Default is no correction)
+real(sp), dimension(4) :: tmin_bias_coeffs = (/ 0.0, 0.0, 0.0, 0.0 /)
+
 ! -----------------------------------------------------------------------------
 ! ------------------- END. Defaults for the namelist parameters ---------------
 ! -----------------------------------------------------------------------------
@@ -197,7 +201,9 @@ subroutine init_weathergen(f_unit)
     tmax_sd_d1, tmax_sd_d2, cldf_sd_d, wind_d1, wind_d2, wind_sd_d1, &
     wind_sd_d2, &
     ! wind bias correction (Note: Default is no correction)
-    wind_slope_bias_L, wind_slope_bias_k, wind_slope_bias_x0
+    wind_slope_bias_L, wind_slope_bias_k, wind_slope_bias_x0, &
+    ! min. temperature bias correction (Note: Default is no correction)
+    tmin_bias_coeffs
 
   if (.not. present(f_unit)) then
       open(f_unit2, file='weathergen.nml', status='old')
@@ -490,7 +496,7 @@ cldf = resid(3) * cldf_sd + cldf_mn
 
 wind = max(0.0, resid(4) * sqrt(max(0.0, wind_sd)) + sqrt(max(0.0, wind_mn)))
 
-! wind bias correction
+! ---- wind bias correction
 if (wind_slope_bias_L > 0) then
     slopecorr = wind_slope_bias_L / ( 1 + exp( - wind_slope_bias_k * ( &
         resid(4) - wind_slope_bias_x0)))
@@ -499,6 +505,10 @@ if (wind_slope_bias_L > 0) then
 end if
 
 wind = wind * wind
+
+! ----- tmin bias correction
+tmin = tmin - sum(tmin_bias_coeffs(:) * (/ 1.0, tmin, tmin**2, tmin**3 /))
+
 
 !---
 !add checks for invalid values here
