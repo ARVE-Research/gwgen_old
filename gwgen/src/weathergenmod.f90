@@ -531,7 +531,7 @@ end if
 
 if (tmin+Tfreeze < 0.) then
   write(0,*)'Unphysical temperature with ', tmin, 'K from a monthly mean ', &
-      tmin_mn, 'degC with bias correction ', tmin_bias, 'K for residual', resid(4)
+      tmin_mn, 'degC with bias correction ', tmin_bias, 'K for residual', resid(1)
   stop 1
 end if
 !
