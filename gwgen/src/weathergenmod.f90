@@ -528,10 +528,10 @@ end if
 !this makes the asumption that there is a close correlation between Tmin and dewpoint
 !see, e.g., Glassy & Running, Ecological Applications, 1994
 
-!if (tmin+Tfreeze < 0.) then
-!  write(0,*)tmn,tmin_mn,tmin
-!  stop
-!end if
+if (tmin+Tfreeze < 0.) then
+  write(0,*)'Unphysical temperature with ', tmn, 'K from a monthly mean ', tmin_mn, 'K'
+  stop 1
+end if
 !
 !es = 0.01 * esat(tmin+Tfreeze) !saturation vapor pressure (mbar)
 !
