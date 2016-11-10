@@ -252,8 +252,6 @@ class EvaluationPreparation(Evaluator):
             reference = cday.merge(
                 ccday[['mean_cloud', 'wind']], left_index=True,
                 right_index=True, how='left')
-            reference.ix[reference.mean_cloud.isnull(),
-                         ['mean_cloud', 'wind']] = 0
         except TypeError:  # indices to not match
             reference = cday.ix[1:0]  # create empty data frame
             reference['mean_cloud'] = np.array([],
@@ -270,6 +268,7 @@ class EvaluationPreparation(Evaluator):
             exp_input = cmonth.merge(
                 ccmonth[['mean_cloud', 'wind']], left_index=True,
                 right_index=True, how='left')
+            # set cloud and wind to 0 where we have no reference
             exp_input.ix[exp_input.mean_cloud.isnull(),
                          ['mean_cloud', 'wind']] = 0
         except TypeError:  # indices do not match
@@ -509,22 +508,13 @@ class QuantileEvaluation(Evaluator):
         df = df_ref.merge(df_sim, left_index=True, right_index=True,
                           suffixes=['_ref', '_sim'])
         if {'mean_cloud', 'wind'}.intersection(names):
-            from gwgen.parameterization import HourlyCloud
             # mask out non-complete months for cloud validation
-
-            df_map = HourlyCloud.from_task(self).eecra_ghcn_map()   # idx: id
-            df_map['complete'] = True
-            df.reset_index(['year', 'month', 'day'], inplace=True)  # idx: id
-            df = df.merge(df_map, left_index=True, right_index=True,
-                          how='left')
-            eecra_names = []
             if 'mean_cloud' in names:
-                eecra_names.extend(['mean_cloud_ref', 'mean_cloud_sim'])
+                df.ix[df['mean_cloud_ref'].isnull().values,
+                      'mean_cloud_sim'] = np.nan
             if 'wind' in names:
-                eecra_names.extend(['wind_ref', 'wind_sim'])
-            df.ix[df.complete.isnull().values, eecra_names] = np.nan
-            df.set_index(['year', 'month', 'day'], append=True, inplace=True)
-            df.drop(df_map.columns, 1, inplace=True)
+                df.ix[df['wind_ref'].isnull().values,
+                      'wind_sim'] = np.nan
 
         # transform wind
         if self.task_config.transform_wind and 'wind' in names:
