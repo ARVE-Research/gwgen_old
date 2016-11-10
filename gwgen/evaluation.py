@@ -362,7 +362,7 @@ def default_ks_config(
 
 _QuantileConfig = namedtuple(
     '_QuantileConfig',
-    list(_KSConfig._fields) + ['quantiles'])
+    ['quantiles'] + list(_KSConfig._fields))
 
 
 _QuantileConfig = utils.append_doc(_QuantileConfig, docstrings.get_sections("""
