@@ -530,8 +530,12 @@ end if
 !see, e.g., Glassy & Running, Ecological Applications, 1994
 
 if (tmin+Tfreeze < 0.) then
-  write(0,*)'Unphysical temperature with ', tmin, 'K from a monthly mean ', &
+  write(0,*)'Unphysical min. temperature with ', tmin, 'K from a monthly mean ', &
       tmin_mn, 'degC with bias correction ', tmin_bias, 'K for residual', resid(1)
+  stop 1
+elseif (tmax+Tfreeze < 0.) then
+  write(0,*)'Unphysical max. temperature with ', tmax, 'K from a monthly mean ', &
+      tmax_mn, 'degC'
   stop 1
 end if
 !

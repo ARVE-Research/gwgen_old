@@ -228,13 +228,13 @@ do  !read the input file until the end
   if (met_in%prec < 0.0 .and. met_in%prec > -0.1) then
     met_in%prec = 0.0
   elseif (met_in%prec < -0.1) then
-    print *, "Invalid precipitation value", met_in%prec, "at line ", i_linecount
+    write(0,*) "Invalid precipitation value", met_in%prec, "at line ", i_linecount
     stop 1
-  elseif (met_in%tmin - tfreeze < 0.0) then
-    print *, "Invalid minimum temperature value", met_in%tmin, "at line ", i_linecount
+  elseif (met_in%tmin + tfreeze < 0.0) then
+    write(0,*) "Invalid minimum temperature value", met_in%tmin, "at line ", i_linecount
     stop 1
-  elseif (met_in%tmax - tfreeze < 0.0) then
-    print *, "Invalid maximum temperature value", met_in%tmax, "at line ", i_linecount
+  elseif (met_in%tmax + tfreeze < 0.0) then
+    write(0,*) "Invalid maximum temperature value", met_in%tmax, "at line ", i_linecount
     stop 1
   endif
 
