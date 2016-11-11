@@ -510,7 +510,7 @@ wind = wind * wind
 
 ! ----- tmin bias correction
 tmin_bias = sum(tmin_bias_coeffs(:) * ( &
-    max(tmin_bias_min, max(tmin_bias_max, resid(1))) ** (/ 0, 1, 2, 3 /)))
+    max(tmin_bias_min, min(tmin_bias_max, resid(1))) ** (/ 0, 1, 2, 3 /)))
 tmin = tmin - tmin_bias
 
 
