@@ -65,7 +65,7 @@ integer :: ndm(n_tot) = 0
 
 real(sp) :: prec_t
 
-integer :: i_count, i_linecount = 1
+integer :: i_count, i_linecount = n_curr + 1
 
 type(metvars_out), dimension(31) :: month_met
 
@@ -176,14 +176,20 @@ do  !read the input file until the end
   if (mprec(n_tot) < 0.0 .and. mprec(n_tot) > -0.1) then
     mprec(n_tot) = 0.0
   elseif (mprec(n_tot) < -0.1) then
-    write(0,*) "Invalid precipitation value", mprec(n_tot), "at line ", i_linecount
+    write(0,*) "Invalid precipitation value", mprec(n_tot), "mm/d at line ", i_linecount
     stop 1
   endif
   if (mtmin(n_tot) + tfreeze < 0.0) then
-    write(0,*) "Invalid minimum temperature value", mtmin(n_tot), "at line ", i_linecount
+    write(0,*) "Invalid minimum temperature value", mtmin(n_tot), "degC at line ", i_linecount
     stop 1
   elseif (mtmax(n_tot) + tfreeze < 0.0) then
-    write(0,*) "Invalid maximum temperature value", mtmax(n_tot), "at line ", i_linecount
+    write(0,*) "Invalid maximum temperature value", mtmax(n_tot), "degC at line ", i_linecount
+    stop 1
+  elseif (mcloud(n_tot) < 0.0 .or. mcloud(n_tot) > 1.0) then
+    write(0,*) "Invalid cloud fraction ", mcloud(n_tot), "at line ", i_linecount
+    stop 1
+  elseif (mwind(n_tot) < 0.0) then
+    write(0,*) "Invalid wind speed ", mwind(n_tot), "m/s at line ", i_linecount
     stop 1
   endif
 
