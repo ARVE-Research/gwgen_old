@@ -1298,7 +1298,7 @@ class TaskBase(object):
         for i, (dbname, kws) in enumerate(zip(safe_list(self.dbname),
                                               self._split_kwargs(kwargs))):
             data = self._get_data(i)
-            if not len(data):
+            if data is None or not len(data):
                 continue
             if 'id' in data.columns:
                 data = data.set_index('id')
@@ -1331,7 +1331,7 @@ class TaskBase(object):
         for i, (datafile, kws) in enumerate(zip(safe_list(self.datafile),
                                                 self._split_kwargs(kwargs))):
             data = self._get_data(i)
-            if not len(data):
+            if data is None or not len(data):
                 continue
             lock = _file_locks.get(datafile)
             if lock:
