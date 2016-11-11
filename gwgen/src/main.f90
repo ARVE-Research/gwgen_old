@@ -172,6 +172,21 @@ do  !read the input file until the end
   ! ---------------------------------------------------------------------------------------
 110 continue
 
+  ! ------ check for invalid values
+  if (mprec(n_tot) < 0.0 .and. mprec(n_tot) > -0.1) then
+    mprec(n_tot) = 0.0
+  elseif (mprec(n_tot) < -0.1) then
+    write(0,*) "Invalid precipitation value", mprec(n_tot), "at line ", i_linecount
+    stop 1
+  endif
+  if (mtmin(n_tot) + tfreeze < 0.0) then
+    write(0,*) "Invalid minimum temperature value", mtmin(n_tot), "at line ", i_linecount
+    stop 1
+  elseif (mtmax(n_tot) + tfreeze < 0.0) then
+    write(0,*) "Invalid maximum temperature value", mtmax(n_tot), "at line ", i_linecount
+    stop 1
+  endif
+
   i_consecutives(:) = are_consecutive_months(stationid,year,month)
 
   if (any(i_consecutives(n:1:-1) == 0)) then
@@ -224,21 +239,6 @@ do  !read the input file until the end
   prec_t = max(0.5,0.05 * mprec(n_curr))  !set quality threshold for preciptation amount
 
   i_count = 1
-
-  if (met_in%prec < 0.0 .and. met_in%prec > -0.1) then
-    met_in%prec = 0.0
-  elseif (met_in%prec < -0.1) then
-    write(0,*) "Invalid precipitation value", met_in%prec, "at line ", i_linecount
-    stop 1
-  elseif (met_in%tmin + tfreeze < 0.0) then
-    write(0,*) "Invalid minimum temperature value", met_in%tmin, "at line ", i_linecount
-    stop 1
-  elseif (met_in%tmax + tfreeze < 0.0) then
-    write(0,*) "Invalid maximum temperature value", met_in%tmax, "at line ", i_linecount
-    stop 1
-  endif
-
-
 
   do
 
