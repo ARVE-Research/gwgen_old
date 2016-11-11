@@ -578,8 +578,10 @@ class QuantileEvaluation(Evaluator):
         def calc_percentiles(vname):
             arr = group[vname].values
             arr = arr[~np.isnan(arr)]
-            if vname.startswith('prcp'):  # or vname.startswith('cloud'):
+            if vname.startswith('prcp') or 'wind' in vname:
                 arr = arr[arr > 0]
+            elif 'cloud' in vname:
+                arr = arr[(arr > 0.0) & (arr < 1.0)]
             if len(arr) == 0:
                 return np.array([np.nan] * len(quantiles))
             else:
