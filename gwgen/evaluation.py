@@ -491,6 +491,7 @@ class QuantileEvaluation(Evaluator):
 
     def setup_from_scratch(self):
         df_ref = self.prepare.reference_data
+        dfi = self.prepare.input_data.reset_index(['lon', 'lat'])
         # create simulation dataframe
         df_sim = self.output.data
         if len(df_ref) == 0 or len(df_sim) == 0:
@@ -508,13 +509,20 @@ class QuantileEvaluation(Evaluator):
         df = df_ref.merge(df_sim, left_index=True, right_index=True,
                           suffixes=['_ref', '_sim'])
         if {'mean_cloud', 'wind'}.intersection(names):
+            df.reset_index('day', inplace=True)
+            df = df.merge(dfi[['mean_cloud', 'wind']], left_index=True,
+                          right_index=True)
             # mask out non-complete months for cloud validation
             if 'mean_cloud' in names:
-                df.ix[df['mean_cloud_ref'].isnull().values,
+                df.ix[(df['mean_cloud_ref'].isnull().values &
+                       ((df['mean_cloud'] == 0.0) |
+                        (df['mean_cloud'] == 1.0))),
                       'mean_cloud_sim'] = np.nan
             if 'wind' in names:
-                df.ix[df['wind_ref'].isnull().values,
+                df.ix[(df['wind_ref'].isnull().values &
+                       (df['wind'] == 0.0)),
                       'wind_sim'] = np.nan
+            df.drop(['mean_cloud', 'wind'], 1, inplace=True)
 
         # transform wind
         if self.task_config.transform_wind and 'wind' in names:
@@ -672,10 +680,10 @@ class KSEvaluation(QuantileEvaluation):
         tmax_ref = group.tmax_ref.values[
             (group.tmax_ref.values < 100) & (group.tmax_ref.values > -100) &
             (~np.isnan(group.tmax_ref.values))]
-        cloud_sl = group.mean_cloud_sim.notnull().values
+        cloud_sl = group.mean_cloud_ref.notnull().values
         cloud_sim = group.mean_cloud_sim.values[cloud_sl]
         cloud_ref = group.mean_cloud_ref.values[cloud_sl]
-        wind_sl = group.wind_sim.notnull().values
+        wind_sl = group.wind_ref.notnull().values
         wind_sim = group.wind_sim.values[wind_sl]
         wind_ref = group.wind_ref.values[wind_sl]
         return pd.DataFrame.from_dict(dict(chain(*map(six.iteritems, starmap(
