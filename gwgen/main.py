@@ -2561,7 +2561,7 @@ class ModelOrganizer(object):
                  legendlabels=(
                      'Simulated - Observed = $%(c0)4.3f + %(c1)4.3fx + '
                      '%(c2)4.3fx^2 + %(c3)4.3fx^3$'),
-                 legend={'fontsize': 'x-large', 'loc': 'upper left'},
+                 legend={'fontsize': 'large', 'loc': 'upper left'},
                  xlabel='Random number from normal distribution')
             sp2.share(sp1[0], ['color', 'xlim', 'ylim'])
         attrs = sp2.plotters[0].plot_data[0].attrs
