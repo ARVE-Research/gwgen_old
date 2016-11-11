@@ -2557,7 +2557,7 @@ class ModelOrganizer(object):
             sp2 = psy.plot.linreg(
                  ds, name='intercept', ax=sp1[0].ax,
                  coord='unorm', fit='poly3',
-                 ylabel='Bias [$^\circ$C]',
+                 ylabel='Simulated - Observed [$^\circ$C]',
                  legendlabels=(
                      'Simulated - Observed = $%(c0)4.3f + %(c1)4.3fx + '
                      '%(c2)4.3fx^2 + %(c3)4.3fx^3$'),
