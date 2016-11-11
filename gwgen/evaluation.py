@@ -518,14 +518,15 @@ class QuantileEvaluation(Evaluator):
                 df.ix[(df['mean_cloud_ref'].isnull().values &
                        ((df['mean_cloud'] == 0.0) |
                         (df['mean_cloud'] == 1.0))),
-                      'mean_cloud_sim'] = np.nan
+                      ['mean_cloud_sim', 'mean_cloud_ref']] = np.nan
             # mask out non-complete wind for wind validation and months with
             # a mean wind speed of 0
             if 'wind' in names:
                 df.ix[(df['wind_ref'].isnull().values &
                        (df['wind'] == 0.0)),
-                      'wind_sim'] = np.nan
+                      ['wind_sim', 'wind_ref']] = np.nan
             df.drop(['mean_cloud', 'wind'], 1, inplace=True)
+            df.set_index('day', append=True, inplace=True)
 
         # transform wind
         if self.task_config.transform_wind and 'wind' in names:
