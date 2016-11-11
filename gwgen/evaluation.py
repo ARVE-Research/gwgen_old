@@ -512,12 +512,15 @@ class QuantileEvaluation(Evaluator):
             df.reset_index('day', inplace=True)
             df = df.merge(dfi[['mean_cloud', 'wind']], left_index=True,
                           right_index=True)
-            # mask out non-complete months for cloud validation
+            # mask out non-complete months for cloud validation and months with
+            # 0 or 1 cloud fraction
             if 'mean_cloud' in names:
                 df.ix[(df['mean_cloud_ref'].isnull().values &
                        ((df['mean_cloud'] == 0.0) |
                         (df['mean_cloud'] == 1.0))),
                       'mean_cloud_sim'] = np.nan
+            # mask out non-complete wind for wind validation and months with
+            # a mean wind speed of 0
             if 'wind' in names:
                 df.ix[(df['wind_ref'].isnull().values &
                        (df['wind'] == 0.0)),
