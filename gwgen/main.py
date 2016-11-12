@@ -2566,7 +2566,7 @@ class ModelOrganizer(object):
             sp2.share(sp1[0], ['color', 'xlim', 'ylim'])
         attrs = sp2.plotters[0].plot_data[0].attrs
         nml = self.exp_config['namelist']['weathergen_ctl']
-        nml['tmin_bias_coeffs'] = [float(attrs['c%i' % i]) for i in range(4)]
+        nml['tmin_bias_coeffs'] = [float(attrs['c%i' % i]) for i in range(6)]
         nml['tmin_bias_min'] = float(ds.unorm.min().values)
         nml['tmin_bias_max'] = float(ds.unorm.max().values)
 
