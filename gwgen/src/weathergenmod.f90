@@ -506,12 +506,12 @@ if (wind_slope_bias_L > 0) then
     wind = wind / slopecorr
 end if
 
-wind = wind * wind
+wind = round(wind * wind, 1)
 
 ! ----- tmin bias correction
 tmin_bias = sum(tmin_bias_coeffs(:) * ( &
     max(tmin_bias_min, min(tmin_bias_max, resid(1))) ** (/ 0, 1, 2, 3, 4, 5 /)))
-tmin = tmin - tmin_bias
+tmin = tmin - round(tmin_bias, 1)
 
 
 !---
