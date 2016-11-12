@@ -2480,7 +2480,7 @@ class ModelOrganizer(object):
 
     @docstrings.dedent
     def tmin_bias_correction(self, info, new_project=False, plot_output=None,
-                             close=True):
+                             deg=3, close=True):
         """
         Perform a bias correction for the minimum temperature data
 
@@ -2494,6 +2494,8 @@ class ModelOrganizer(object):
         plot_output: str
             The name of the output file. If not specified, it defaults to
             `<exp_dir>/postproc/<vname>_bias_correction.pdf`
+        deg: int
+            The degree of the fittet polynomial
         close: bool
             If True, close the project at the end
 
@@ -2509,6 +2511,14 @@ class ModelOrganizer(object):
         from scipy import stats
         import xarray as xr
         import psyplot.project as psy
+
+        def get_symbol(i):
+            if not i:
+                return ''
+            elif i == 1:
+                return 'x'
+            else:
+                return 'x^' + str(i)
 
         vname = 'tmin'
 
@@ -2553,20 +2563,20 @@ class ModelOrganizer(object):
             sns.set_style('white')
             sp1 = psy.plot.lineplot(ds, name='intercept', coord='unorm',
                                     linewidth=0, marker='o', legend=False)
+            label = 'Simulated - Observed = $%s$' % ' + '.join(
+                '%(c{})4.3f{}'.format(i, get_symbol(i)) for i in range(deg))
             sp2 = psy.plot.linreg(
                  ds, name='intercept', ax=sp1[0].ax,
-                 coord='unorm', fit='poly5',
+                 coord='unorm', fit='poly' + str(int(deg)),
                  ylabel='Simulated - Observed [$^\circ$C]',
-                 legendlabels=(
-                     'Simulated - Observed = $%(c0)4.3f + %(c1)4.3fx + '
-                     '%(c2)4.3fx^2 + %(c3)4.3fx^3$ + %(c4)4.3fx^4 + '
-                     '%(c5)4.3fx^5'),
+                 legendlabels=label,
                  legend={'fontsize': 'large', 'loc': 'upper left'},
                  xlabel='Random number from normal distribution')
             sp2.share(sp1[0], ['color', 'xlim', 'ylim'])
         attrs = sp2.plotters[0].plot_data[0].attrs
         nml = self.exp_config['namelist']['weathergen_ctl']
-        nml['tmin_bias_coeffs'] = [float(attrs['c%i' % i]) for i in range(6)]
+        nml['tmin_bias_coeffs'] = [
+            float(attrs.get('c%i' % i, 0.0)) for i in range(6)]
         nml['tmin_bias_min'] = float(ds.unorm.min().values)
         nml['tmin_bias_max'] = float(ds.unorm.max().values)
 
