@@ -2276,8 +2276,7 @@ class ModelOrganizer(object):
 
     @docstrings.dedent
     def bias_correction(
-            self, keep=False,
-            quantiles=[1] + list(range(5, 100, 5)) + [99],
+            self, keep=False, quantiles=list(range(1, 100)),
             no_evaluation=False, new_project=False, **kwargs):
         """
         Perform a bias correction for the data
