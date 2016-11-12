@@ -2555,11 +2555,12 @@ class ModelOrganizer(object):
                                     linewidth=0, marker='o', legend=False)
             sp2 = psy.plot.linreg(
                  ds, name='intercept', ax=sp1[0].ax,
-                 coord='unorm', fit='poly3',
+                 coord='unorm', fit='poly5',
                  ylabel='Simulated - Observed [$^\circ$C]',
                  legendlabels=(
                      'Simulated - Observed = $%(c0)4.3f + %(c1)4.3fx + '
-                     '%(c2)4.3fx^2 + %(c3)4.3fx^3$'),
+                     '%(c2)4.3fx^2 + %(c3)4.3fx^3$ + %(c4)4.3fx^4 + '
+                     '%(c5)4.3fx^5'),
                  legend={'fontsize': 'large', 'loc': 'upper left'},
                  xlabel='Random number from normal distribution')
             sp2.share(sp1[0], ['color', 'xlim', 'ylim'])
