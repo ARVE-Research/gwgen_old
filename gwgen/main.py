@@ -2564,7 +2564,8 @@ class ModelOrganizer(object):
             sp1 = psy.plot.lineplot(ds, name='intercept', coord='unorm',
                                     linewidth=0, marker='o', legend=False)
             label = 'Simulated - Observed = $%s$' % ' + '.join(
-                '%(c{})4.3f{}'.format(i, get_symbol(i)) for i in range(deg))
+                '%(c{})4.3f{}'.format(i, get_symbol(i))
+                for i in range(deg + 1))
             sp2 = psy.plot.linreg(
                  ds, name='intercept', ax=sp1[0].ax,
                  coord='unorm', fit='poly' + str(int(deg)),
