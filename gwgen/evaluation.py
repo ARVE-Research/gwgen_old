@@ -742,6 +742,7 @@ class KSEvaluation(QuantileEvaluation):
         df_plot = df_lola.merge(df_fract, how='right', left_index=True,
                                 right_index=True)
         pdf = PdfPages(self.pdf_file)
+        figs = []
         for name in names:
             fig = plt.figure()
             ax = plt.axes(projection=ccrs.PlateCarree())
@@ -775,7 +776,11 @@ class KSEvaluation(QuantileEvaluation):
             cbar.set_label('Significantly differing years')
 
             pdf.savefig(fig, bbox_inches='tight')
+            figs.append(fig)
         pdf.close()
+        if self.task_config.close:
+            for fig in figs:
+                plt.close(fig)
 
     @classmethod
     def _modify_parser(cls, parser):
