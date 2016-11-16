@@ -885,8 +885,10 @@ class SimulationQuality(Evaluator):
         quantiles = self.task_config.quantiles
         if quantiles is None:
             quantiles = slice(None)
+        possible_names = {'wind', 'prcp', 'tmin', 'tmax', 'mean_cloud',
+                          'cloud'}
         for v, v_ks in ks_info.items():
-            if v not in quants_info:
+            if v not in quants_info or v not in possible_names:
                 continue
             #: Dataframe with intercept, rsquared and slope on index and
             #: quantiles as columns
