@@ -1,5 +1,7 @@
 module randomdistmod
 
+use ieee_arithmetic
+
 implicit none
 
 public  :: ran_seed
@@ -351,6 +353,146 @@ else
 endif
 
 end function ran_gp
+
+! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+! -----------------------------------------------------------------------------
+! --------- Subroutines for gamma distribution and density functions ----------
+! -----------------------------------------------------------------------------
+! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+! The following functions and subroutines are taken from R
+
+
+real(kind = 8) function qchisq_appr(p, nu, g, tol)
+
+    real(kind = 8), intent(in) :: p
+    real(kind = 8), intent(in) :: nu
+    real(kind = 8), intent(in) :: g
+    real(kind = 8), intent(in) :: tol
+
+    real(kind = 8) :: alpha, a, c, ch, p1
+    real(kind = 8) :: p2, q, t, x, lgam1pa
+
+    alpha = 0.5 * nu
+    c = alpha - 1.0
+
+    p1 = log(p)
+
+    if (nu < (-1.24) * p1) then
+        ! for small chi-squared */
+        !    log(alpha) + g = log(alpha) + log(gamma(alpha)) =
+        !       = log(alpha*gamma(alpha)) = lgamma(alpha+1) suffers from
+        !    catastrophic cancellation when alpha << 1
+        if (alpha < 0.5) then
+            lgam1pa = gamma_log(alpha + 1.0)
+        else
+            lgam1pa = log(alpha) + g
+        end if
+        ch = exp((lgam1pa + p1)/alpha + log(2.0))
+    else if (nu > 0.32) then !  using Wilson and Hilferty estimate
+        call normal_cdf_inv(p, real(0.0, kind=8), real(1.0, kind=8), x)
+        p1 = 2. / (9.0 * nu)
+        ch = nu * (x * sqrt(p1) + 1.0 - p1) ** 3
+        ! approximation for p tending to 1:
+        if (ch > 2.2 * nu + 6) ch = -2.0 * (log(1 - p) - c * log(0.5 * ch) + g)
+    else
+        ch = 0.4
+        a = log(1 - p) + g + c * log(2.0)
+        do while (abs(q - ch) > tol * abs(ch))
+            q = ch
+            p1 = 1. / (1 + ch * (4.67 + ch))
+            p2 = ch * (6.73 + ch * (6.66 + ch))
+            t = -0.5 + (4.67 + 2 * ch) * p1 - (6.73 + ch*(13.32 + 3 * ch)) / p2
+            ch = ch - (1 - exp(a + 0.5 * ch) * p2 * p1) / t
+        end do
+    end if
+    qchisq_appr = ch
+
+end function qchisq_appr
+
+
+real(kind = 8) function gamma_cdf_inv(p, alpha, scale)
+
+    real(kind = 8), intent(in) :: p
+    real(kind = 8), intent(in) :: alpha
+    real(kind = 8), intent(in) :: scale
+
+    real(kind = 8) :: a, b, c, g, ch, ch0, p1
+    real(kind = 8) :: p2, q, s1, s2, s3, s4, s5, s6, t, x
+
+    real(kind = 8), parameter :: EPS1 = 1.0e-2, EPS2 = 5.0e-7, &
+                                 pMIN = 1.0e-25, pMAX = (1-1e-14)
+    integer, parameter :: MAXIT = 1000
+    integer :: i
+
+    if (alpha == 0) then
+        gamma_cdf_inv = 0
+        goto 10002
+    end if
+    g = gamma_log(alpha)
+    ! ----- Phase I : Starting Approximation */
+    ch = qchisq_appr(p, 2.0 * alpha, g, EPS1)
+
+    if ((ch < EPS2) .or. (p > pMAX) .or. (p < pMIN)) then
+        goto 10002
+    end if
+
+    ! ----- Phase II: Iteration
+    ! Call pgamma() [AS 239]	and calculate seven term taylor series
+    c = alpha - 1.0
+    s6 = (120.0 + c * (346.0 + 127.0* c)) / 5040.0
+
+    ch0 = ch  ! save initial approx.
+    do i=1,MAXIT
+        q = ch
+        p1 = 0.5 * ch
+
+        call gamma_cdf(p1 * scale, real(0.0, kind=8), scale, alpha, p2)
+        p2 = p - p2
+
+        if (ch <= 0.0) then
+            ch = ch0
+            goto 10001
+        end if
+
+        if ((p2 == ieee_value(p2, ieee_negative_inf)) .or. (ch <= 0)) then
+            ch = ch0
+            goto 10001
+        end if
+
+        t = p2*exp(alpha * log(2.0) + g + p1 - c * log(ch))
+        b = t / ch
+        a = 0.5 * t - b * c
+        s1 = (210.0 + a * (140.0 + a * (105.0 + a * (84.0 + a * ( &
+            70.0 + 60.0 * a))))) / 420.0
+        s2 = (420.0 +  a * (735.0 + a * (966.0 + a * (&
+            1141.0 + 1278.0 * a)))) / 2520.
+        s3 = (210.0 + a * (462.0 + a * (707.0 + 932.0 * a))) / 2520.0
+        s4 = (252.0 + a * (672.0 + 1182.0 * a) + c * (294.0 +a * ( &
+            889.0 + 1740.0 * a))) / 5040.0
+        s5 = (84.0 + 2264.0 * a + c*(1175.0 + 606.0 * a)) / 2520.0
+
+        ch = ch +  t * (1.0 + 0.5 * t * s1 - b * c * ( &
+            s1 - b * (s2 - b * (s3 - b * (s4 - b * (s5 - b * s6))))))
+
+        if (abs(q - ch) < EPS2 * ch) goto 10001
+
+        if (abs(q - ch) > 0.1 * ch) then
+            if (ch < q) then
+                ch = 0.9 * q
+            else
+                ch = 1.1 * q
+            end if
+        end if
+    end do
+
+10001 continue
+
+    gamma_cdf_inv = 0.5  * scale * ch
+
+10002 continue
+
+end function gamma_cdf_inv
 
 ! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ! -----------------------------------------------------------------------------
@@ -1173,6 +1315,280 @@ real ( kind = 8 ) function r8_gamma ( x )
 
   return
 end function r8_gamma
+
+!------------------------------------------------------------------------------
+
+subroutine normal_cdf_inv ( cdf, a, b, x )
+
+!*****************************************************************************80
+!
+!! NORMAL_CDF_INV inverts the Normal CDF.
+!
+!  Licensing:
+!
+!    This code is distributed under the GNU LGPL license.
+!
+!  Modified:
+!
+!    23 February 1999
+!
+!  Author:
+!
+!    John Burkardt
+!
+!  Parameters:
+!
+!    Input, real ( kind = 8 ) CDF, the value of the CDF.
+!    0.0 <= CDF <= 1.0.
+!
+!    Input, real ( kind = 8 ) A, B, the parameters of the PDF.
+!    0.0 < B.
+!
+!    Output, real ( kind = 8 ) X, the corresponding argument.
+!
+  implicit none
+
+  real ( kind = 8 ) a
+  real ( kind = 8 ) b
+  real ( kind = 8 ) cdf
+  real ( kind = 8 ) x
+  real ( kind = 8 ) x2
+
+  if ( cdf < 0.0D+00 .or. 1.0D+00 < cdf ) then
+    write ( *, '(a)' ) ' '
+    write ( *, '(a)' ) 'NORMAL_CDF_INV - Fatal error!'
+    write ( *, '(a)' ) '  CDF < 0 or 1 < CDF.'
+    stop 1
+  end if
+
+  call normal_01_cdf_inv ( cdf, x2 )
+
+  x = a + b * x2
+
+  return
+end subroutine normal_cdf_inv
+
+!------------------------------------------------------------------------------
+
+subroutine normal_01_cdf_inv ( p, x )
+
+!*****************************************************************************
+!
+!! NORMAL_01_CDF_INV inverts the standard normal CDF.
+!
+!  Discussion:
+!
+!    The result is accurate to about 1 part in 10^16.
+!
+!  Licensing:
+!
+!    This code is distributed under the GNU LGPL license.
+!
+!  Modified:
+!
+!    05 June 2007
+!
+!  Author:
+!
+!    Original FORTRAN77 version by Michael Wichura.
+!    FORTRAN90 version by John Burkardt.
+!
+!  Reference:
+!
+!    Michael Wichura,
+!    Algorithm AS241:
+!    The Percentage Points of the Normal Distribution,
+!    Applied Statistics,
+!    Volume 37, Number 3, pages 477-484, 1988.
+!
+!  Parameters:
+!
+!    Input, real ( kind = 8 ) P, the value of the cumulative probability
+!    densitity function.  0 < P < 1.  If P is outside this range, an
+!    "infinite" value will be returned.
+!
+!    Output, real ( kind = 8 ) X, the normal deviate value
+!    with the property that the probability of a standard normal deviate being
+!    less than or equal to the value is P.
+!
+  implicit none
+
+  real ( kind = 8 ), parameter, dimension ( 8 ) :: a = (/ &
+    3.3871328727963666080D+00, &
+    1.3314166789178437745D+02, &
+    1.9715909503065514427D+03, &
+    1.3731693765509461125D+04, &
+    4.5921953931549871457D+04, &
+    6.7265770927008700853D+04, &
+    3.3430575583588128105D+04, &
+    2.5090809287301226727D+03 /)
+  real ( kind = 8 ), parameter, dimension ( 8 ) :: b = (/ &
+    1.0D+00, &
+    4.2313330701600911252D+01, &
+    6.8718700749205790830D+02, &
+    5.3941960214247511077D+03, &
+    2.1213794301586595867D+04, &
+    3.9307895800092710610D+04, &
+    2.8729085735721942674D+04, &
+    5.2264952788528545610D+03 /)
+  real ( kind = 8 ), parameter, dimension ( 8 ) :: c = (/ &
+    1.42343711074968357734D+00, &
+    4.63033784615654529590D+00, &
+    5.76949722146069140550D+00, &
+    3.64784832476320460504D+00, &
+    1.27045825245236838258D+00, &
+    2.41780725177450611770D-01, &
+    2.27238449892691845833D-02, &
+    7.74545014278341407640D-04 /)
+  real ( kind = 8 ), parameter :: const1 = 0.180625D+00
+  real ( kind = 8 ), parameter :: const2 = 1.6D+00
+  real ( kind = 8 ), parameter, dimension ( 8 ) :: d = (/ &
+    1.0D+00, &
+    2.05319162663775882187D+00, &
+    1.67638483018380384940D+00, &
+    6.89767334985100004550D-01, &
+    1.48103976427480074590D-01, &
+    1.51986665636164571966D-02, &
+    5.47593808499534494600D-04, &
+    1.05075007164441684324D-09 /)
+  real ( kind = 8 ), parameter, dimension ( 8 ) :: e = (/ &
+    6.65790464350110377720D+00, &
+    5.46378491116411436990D+00, &
+    1.78482653991729133580D+00, &
+    2.96560571828504891230D-01, &
+    2.65321895265761230930D-02, &
+    1.24266094738807843860D-03, &
+    2.71155556874348757815D-05, &
+    2.01033439929228813265D-07 /)
+  real ( kind = 8 ), parameter, dimension ( 8 ) :: f = (/ &
+    1.0D+00, &
+    5.99832206555887937690D-01, &
+    1.36929880922735805310D-01, &
+    1.48753612908506148525D-02, &
+    7.86869131145613259100D-04, &
+    1.84631831751005468180D-05, &
+    1.42151175831644588870D-07, &
+    2.04426310338993978564D-15 /)
+  real ( kind = 8 ) p
+  real ( kind = 8 ) q
+  real ( kind = 8 ) r
+  real ( kind = 8 ), parameter :: split1 = 0.425D+00
+  real ( kind = 8 ), parameter :: split2 = 5.0D+00
+  real ( kind = 8 ) x
+
+  if ( p <= 0.0D+00 ) then
+    x = - huge ( x )
+    return
+  end if
+
+  if ( 1.0D+00 <= p ) then
+    x = huge ( x )
+    return
+  end if
+
+  q = p - 0.5D+00
+
+  if ( abs ( q ) <= split1 ) then
+
+    r = const1 - q * q
+    x = q * r8poly_value_horner ( 7, a, r ) / r8poly_value_horner ( 7, b, r )
+
+  else
+
+    if ( q < 0.0D+00 ) then
+      r = p
+    else
+      r = 1.0D+00 - p
+    end if
+
+    if ( r <= 0.0D+00 ) then
+
+      x = huge ( x )
+
+    else
+
+      r = sqrt ( - log ( r ) )
+
+      if ( r <= split2 ) then
+
+        r = r - const2
+        x = r8poly_value_horner ( 7, c, r ) / r8poly_value_horner ( 7, d, r )
+
+      else
+
+        r = r - split2
+        x = r8poly_value_horner ( 7, e, r ) / r8poly_value_horner ( 7, f, r )
+
+      end if
+
+    end if
+
+    if ( q < 0.0D+00 ) then
+      x = -x
+    end if
+
+  end if
+
+  return
+end subroutine normal_01_cdf_inv
+
+!------------------------------------------------------------------------------
+
+real ( kind = 8 ) function r8poly_value_horner ( m, c, x )
+
+!*****************************************************************************80
+!
+!! R8POLY_VALUE_HORNER evaluates a polynomial using Horner's method.
+!
+!  Discussion:
+!
+!    The polynomial
+!
+!      p(x) = c0 + c1 * x + c2 * x^2 + ... + cm * x^m
+!
+!    is to be evaluated at the value X.
+!
+!  Licensing:
+!
+!    This code is distributed under the GNU LGPL license.
+!
+!  Modified:
+!
+!    02 January 2014
+!
+!  Author:
+!
+!    John Burkardt
+!
+!  Parameters:
+!
+!    Input, integer ( kind = 4 ) M, the degree.
+!
+!    Input, real ( kind = 8 ) C(0:M), the polynomial coefficients.
+!    C(I) is the coefficient of X^I.
+!
+!    Input, real ( kind = 8 ) X, the evaluation point.
+!
+!    Output, real ( kind = 8 ) R8POLY_VALUE_HORNER, the polynomial value.
+!
+  implicit none
+
+  integer ( kind = 4 ) m
+
+  real ( kind = 8 ) c(0:m)
+  integer ( kind = 4 ) i
+  real ( kind = 8 ) value
+  real ( kind = 8 ) x
+
+  value = c(m)
+  do i = m - 1, 0, -1
+    value = value * x + c(i)
+  end do
+
+  r8poly_value_horner = value
+
+  return
+end function r8poly_value_horner
 
 !------------------------------------------------------------------------------
 

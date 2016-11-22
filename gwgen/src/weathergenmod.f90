@@ -88,6 +88,9 @@ LOGICAL :: ltested = .FALSE.
 
 ! Threshold for transition from gamma to gp distribution
 real(sp)                 :: thresh = 15.0
+
+! interpret the thresh as percentile
+logical :: thresh_pctl = .false.
 ! coefficient to esimate the gamma scale parameter via
 ! g_scale = g_scale_coeff * mean_monthly_precip / number_of_wet_days
 ! following Geng et al., 1986
@@ -189,7 +192,7 @@ subroutine init_weathergen(f_unit)
 
   namelist /weathergen_ctl/ &
     ! distribution parameters
-    thresh, g_scale_coeff, gp_shape, &
+    thresh, thresh_pctl, g_scale_coeff, gp_shape, &
     ! cross correlation coefficients
     A, B, &
     ! transition parameters
@@ -226,7 +229,7 @@ subroutine weathergen(met_in,met_out)
 
 use parametersmod, only : sp,dp,i4,ndaymonth,tfreeze
 use randomdistmod, only : ranur,ran_normal,ran_gamma_gp,ran_gamma, &
-                          gamma_cdf, gamma_pdf
+                          gamma_cdf, gamma_pdf, gamma_cdf_inv
 
 implicit none
 
@@ -446,6 +449,9 @@ if (wetf > 0. .and. pre > 0.) then
 
     gp_scale = (1.0 - cdf_thresh)/ pdf_thresh
 
+    if (thresh_pctl) then
+        thresh = gamma_cdf_inv(real(0.50, kind=8), real(g_shape, kind=8), real(g_scale, kind=8))
+    end if
 
     do  !enforce positive precipitation
 
