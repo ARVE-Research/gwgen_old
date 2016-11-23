@@ -443,24 +443,25 @@ if (wetf > 0. .and. pre > 0.) then
     g_scale = g_scale_coeff * pbar
     g_shape = pbar / g_scale
 
-    call gamma_cdf(real(thresh, kind=8), 0.0_dp, real(g_scale, kind=8), &
-                   real(g_shape, kind=8), cdf_thresh)
-    call gamma_pdf(real(thresh, kind=8), 0.0_dp, real(g_scale, kind=8), &
-                   real(g_shape, kind=8), pdf_thresh)
-
-    gp_scale = (1.0 - cdf_thresh)/ pdf_thresh
-
     if (thresh_pctl) then
         thresh2use = gamma_cdf_inv(real(thresh, kind=8), real(g_shape, kind=8), real(g_scale, kind=8))
     else
         thresh2use = thresh
     end if
 
+    call gamma_cdf(real(thresh2use, kind=8), 0.0_dp, real(g_scale, kind=8), &
+                   real(g_shape, kind=8), cdf_thresh)
+    call gamma_pdf(real(thresh2use, kind=8), 0.0_dp, real(g_scale, kind=8), &
+                   real(g_shape, kind=8), pdf_thresh)
+
+    gp_scale = (1.0 - cdf_thresh)/ pdf_thresh
+
+
     do  !enforce positive precipitation
 
       !today's precipitation
 
-      prec = ran_gamma_gp(rndst,.true.,g_shape,g_scale,thresh,gp_shape,gp_scale)
+      prec = ran_gamma_gp(rndst,.true.,g_shape,g_scale,thresh2use,gp_shape,gp_scale)
 !      prec = ran_gamma(rndst,.true.,g_shape,g_scale)
 
       prec = round(prec,1)    !simulated precipitation should have have more precision than the input (0.1mm)
