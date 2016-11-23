@@ -450,7 +450,7 @@ if (wetf > 0. .and. pre > 0.) then
     gp_scale = (1.0 - cdf_thresh)/ pdf_thresh
 
     if (thresh_pctl) then
-        thresh = gamma_cdf_inv(real(0.50, kind=8), real(g_shape, kind=8), real(g_scale, kind=8))
+        thresh = gamma_cdf_inv(real(thresh, kind=8), real(g_shape, kind=8), real(g_scale, kind=8))
     end if
 
     do  !enforce positive precipitation
