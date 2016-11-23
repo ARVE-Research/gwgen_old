@@ -328,6 +328,7 @@ real(sp) :: u        !uniformly distributed random number (0-1)
 real(sp) :: g_shape
 real(sp) :: g_scale
 real(sp) :: gp_scale
+real(sp) :: thresh2use
 
 ! bias correction
 real(sp) :: slopecorr      ! slope correction for wind
@@ -450,7 +451,9 @@ if (wetf > 0. .and. pre > 0.) then
     gp_scale = (1.0 - cdf_thresh)/ pdf_thresh
 
     if (thresh_pctl) then
-        thresh = gamma_cdf_inv(real(thresh, kind=8), real(g_shape, kind=8), real(g_scale, kind=8))
+        thresh2use = gamma_cdf_inv(real(thresh, kind=8), real(g_shape, kind=8), real(g_scale, kind=8))
+    else
+        thresh2use = thresh
     end if
 
     do  !enforce positive precipitation
