@@ -17,6 +17,7 @@ Documentation
 
     command_line/gwgen.rst
     api/gwgen.rst
+    fortran_api/index.rst
 
 
 

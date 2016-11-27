@@ -45,8 +45,12 @@ extensions = [
     'IPython.sphinxext.ipython_directive',
     'sphinxarg.ext',
     'autodocsumm',
+    'sphinxfortran.fortran_domain',
+    'sphinxfortran.fortran_autodoc',
     # 'psyplot.sphinxext.example_gallery',
 ]
+
+fortran_src = '../gwgen/src'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

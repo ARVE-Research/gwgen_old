@@ -5,8 +5,8 @@
 !
 !     $Id: csv_file_1d.f90,v 1.2 2006/03/26 19:03:53 arjenmarkus Exp $
 !
-    integer, intent(in)                 :: lun
-    logical, intent(in), optional       :: advance
+    integer, intent(in)                 :: lun ! LU-number of the CSV-file
+    logical, intent(in), optional       :: advance ! Advance (.true.) or not, so that more items can be written to the same record
 
     logical                             :: adv
     integer                             :: i
