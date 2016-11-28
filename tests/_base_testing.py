@@ -53,10 +53,10 @@ class BaseTest(unittest.TestCase):
             global_conf['database'] = dbname
 
     def tearDown(self):
-#        if osp.exists(self.test_dir):
-#            shutil.rmtree(self.test_dir)
-#        if osp.exists(self.config_dir):
-#            shutil.rmtree(self.config_dir)
+        if osp.exists(self.test_dir):
+            shutil.rmtree(self.test_dir)
+        if osp.exists(self.config_dir):
+            shutil.rmtree(self.config_dir)
         if use_db:
             self._clear_db()
         del self.organizer
