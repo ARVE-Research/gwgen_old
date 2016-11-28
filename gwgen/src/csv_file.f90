@@ -122,7 +122,7 @@ end subroutine csv_write_integer
 subroutine csv_write_real( lun, value, advance )
     ! Write a single real to the CSV-file
     integer, intent(in)   :: lun ! LU-number of the CSV-file
-    integer, intent(in)   :: value ! Value to write
+    real, intent(in)   :: value ! Value to write
     logical, intent(in)   :: advance ! Advance (.true.) or not, so that more items can be written to the same record
 
     character(len=40)     :: buffer

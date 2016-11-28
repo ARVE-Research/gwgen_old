@@ -1463,7 +1463,7 @@ module randomdistmod
         !     - Extracted by Philipp Sommer
         implicit none
 
-        integer ( kind = 4 )m intent(in) :: m   ! the degree
+        integer ( kind = 4 ), intent(in) :: m   ! the degree
         real ( kind = 8 ), intent(in) :: c(0:m) ! the polynomial coefficients. C(I) is the coefficient of  :math:`X^I`
         real ( kind = 8 ), intent(in) :: x      ! the polynomial value
 

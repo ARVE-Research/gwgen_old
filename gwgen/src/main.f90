@@ -1,4 +1,4 @@
-program weathergen
+program gwgen
 
     use csv_file,      only : csv_write
     use parametersmod, only : sp, tfreeze
@@ -437,4 +437,4 @@ program weathergen
 
 !-------------------------------------
 
-end program weathergen
+end program gwgen
