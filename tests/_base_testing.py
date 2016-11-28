@@ -7,9 +7,9 @@ import glob
 import gwgen
 import numpy as np
 import tempfile
-from gwgen.main import ModelOrganizer
+from gwgen.main import GWGENOrganizer
 import gwgen.utils as utils
-from gwgen.config import setup_logging
+from model_organization.config import setup_logging
 
 test_root = osp.abspath(osp.dirname(__file__))
 
@@ -44,7 +44,7 @@ class BaseTest(unittest.TestCase):
         self.eecra_stations_file = osp.join(self.test_dir,
                                             osp.basename(_eecra_test_stations))
         shutil.copyfile(_eecra_test_stations, self.eecra_stations_file)
-        self.organizer = ModelOrganizer('gwgen')
+        self.organizer = GWGENOrganizer()
         global_conf = self.organizer.config.global_config
         global_conf['data'] = osp.dirname(__file__)
         global_conf['use_relative_links'] = False
@@ -53,10 +53,10 @@ class BaseTest(unittest.TestCase):
             global_conf['database'] = dbname
 
     def tearDown(self):
-        if osp.exists(self.test_dir):
-            shutil.rmtree(self.test_dir)
-        if osp.exists(self.config_dir):
-            shutil.rmtree(self.config_dir)
+#        if osp.exists(self.test_dir):
+#            shutil.rmtree(self.test_dir)
+#        if osp.exists(self.config_dir):
+#            shutil.rmtree(self.config_dir)
         if use_db:
             self._clear_db()
         del self.organizer
@@ -78,45 +78,47 @@ class BaseTest(unittest.TestCase):
                 np.str_)
 
     def _test_setup(self):
-        """Test the setup of a model. We make this method private such that
+        """Test the setup of a project. We make this method private such that
         it is not called everytime"""
-        self.organizer.setup(self.test_dir, 'test_model0', link=False)
-        mpath = osp.join(self.test_dir, 'test_model0')
+        self.organizer.setup(self.test_dir, 'test_project0', link=False)
+        mpath = osp.join(self.test_dir, 'test_project0')
         self.assertTrue(osp.isdir(mpath))
         original_files = sorted(map(osp.basename, glob.glob(osp.join(
             osp.dirname(gwgen.__file__), 'src', '*.f90'))))
         copied_files = sorted(map(osp.basename, glob.glob(osp.join(
             mpath, 'src', '*.f90'))))
         self.assertEqual(original_files, copied_files)
-        self.assertIn('test_model0', self.organizer.config.models)
+        self.assertIn('test_project0', self.organizer.config.projects)
 
-        # createa new model and let it automatically assign the name
+        # createa new project and let it automatically assign the name
         self.organizer.setup(self.test_dir)
-        mpath = osp.join(self.test_dir, 'test_model1')
+        mpath = osp.join(self.test_dir, 'test_project1')
         self.assertTrue(osp.isdir(mpath))
         original_files = sorted(map(osp.basename, glob.glob(osp.join(
             osp.dirname(gwgen.__file__), 'src', '*.f90'))))
         copied_files = sorted(map(osp.basename, glob.glob(osp.join(
             mpath, 'src', '*.f90'))))
         self.assertEqual(original_files, copied_files)
-        self.assertIn('test_model1', self.organizer.config.models)
+        self.assertIn('test_project1', self.organizer.config.projects)
 
     def _test_init(self):
         """Test the intialization of a new experiment. We make this method
         private such that it is not called everytime"""
         self.organizer.setup(self.test_dir)
-        modelname = self.organizer.modelname
+        projectname = self.organizer.projectname
         self.organizer.init(experiment='testexp0')
-        expdir = osp.join(self.test_dir, modelname, 'experiments', 'testexp0')
+        expdir = osp.join(
+            self.test_dir, projectname, 'experiments', 'testexp0')
         self.assertTrue(osp.exists(expdir),
                         msg='Experiment directory %s does not exist!' % expdir)
         self.assertIn('testexp0', self.organizer.config.experiments)
 
         # test without argument
         self.organizer.setup(self.test_dir)
-        modelname = self.organizer.modelname
+        projectname = self.organizer.projectname
         self.organizer.init(experiment=None)
-        expdir = osp.join(self.test_dir, modelname, 'experiments', 'testexp1')
+        expdir = osp.join(
+            self.test_dir, projectname, 'experiments', 'testexp1')
         self.assertTrue(osp.exists(expdir),
                         msg='Experiment directory %s does not exist!' % expdir)
         self.assertIn('testexp1', self.organizer.config.experiments)

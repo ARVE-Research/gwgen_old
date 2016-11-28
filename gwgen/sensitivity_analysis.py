@@ -10,7 +10,7 @@ from collections import namedtuple
 from itertools import product, chain, repeat, starmap
 import logging
 import numpy as np
-from gwgen.main import OrderedDict, ModelOrganizer
+from gwgen.main import OrderedDict, GWGENOrganizer
 import gwgen.utils as utils
 from gwgen.utils import isstring, docstrings
 
@@ -30,12 +30,12 @@ class SensitivityAnalysis(object):
 
     @property
     def experiments(self):
-        modelname = self.modelname
+        projectname = self.projectname
         organizer = self.organizer
         all_exps = organizer.config.experiments
         return [exp_id for exp_id, d in all_exps.items()
                 if (not organizer.is_archived(exp_id) and
-                    d.get('model') == modelname)]
+                    d.get('project') == projectname)]
 
     @property
     def exp_config(self):
@@ -48,19 +48,19 @@ class SensitivityAnalysis(object):
                                           OrderedDict())
 
     @property
-    def modelname(self):
-        """The modelname of the sensitivity analysis"""
-        return self.config['model']
+    def projectname(self):
+        """The projectname of the sensitivity analysis"""
+        return self.config['project']
 
-    @modelname.setter
-    def modelname(self, value):
-        self.config['model'] = value
+    @projectname.setter
+    def projectname(self, value):
+        self.config['project'] = value
 
     @property
-    def model_config(self):
-        """The model configuration of the sensitivity analysis"""
-        return self.organizer.config.models.setdefault(self.modelname,
-                                                       OrderedDict())
+    def project_config(self):
+        """The project configuration of the sensitivity analysis"""
+        return self.organizer.config.projects.setdefault(self.projectname,
+                                                         OrderedDict())
 
     @property
     def sa_organizer(self):
@@ -68,29 +68,28 @@ class SensitivityAnalysis(object):
         try:
             return self._sa_organizer
         except AttributeError:
-            self._sa_organizer = ModelOrganizer(self.organizer.name,
-                                                self.organizer.config)
+            self._sa_organizer = GWGENOrganizer(self.organizer.config)
             try:
-                modelname = self.modelname
+                projectname = self.projectname
             except KeyError:
                 raise ValueError(
                     "No setup of the sensitivity analysis has been done yet! "
                     "Please run the setup method!")
-            self._sa_organizer.modelname = modelname
+            self._sa_organizer.projectname = projectname
         return self._sa_organizer
 
     def __init__(self, organizer):
         """
         Parameters
         ----------
-        organizer: gwgen.main.ModelOrganizer
+        organizer: gwgen.main.GWGENOrganizer
             The organizer to perform thre sensitivity analysis for
         """
         self.organizer = organizer
 
     def _parallelilze_command(self, kws, experiments=None):
         """
-        Run a ModelOrganizer command in parallel for all the experiments in
+        Run a GWGENOrganizer command in parallel for all the experiments in
         this analysis
 
         Parameters
@@ -142,67 +141,69 @@ class SensitivityAnalysis(object):
                 self.sa_organizer.start(**kws)
 
     def __call__(self, kws):
-        """Call the :meth:`~gwgen.main.ModelOrganizer.start` of the
+        """Call the :meth:`~model_organization.ModelOrganizer.start` of the
         :attr:`organizer` attribute
 
         Parameters
         ----------
         kws: dict
             Any keywords that are passed to the
-            :meth:`~gwgen.main.ModelOrganizer.start` method
+            :meth:`~model_organization.ModelOrganizer.start` method
 
         Returns
         -------
-        ModelOrganizer
+        model_organization.ModelOrganizer
             The :attr:`sa_organizer`
         argparse.Namespace
-            The return of the :meth:`~gwgen.main.ModelOrganizer.start` method
+            The return of the :meth:`~model_organization.ModelOrganizer.start`
+            method
         """
         return self.sa_organizer, self.sa_organizer.start(**kws)
 
-    def setup(self, root_dir=None, modelname=None, link=True,
+    def setup(self, root_dir=None, projectname=None, link=True,
               no_move=False, *args, **kwargs):
         """
-        Set up the experiments for the model
+        Set up the experiments for the project
 
         Parameters
         ----------
         root_dir: str
             The path to the root directory where the experiments, etc. will
             be stored. If not given, a new directory will be created at the
-            same location as the original model
-        modelname: str
-            The name of the model that shall be initialized at `root_dir`. A
-            new directory will be created namely ``root_dir + '/' + modelname``
-            If not given, defaults to ``'sensitivity_<id>'`` where ``'<id>'``
-            is the experiment id
+            same location as the original project
+        projectname: str
+            The name of the project that shall be initialized at `root_dir`. A
+            new directory will be created namely
+            ``root_dir + '/' + projectname``. If not given, defaults to
+            ``'sensitivity_<id>'`` where ``'<id>'`` is the experiment id
         link: bool
             If set, the source files are linked to the original ones instead
             of copied
         no_move: bool
-            If True, the model in the configuration files is not moved to the
-            position right before the configuration of the current model
+            If True, the project in the configuration files is not moved to the
+            position right before the configuration of the current project
         """
         config = self.config
-        if modelname is None:
-            modelname = config.setdefault(
-                'model', 'sensitivity_' + str(self.organizer.experiment))
-        self.modelname = modelname
+        if projectname is None:
+            projectname = config.setdefault(
+                'project', 'sensitivity_' + str(self.organizer.experiment))
+        self.projectname = projectname
         if root_dir is None:
-            root_dir = self.model_config.get(
-                'root', osp.dirname(self.organizer.model_config['root']))
-        self.model_config['root'] = root_dir
+            root_dir = self.project_config.get(
+                'root', osp.dirname(self.organizer.project_config['root']))
+        self.project_config['root'] = root_dir
         organizer = self.sa_organizer
         organizer.start(setup=dict(
-            root_dir=root_dir, modelname=modelname, link=link,
-            src_model=self.organizer.modelname))
+            root_dir=root_dir, projectname=projectname, link=link,
+            src_project=self.organizer.projectname))
         if not six.PY2 and not no_move:
-            utils.ordered_move(organizer.config.models, modelname,
-                               self.organizer.modelname)
+            utils.ordered_move(organizer.config.projects, projectname,
+                               self.organizer.projectname)
 
     def compile_model(self):
         """Compile the sensitivity analysis model"""
-        self.sa_organizer.start(compile_model=dict(modelname=self.modelname))
+        self.sa_organizer.start(compile_model=dict(
+            projectname=self.projectname))
 
     def init(self, nml=None, experiment=None, run_prepare=False,
              use_param=False, no_move=False):
@@ -275,7 +276,7 @@ class SensitivityAnalysis(object):
         logger = self.logger
 
         if nml is None:
-            nml = self.config.get('namelist', self.model_config.get(
+            nml = self.config.get('namelist', self.project_config.get(
                 'sensitivity_namelist'))
         if nml is None:
             raise ValueError(
@@ -291,7 +292,7 @@ class SensitivityAnalysis(object):
                 ranges[key] = list(map(float, val))
         nml = OrderedDict(chain(ranges.items(), errs.items()))
         self.config['namelist'] = nml.copy()
-        self.model_config['sensitivity_namelist'] = nml.copy()
+        self.project_config['sensitivity_namelist'] = nml.copy()
         try:
             eval_stations = self.exp_config['eval_stations']
         except KeyError:
@@ -329,7 +330,7 @@ class SensitivityAnalysis(object):
         for i, d in enumerate(map(lambda t: OrderedDict(zip(*t)), zip(
                 repeat(ranges.keys()), product(*ranges.values())))):
             experiment = utils.get_next_name(experiment)
-            organizer.init(modelname=self.modelname, experiment=experiment)
+            organizer.init(projectname=self.projectname, experiment=experiment)
             if not six.PY2 and not no_move:
                 utils.ordered_move(organizer.config.experiments, experiment,
                                    self.experiment)
@@ -359,7 +360,7 @@ class SensitivityAnalysis(object):
                     if config_key:
                         param_config[t.name] = {config_key: val}
                 organizer.fix_paths(organizer.exp_config)
-                organizer.fix_paths(organizer.model_config)
+                organizer.fix_paths(organizer.project_config)
 
                 logger.info('Parameterizing experiment %i', i)
                 manager = organizer.start(param=dict(
@@ -410,7 +411,7 @@ class SensitivityAnalysis(object):
                     experiment = utils.get_next_name(experiment)
                     combined = OrderedDict(chain(d.items(), d2.items()))
                     organizer.start(init=dict(
-                        modelname=self.modelname, experiment=experiment,
+                        projectname=self.projectname, experiment=experiment,
                         description=base_description.format(*combined)))
                     if not six.PY2 and not no_move:
                         utils.ordered_move(
@@ -437,7 +438,7 @@ class SensitivityAnalysis(object):
                 logger.debug('     mean: %s', minmeanmax[:, 1])
                 logger.debug('   maxima: %s', minmeanmax[:, 2])
 
-    docstrings.keep_params('ModelOrganizer.run.parameters', 'remove')
+    docstrings.keep_params('GWGENOrganizer.run.parameters', 'remove')
 
     @docstrings.dedent
     def run(self, experiments=None, remove=False):
@@ -448,7 +449,7 @@ class SensitivityAnalysis(object):
         ----------
         experiments: list of str
             The experiment names. If None, all are used
-        %(ModelOrganizer.run.parameters.remove)s"""
+        %(GWGENOrganizer.run.parameters.remove)s"""
         self._parallelilze_command(dict(run=dict(remove=remove)),
                                    experiments=experiments)
 
@@ -460,7 +461,7 @@ class SensitivityAnalysis(object):
         ----------
         experiments: list of str
             The experiment names. If None, all are used
-        %(ModelOrganizer.evaluate.parameters)s
+        %(GWGENOrganizer.evaluate.parameters)s
         """
         for key, val in kwargs.items():
             if isinstance(val, Namespace):
@@ -510,7 +511,7 @@ class SensitivityAnalysis(object):
             d['indicators'] = indicators
             d['meta'] = meta
             d['config'] = self.exp_config
-            d['model_config'] = self.organizer.model_config
+            d['project_config'] = self.organizer.project_config
             d['sa'] = self
         manager = SensitivityPlot.get_manager(
             config=self.organizer.global_config)
@@ -521,9 +522,9 @@ class SensitivityAnalysis(object):
 
     def remove(self, *args, **kwargs):
         """
-        Remove the model and files of the sensitivity analysis"""
+        Remove the project and files of the sensitivity analysis"""
         self.organizer.start(
-            remove=dict(modelname=self.modelname, complete=True,
+            remove=dict(projectname=self.projectname, complete=True,
                         *args, **kwargs))
 
 

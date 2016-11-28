@@ -18,7 +18,7 @@ class Evaluator(utils.TaskBase):
     """Abstract base class for evaluation tasks
 
     Evaluation tasks should incorporate a run method that is called by the
-    :meth:`gwgen.main.ModelOrganizer.evaluate` method"""
+    :meth:`gwgen.main.GWGENOrganizer.evaluate` method"""
 
     _registry = []
 
@@ -39,11 +39,11 @@ setup_raw: { 'scratch' | 'file' | 'db' | None }
     The method how to setup the raw data from GHCN and EECRA
 
     ``'scratch'``
-        To set up the model from the raw data
+        To set up the task from the raw data
     ``'file'``
-        Set up the model from an existing file
+        Set up the task from an existing file
     ``'db'``
-        Set up the model from a database
+        Set up the task from a database
     ``None``
         If the file name of this this task exists, use this one,
         otherwise a database is provided, use this one, otherwise go
@@ -207,7 +207,7 @@ class EvaluationPreparation(Evaluator):
             YearlyCompleteMonthlyCloud, YearlyCompleteMonthlyGHCNData]
         config = self.config.copy()
         config['paramdir'] = self.eval_dir
-        kws = dict(config=config, model_config=self.model_config,
+        kws = dict(config=config, project_config=self.project_config,
                    to_csv=self.task_config.raw2csv,
                    to_db=self.task_config.raw2db,
                    setup_from=self.task_config.setup_raw)
@@ -296,7 +296,7 @@ class OutputTask(Evaluator):
 
     name = 'output'
 
-    summary = 'Load and setup the output of the model'
+    summary = 'Load the output of the model'
 
     has_run = False
 

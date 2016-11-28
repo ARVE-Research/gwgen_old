@@ -207,7 +207,7 @@ class DailyGHCNData(Parameterizer):
             else:
                 import tarfile
                 logger.debug(msg)
-                tarfname = self.model_config.get('ghcn_src', src_dir +
+                tarfname = self.project_config.get('ghcn_src', src_dir +
                                                  '.tar.gz')
                 if not osp.exists(tarfname):
                     if download is None:
@@ -221,8 +221,8 @@ class DailyGHCNData(Parameterizer):
                         if not osp.exists(osp.dirname(tarfname)):
                             os.makedirs(osp.dirname(tarfname))
                         utils.download_file(self.http_source, tarfname)
-                        self.model_config['ghcn_download'] = dt.datetime.now()
-                    self.model_config['ghcn_src'] = tarfname
+                        self.project_config['ghcn_download'] = dt.datetime.now()
+                    self.project_config['ghcn_src'] = tarfname
                 taro = tarfile.open(tarfname, 'r|gz')
                 logger.debug('    Extracting to %s', osp.dirname(src_dir))
                 taro.extractall(osp.dirname(src_dir))

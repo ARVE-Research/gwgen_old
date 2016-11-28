@@ -373,11 +373,11 @@ setup_from: { 'scratch' | 'file' | 'db' | None }
     The method how to setup the instance either from
 
     ``'scratch'``
-        To set up the model from the raw data
+        To set up the task from the raw data
     ``'file'``
-        Set up the model from an existing file
+        Set up the task from an existing file
     ``'db'``
-        Set up the model from a database
+        Set up the task from a database
     ``None``
         If the file name of this this task exists, use this one,
         otherwise a database is provided, use this one, otherwise go
@@ -585,9 +585,9 @@ class TaskBase(object):
 
     @property
     def data_dir(self):
-        """str. Path to the directory where the source data of the model
+        """str. Path to the directory where the source data of the project
         is located"""
-        return self.model_config['data']
+        return self.project_config['data']
 
     @property
     def param_dir(self):
@@ -675,7 +675,7 @@ class TaskBase(object):
 
     @property
     def input_path(self):
-        """The path to the model input file in the configuration"""
+        """The path to the project input file in the configuration"""
         return self.config.get(
             'input', osp.join(self.input_dir, 'input.csv'))
 
@@ -697,7 +697,7 @@ class TaskBase(object):
 
     @property
     def output_path(self):
-        """The path to the model output file in the configuration"""
+        """The path to the project output file in the configuration"""
         return self.config['outdata']
 
     @abc.abstractproperty
@@ -736,7 +736,7 @@ class TaskBase(object):
         """The sqlalchemy engine to access the database"""
         global_config = self.global_config
         database = self.config.get(
-            'database', self.model_config.get(
+            'database', self.project_config.get(
                 'database', self.global_config.get('database')))
         if not database or global_config.get('no_postgres'):
             return None
@@ -800,7 +800,7 @@ class TaskBase(object):
 
     @docstrings.get_sectionsf('TaskBase')
     @docstrings.dedent
-    def __init__(self, stations, config, model_config, global_config,
+    def __init__(self, stations, config, project_config, global_config,
                  data=None, requirements=None, *args, **kwargs):
         """
         Parameters
@@ -809,8 +809,8 @@ class TaskBase(object):
             The list of stations to process
         config: dict
             The configuration of the experiment
-        model_config: dict
-            The configuration of the underlying model
+        project_config: dict
+            The configuration of the underlying project
         global_config: dict
             The global configuration
         data: pandas.DataFrame
@@ -828,7 +828,7 @@ class TaskBase(object):
         """
         self.global_config = global_config
         self.config = config
-        self.model_config = model_config
+        self.project_config = project_config
         if args:
             self.task_config = self.default_config._make(args)
         else:
@@ -859,23 +859,23 @@ class TaskBase(object):
         else:
             config = self.task_config
         return self.__class__, tuple(chain(
-            (self.stations, self.config, self.model_config, self.global_config,
+            (self.stations, self.config, self.project_config, self.global_config,
              self.data, self._requirements), config))
 
     docstrings.delete_params(
-        'TaskBase.parameters', 'config', 'model_config', 'global_config')
+        'TaskBase.parameters', 'config', 'project_config', 'global_config')
 
     @classmethod
     @docstrings.dedent
     def from_organizer(cls, organizer, stations, *args, **kwargs):
         """
-        Create a new instance from a :class:`gwgen.main.ModelOrganizer`
+        Create a new instance from a :class:`model_organization.ModelOrganizer`
 
         Parameters
         ----------
-        organizer: gwgen.main.ModelOrganizer
+        organizer: model_organization.ModelOrganizer
             The organizer to use the configuration from
-        %(TaskBase.parameters.no_config|model_config|global_config)s
+        %(TaskBase.parameters.no_config|project_config|global_config)s
 
         Other Parameters
         ----------------
@@ -886,11 +886,11 @@ class TaskBase(object):
         TaskBase
             An instance of the calling class
         """
-        return cls(stations, organizer.exp_config, organizer.model_config,
+        return cls(stations, organizer.exp_config, organizer.project_config,
                    organizer.global_config, *args, **kwargs)
 
     docstrings.delete_params(
-        'TaskBase.parameters', 'stations', 'config', 'model_config',
+        'TaskBase.parameters', 'stations', 'config', 'project_config',
         'global_config')
 
     @classmethod
@@ -906,7 +906,7 @@ class TaskBase(object):
         task: TaskBase
             The organizer to use the configuration from. Note that it can also
             be of a different type than this class
-        %(TaskBase.parameters.no_stations|config|model_config|global_config)s
+        %(TaskBase.parameters.no_stations|config|project_config|global_config)s
 
         Other Parameters
         ----------------
@@ -916,7 +916,7 @@ class TaskBase(object):
         --------
         setup_from_instances: To combine multiple instances of the class
         """
-        return cls(task.stations, task.config, task.model_config,
+        return cls(task.stations, task.config, task.project_config,
                    task.global_config, *args, **kwargs)
 
     def set_requirements(self, requirements):
@@ -1436,8 +1436,8 @@ class TaskManager(object):
         def init_task(task):
             kws = task_kws[task.name]
             config = kws.pop('config')
-            model_config = kws.pop('model_config')
-            return task(stations, config, model_config, self.config, **kws)
+            project_config = kws.pop('project_config')
+            return task(stations, config, project_config, self.config, **kws)
         tasks = {task.name: init_task(task) for task in map(
             self.get_task_cls, task_kws)}
         task_kws = task_kws.copy()

@@ -285,8 +285,8 @@ class Test_HourlyCloud(bt.BaseTest, _ParameterizerTestMixin, _CloudTestMixin):
 
     def test_extraction(self):
         self._test_init()
-        orig_data = self.organizer.model_config['data']
-        self.organizer.model_config['data'] = self.test_dir
+        orig_data = self.organizer.project_config['data']
+        self.organizer.project_config['data'] = self.test_dir
         eecra_dir = osp.join(self.test_dir, 'eecra')
         os.makedirs(eecra_dir)
         shutil.copytree(osp.join(orig_data, 'eecra', 'raw'),

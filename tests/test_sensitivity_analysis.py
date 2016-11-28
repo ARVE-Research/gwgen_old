@@ -10,16 +10,16 @@ class SensitivityAnalysisTest(bt.BaseTest):
     """Test case to test the sensitivity analysis"""
 
     @property
-    def modelname(self):
-        return self.organizer.exp_config['sensitivity_analysis']['model']
+    def projectname(self):
+        return self.organizer.exp_config['sensitivity_analysis']['project']
 
     def test_setup(self):
         self._test_init()
         self.organizer.sensitivity_analysis(
             setup={}, experiment=self.organizer.experiment)
-        modelname = self.modelname
+        projectname = self.projectname
         self.assertTrue(osp.exists(
-            self.organizer.config.models[modelname]['root']))
+            self.organizer.config.projects[projectname]['root']))
 
     def test_init(self, sparse=False):
         self.test_setup()
@@ -39,10 +39,10 @@ class SensitivityAnalysisTest(bt.BaseTest):
             shapes = np.arange(0.1, 0.5, 0.3)
         shapes, threshs = np.meshgrid(shapes, threshs)
         n = threshs.size
-        modelname = self.modelname
+        projectname = self.projectname
         all_exps = self.organizer.config.experiments
         exp_names = [exp_id for exp_id in all_exps
-                     if all_exps[exp_id]['model'] == modelname]
+                     if all_exps[exp_id]['project'] == projectname]
         self.assertEqual(len(exp_names), n)
         df = pd.DataFrame.from_dict([
             all_exps[exp_id]['namelist']['weathergen_ctl']
@@ -61,13 +61,13 @@ class SensitivityAnalysisTest(bt.BaseTest):
         self.organizer.parse_args(
             ('-id {} sens init -nml thresh=10,16,5 '
              'gp_shape=-1err,1err,{}').format(experiment, n_shape).split())
-        modelname = self.modelname
+        projectname = self.projectname
         threshs = np.arange(10, 16, 5)
         _, threshs = np.meshgrid(range(n_shape + 1), threshs)
         n = threshs.size
         all_exps = self.organizer.config.experiments
         exp_names = [exp_id for exp_id in all_exps
-                     if all_exps[exp_id]['model'] == modelname]
+                     if all_exps[exp_id]['project'] == projectname]
         self.assertEqual(len(exp_names), n)
         df = pd.DataFrame([
             all_exps[exp_id]['namelist']['weathergen_ctl']
@@ -95,7 +95,8 @@ class SensitivityAnalysisTest(bt.BaseTest):
         self.test_setup()
         self.organizer.sensitivity_analysis(
             compile={}, experiment=self.organizer.experiment)
-        binpath = osp.join(self.test_dir, self.modelname, 'bin', 'weathergen')
+        binpath = osp.join(self.test_dir, self.projectname, 'bin',
+                           'weathergen')
         self.assertTrue(osp.exists(binpath),
                         msg='binary %s does not exist!' % binpath)
 
@@ -106,10 +107,10 @@ class SensitivityAnalysisTest(bt.BaseTest):
             self.test_init(sparse=True)
         self.organizer.sensitivity_analysis(
             compile={}, run={}, experiment=self.organizer.experiment)
-        modelname = self.modelname
+        projectname = self.projectname
         all_exps = self.organizer.config.experiments
         exp_names = [exp_id for exp_id in all_exps
-                     if all_exps[exp_id]['model'] == modelname]
+                     if all_exps[exp_id]['project'] == projectname]
         for exp in exp_names:
             self.assertIn(
                 'outdata', all_exps[exp],
@@ -135,9 +136,9 @@ class SensitivityAnalysisTest(bt.BaseTest):
         self.organizer.global_config['serial'] = orig_serial
         all_exps = self.organizer.config.experiments
         if full:
-            modelname = self.modelname
+            projectname = self.projectname
             to_evaluate = [exp_id for exp_id in all_exps
-                           if all_exps[exp_id]['model'] == modelname]
+                           if all_exps[exp_id]['project'] == projectname]
         for exp in to_evaluate:
             self.assertIn('quants', all_exps[exp]['evaluation'],
                           msg='No quantile evaluation made for %s' % exp)
