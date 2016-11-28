@@ -11,7 +11,6 @@ Submodules
 
 .. toctree::
 
-   gwgen.config
    gwgen.evaluation
    gwgen.main
    gwgen.parameterization

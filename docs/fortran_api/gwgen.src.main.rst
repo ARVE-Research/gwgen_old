@@ -3,4 +3,4 @@
 main program
 ============
 
-.. f:autoprogram:: weathergen
+.. f:autoprogram:: gwgen
