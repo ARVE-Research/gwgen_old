@@ -364,13 +364,14 @@ _QuantileConfig = namedtuple(
     ['quantiles'] + list(_KSConfig._fields))
 
 
-_QuantileConfig = utils.append_doc(_QuantileConfig, docstrings.get_sections("""
+_QuantileConfig = utils.append_doc(_QuantileConfig, docstrings.get_sections(
+    docstrings.dedents("""
 Parameters
 ----------
-%(_KSConfig.parameters)
+%(_KSConfig.parameters)s
 quantiles: list of floats
     The quantiles to use for calculating the percentiles
-""", '_QuantileConfig'))
+"""), '_QuantileConfig'))
 
 
 QuantileConfig = utils.enhanced_config(_QuantileConfig, 'QuantileConfig')

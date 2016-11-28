@@ -453,6 +453,7 @@ class SensitivityAnalysis(object):
         self._parallelilze_command(dict(run=dict(remove=remove)),
                                    experiments=experiments)
 
+    @docstrings.dedent
     def evaluate(self, experiments=None, **kwargs):
         """
         Evaluate the experiments of the sensitivity analysis
