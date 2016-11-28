@@ -1304,7 +1304,8 @@ class GWGENOrganizer(ModelOrganizer):
         sp.setup_args(SensitivityAnalysis.run)
         sp.update_arg('remove', short='rm')
         sp.update_arg('experiments', short='ids', type=lambda s: s.split(','),
-                      metavar='id1,id2,...', nargs=1)
+                      metavar='id1,id2,...')
+        sp.pop_key('experiments', 'nargs', None)
 
         # evaluate parser
         sp = sps.add_parser(
@@ -1312,7 +1313,8 @@ class GWGENOrganizer(ModelOrganizer):
         sp.setup_args(SensitivityAnalysis.evaluate)
         sp.setup_args(self.evaluate)
         sp.update_arg('experiments', short='ids', type=lambda s: s.split(','),
-                      metavar='id1,id2,...', nargs=1)
+                      metavar='id1,id2,...')
+        sp.pop_key('experiments', 'nargs', None)
         self._modify_evaluate(sp, skip=['prepare', 'output'])
 
         # plot parser
