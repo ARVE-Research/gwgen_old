@@ -806,8 +806,9 @@ class SensitivityPlot2D(SensitivityPlot):
                 norm = mcol.BoundaryNorm(
                     np.linspace(vmin, vmax, 11, endpoint=True), 10)
                 cmap = plt.get_cmap('Greens', 10)
-                # set missing values to red
-                cmap.set_bad('r', alpha=1.0)
+                # set missing values to (dark) red
+                cmap.set_bad((0.7686274509803922, 0.3058823529411765,
+                              0.3215686274509804))
                 plots = []
                 for i, key in enumerate(sorted(df.thresh.unique())):
                     data = np.ma.array(vals[key], mask=np.isnan(vals[key]))
