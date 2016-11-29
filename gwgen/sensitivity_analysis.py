@@ -681,10 +681,14 @@ class SensitivityPlot(utils.TaskBase):
         all_exps = self.organizer.config.experiments
         dfs = []
         for variable in self.task_config.names:
+            data = [{} for _ in experiments]
+            for i, exp in enumerate(experiments):
+                try:
+                    data[i] = all_exps[exp]['evaluation']['quality'][variable]
+                except KeyError:
+                    pass
             df = pd.DataFrame(
-                [all_exps[exp]['evaluation']['quality'][variable]
-                 for exp in experiments],
-                index=pd.Index(experiments, name='id'))
+                data, index=pd.Index(experiments, name='id'))
             df2 = pd.DataFrame(
                 [all_exps[exp]['namelist']['weathergen_ctl']
                  for exp in experiments],

@@ -13,6 +13,13 @@ class SensitivityAnalysisTest(bt.BaseTest):
     def projectname(self):
         return self.organizer.exp_config['sensitivity_analysis']['project']
 
+    @property
+    def sa_experiments(self):
+        all_exps = self.organizer.config.experiments
+        projectname = self.projectname
+        return [exp_id for exp_id in all_exps
+                if all_exps[exp_id]['project'] == projectname]
+
     def test_setup(self):
         self._test_init()
         self.organizer.sensitivity_analysis(
@@ -39,10 +46,8 @@ class SensitivityAnalysisTest(bt.BaseTest):
             shapes = np.arange(0.1, 0.5, 0.3)
         shapes, threshs = np.meshgrid(shapes, threshs)
         n = threshs.size
-        projectname = self.projectname
         all_exps = self.organizer.config.experiments
-        exp_names = [exp_id for exp_id in all_exps
-                     if all_exps[exp_id]['project'] == projectname]
+        exp_names = self.sa_experiments
         self.assertEqual(len(exp_names), n)
         df = pd.DataFrame.from_dict([
             all_exps[exp_id]['namelist']['weathergen_ctl']
@@ -61,13 +66,11 @@ class SensitivityAnalysisTest(bt.BaseTest):
         self.organizer.parse_args(
             ('-id {} sens init -nml thresh=10,16,5 '
              'gp_shape=-1err,1err,{}').format(experiment, n_shape).split())
-        projectname = self.projectname
         threshs = np.arange(10, 16, 5)
         _, threshs = np.meshgrid(range(n_shape + 1), threshs)
         n = threshs.size
         all_exps = self.organizer.config.experiments
-        exp_names = [exp_id for exp_id in all_exps
-                     if all_exps[exp_id]['project'] == projectname]
+        exp_names = self.sa_experiments
         self.assertEqual(len(exp_names), n)
         df = pd.DataFrame([
             all_exps[exp_id]['namelist']['weathergen_ctl']
@@ -107,10 +110,8 @@ class SensitivityAnalysisTest(bt.BaseTest):
             self.test_init(sparse=True)
         self.organizer.sensitivity_analysis(
             compile={}, run={}, experiment=self.organizer.experiment)
-        projectname = self.projectname
         all_exps = self.organizer.config.experiments
-        exp_names = [exp_id for exp_id in all_exps
-                     if all_exps[exp_id]['project'] == projectname]
+        exp_names = self.sa_experiments
         for exp in exp_names:
             self.assertIn(
                 'outdata', all_exps[exp],
@@ -155,11 +156,14 @@ class SensitivityAnalysisTest(bt.BaseTest):
 
     def _test_plot(self, param=False):
         self.test_evaluate(param=param, full=True)
+        exp_names = self.sa_experiments
         plot1d_output = osp.join(self.test_dir, 'plot1d.pdf')
         plot2d_output = osp.join(self.test_dir, 'plot2d.pdf')
         self.organizer.sensitivity_analysis(
             experiment=self.organizer.experiment,
-            evaluate={'quality': {}},
+            evaluate={'quality': {},
+                      # delete one experiment to test, if it still works
+                      'experiments': exp_names[:1] + exp_names[2:]},
             plot={'plot1d': {'plot_output': plot1d_output},
                   'plot2d': {'plot_output': plot2d_output},
                   'names': ['prcp']})
