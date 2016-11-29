@@ -88,10 +88,10 @@ def isstring(s):
     return isinstance(s, six.string_types)
 
 docstrings.params['str_ranges.s_help'] = """
-    A semicolon (``';'``) separated string. A single value in this string
+    A comma (``','``) separated string. A single value in this string
     represents one number, ranges can also be used via a separation by
-    comma (``','``). Hence, ``'2009;2012,2015'`` will be
-    converted to ``[2009,2012, 2013, 2014]`` and ``2009;2012,2015,2`` to
+    comma (``'-'``). Hence, ``'2009,2012-2015'`` will be
+    converted to ``[2009,2012, 2013, 2014]`` and ``2009,2012-2015-2`` to
     ``[2009, 2012, 2015]``"""
 
 
@@ -109,9 +109,9 @@ def str_ranges(s):
     list
         The values in s converted to a list"""
     def get_numbers(s):
-        splitted = s.split(',')
+        splitted = s.split('-')
         try:
-            nums = list(map(float, s.split(',')))
+            nums = list(map(float, s.split('-')))
         except ValueError:
             return splitted
         if len(nums) == 1:
@@ -119,7 +119,7 @@ def str_ranges(s):
         else:
             import numpy as np
             return np.arange(*nums)
-    return list(chain(*map(get_numbers, s.split(';'))))
+    return list(chain(*map(get_numbers, s.split(','))))
 
 
 def unique_everseen(iterable, key=None):
