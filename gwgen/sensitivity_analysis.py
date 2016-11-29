@@ -789,7 +789,7 @@ class SensitivityPlot2D(SensitivityPlot):
                 ax = plt.axes(axisbg='0.9')
                 all_vals = np.concatenate(list(vals.values()))
                 vmin, vmax = psyps.DataTicksCalculator._round_min_max(
-                    all_vals.min(), all_vals.max())
+                    np.nanmin(all_vals), np.nanmax(all_vals))
                 norm = mcol.BoundaryNorm(
                     np.linspace(vmin, vmax, 11, endpoint=True), 10)
                 cmap = plt.get_cmap('Greens', 10)
