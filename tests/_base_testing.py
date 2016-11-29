@@ -46,7 +46,7 @@ class BaseTest(unittest.TestCase):
         shutil.copyfile(_eecra_test_stations, self.eecra_stations_file)
         self.organizer = GWGENOrganizer()
         global_conf = self.organizer.config.global_config
-        global_conf['data'] = osp.dirname(__file__)
+        global_conf['data'] = osp.join(test_root, 'test_data')
         global_conf['use_relative_links'] = False
         if use_db:
             self._clear_db()
