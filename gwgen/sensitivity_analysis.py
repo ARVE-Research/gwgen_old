@@ -83,7 +83,10 @@ class SensitivityAnalysis(object):
         """
         self.organizer = organizer
 
-    def _parallelilze_command(self, kws, experiments=None):
+    @docstrings.get_sectionsf('SensitivityAnalysis._parallelize_command')
+    @docstrings.dedent
+    def _parallelilze_command(self, kws, experiments=None,
+                              loop_exps=False):
         """
         Run a GWGENOrganizer command in parallel for all the experiments in
         this analysis
@@ -95,6 +98,11 @@ class SensitivityAnalysis(object):
             analysis, values must be dictionaries for the corresponding command
         experiments: list of str
             The experiments to use. If None, all experiments are used
+        loop_exps: bool
+            If True the experiments of the sensitivity analysis are called
+            one after each other. Otherwise they are called in parallel, each
+            on a single core (unless the the serial option in the global
+            configuration is set)
         """
         import multiprocessing as mp
 #        from distributed import Client
@@ -105,7 +113,7 @@ class SensitivityAnalysis(object):
         config = self.organizer.global_config
         commands = self.organizer.commands + list(
             self.organizer.parser_commands.values())
-        if not config.get('serial'):
+        if not loop_exps and not config.get('serial'):
             all_kws = (
                 {key: dict(chain([('experiment', exp)], kws[key].items()))
                  for key in kws.keys() if key in commands}
@@ -435,6 +443,8 @@ class SensitivityAnalysis(object):
                 logger.debug('   maxima: %s', minmeanmax[:, 2])
 
     docstrings.keep_params('GWGENOrganizer.run.parameters', 'remove')
+    docstrings.keep_params(
+        'SensitivityAnalysis._parallelize_command.parameters', 'experiments')
 
     @docstrings.dedent
     def run(self, experiments=None, remove=False):
@@ -443,21 +453,23 @@ class SensitivityAnalysis(object):
 
         Parameters
         ----------
-        experiments: list of str
-            The experiment names. If None, all are used
+        %(SensitivityAnalysis._parallelize_command.parameters.experiments)s
         %(GWGENOrganizer.run.parameters.remove)s"""
         self._parallelilze_command(dict(run=dict(remove=remove)),
                                    experiments=experiments)
 
+    docstrings.keep_params(
+        'SensitivityAnalysis._parallelize_command.parameters', 'loop_exps')
+
     @docstrings.dedent
-    def evaluate(self, experiments=None, **kwargs):
+    def evaluate(self, experiments=None, loop_exps=False, **kwargs):
         """
         Evaluate the experiments of the sensitivity analysis
 
         Parameters
         ----------
-        experiments: list of str
-            The experiment names. If None, all are used
+        %(SensitivityAnalysis._parallelize_command.parameters.experiments)s
+        %(SensitivityAnalysis._parallelize_command.parameters.loop_exps)s
         %(GWGENOrganizer.evaluate.parameters)s
         """
         for key, val in kwargs.items():
@@ -466,7 +478,8 @@ class SensitivityAnalysis(object):
             if isinstance(val, dict) and 'experiments' in val:
                 val.pop('experiments')
         self._parallelilze_command(dict(evaluate=kwargs),
-                                   experiments=experiments)
+                                   experiments=experiments,
+                                   loop_exps=loop_exps)
 
     @docstrings.dedent
     def plot(self, indicators=['rsquared', 'slope', 'ks', 'quality'],
@@ -793,11 +806,15 @@ class SensitivityPlot2D(SensitivityPlot):
                 norm = mcol.BoundaryNorm(
                     np.linspace(vmin, vmax, 11, endpoint=True), 10)
                 cmap = plt.get_cmap('Greens', 10)
+                # set missing values to red
+                cmap.set_bad('r', alpha=1.0)
                 plots = []
                 for i, key in enumerate(sorted(df.thresh.unique())):
+                    data = np.ma.array(vals[key], mask=np.isnan(vals[key]))
                     plots.append(
-                        ax.pcolormesh(x_vals[key], y[i:i+2], [vals[key]],
-                                      norm=norm, cmap=cmap))
+                        ax.pcolormesh(
+                            x_vals[key], y[i:i+2], data[np.newaxis, :],
+                            norm=norm, cmap=cmap))
                 ax.set_xlabel('Generalized Pareto shape parameter')
                 ax.set_ylabel('Gamma-GP crossover point [mm]')
                 ax.set_title(self.variables_meta[variable])

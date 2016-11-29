@@ -980,7 +980,7 @@ class GWGENOrganizer(ModelOrganizer):
         parser.update_arg('keep', short='k')
         parser.update_arg(
             'quantiles', short='q', type=utils.str_ranges,
-            metavar='f1[;f21[,f22[,f23]]]', help=docstrings.dedents("""
+            metavar='f1[,f21[-f22[-f23]]]', help=docstrings.dedents("""
                 The quantiles to use for calculating the percentiles.
                 %(str_ranges.s_help)s."""))
         parser.update_arg('new_project', short='np')
@@ -1294,7 +1294,7 @@ class GWGENOrganizer(ModelOrganizer):
                 interpreted as ``'<i>'``-times the error from the
                 parameterization.
                 """),
-            metavar='nml_key=f1[;f21[,f22[,f23]]]', nargs='+')
+            metavar='nml_key=f1[,f21[-f22[-f23]]]', nargs='+')
         sp.update_arg('run_prepare', short='prep')
         sp.update_arg('no_move', short='nm')
 
@@ -1315,6 +1315,7 @@ class GWGENOrganizer(ModelOrganizer):
         sp.update_arg('experiments', short='ids', type=lambda s: s.split(','),
                       metavar='id1,id2,...')
         sp.pop_key('experiments', 'nargs', None)
+        sp.update_arg('loop_exps', short='loop')
         self._modify_evaluate(sp, skip=['prepare', 'output'])
 
         # plot parser
