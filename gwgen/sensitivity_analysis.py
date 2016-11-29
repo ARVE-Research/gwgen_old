@@ -31,11 +31,7 @@ class SensitivityAnalysis(object):
     @property
     def experiments(self):
         projectname = self.projectname
-        organizer = self.organizer
-        all_exps = organizer.config.experiments
-        return [exp_id for exp_id, d in all_exps.items()
-                if (not organizer.is_archived(exp_id) and
-                    d.get('project') == projectname)]
+        return self.organizer.config.experiments.project_map[projectname]
 
     @property
     def exp_config(self):
