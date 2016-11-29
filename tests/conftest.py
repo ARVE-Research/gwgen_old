@@ -5,12 +5,22 @@ def pytest_addoption(parser):
                     action='store_true')
     group.addoption('--no-db', help="Don't test postgres databases",
                     action='store_true')
+    group.addoption('--database',
+                    help=("The name of the postgres database to use. Default: "
+                          "%(default)s"), default='travis_ci_test')
+    group.addoption('--user',
+                    help="The username to access the postgres database")
+    group.addoption('--host',
+                    help=("The hostname for the postgres database. Default: "
+                          "%(default)s"), default='127.0.0.1')
+    group.addoption('--port', help="The port of the postgres database.")
 
 
 def pytest_configure(config):
+    import _base_testing as bt
     if config.getoption('offline'):
-        import _base_testing as bt
         bt.online = False
     if config.getoption('no_db'):
-        import _base_testing as bt
         bt.use_db = False
+    for option in ['database', 'user', 'host', 'port']:
+        bt.db_config[option] = config.getoption(option)

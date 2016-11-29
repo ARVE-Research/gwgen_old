@@ -21,7 +21,8 @@ _eecra_test_stations = osp.join(test_root, 'eecra_test_stations.dat')
 setup_logging(osp.join(test_root, 'logging.yaml'))
 
 
-dbname = 'travis_ci_test'
+db_config = dict(
+    database='travis_ci_test')
 
 
 class BaseTest(unittest.TestCase):
@@ -50,7 +51,7 @@ class BaseTest(unittest.TestCase):
         global_conf['use_relative_links'] = False
         if use_db:
             self._clear_db()
-            global_conf['database'] = dbname
+            global_conf.update(db_config)
 
     def tearDown(self):
         if osp.exists(self.test_dir):
@@ -64,7 +65,7 @@ class BaseTest(unittest.TestCase):
         del self.config_dir
 
     def _clear_db(self):
-        engine = utils.get_postgres_engine(dbname)[0]
+        engine = utils.get_postgres_engine(db_config['database'])[0]
         conn = engine.connect()
         for table in engine.table_names():
             conn.execute("DROP TABLE %s;" % table)
@@ -162,6 +163,7 @@ class BaseTest(unittest.TestCase):
         except AssertionError as e:
             self.fail(e.message)
 
+
 # check if we are online by trying to connect to google
 try:
     BaseTest._test_url('https://www.google.de')
@@ -172,7 +174,7 @@ except:
 
 # try to connect to a postgres database
 try:
-    utils.get_postgres_engine(dbname, create=True, test=True)
+    utils.get_postgres_engine(create=True, test=True, **db_config)
     use_db = True
 except:
     use_db = False

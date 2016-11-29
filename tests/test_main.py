@@ -1,7 +1,7 @@
 """Test module for the :mod:`gwgen.main` module"""
 import os.path as osp
 import unittest
-from gwgen.main import docstrings
+from gwgen.utils import file_len
 import _base_testing as bt
 
 
@@ -17,14 +17,26 @@ class OrganizerTest(bt.BaseTest):
         self.assertTrue(osp.exists(binpath),
                         msg='binary %s does not exist!' % binpath)
 
+    def test_run(self):
+        self._test_init()
+        organizer = self.organizer
+        exp = organizer.experiment
+        organizer.evaluate(self.stations_file, prepare={}, to_csv=True,
+                           experiment=exp)
+        self.organizer.run()
+        fname = osp.join(self.test_dir, organizer.projectname, 'experiments',
+                         exp, 'outdata', exp + '.csv')
+        self.assertTrue(osp.exists(fname), msg='Output file %s not found!' % (
+            fname))
+        nlines = file_len(fname)
+        self.assertGreater(nlines, 2, msg='No output generated!')
+
     def test_wind_bias_correction(self):
         """Test gwgen bias wind"""
-#        self.organizer.global_config['serial'] = True
         self._test_init()
         self.organizer.parse_args(
             ('evaluate -s %s prepare -to-csv' % self.stations_file).split())
         self.organizer.parse_args(['run'])
-#        self.organizer.global_config['nprocs'] = 2
         self.organizer.parse_args('bias wind'.split())
         self.organizer.fix_paths(self.organizer.exp_config)
         ofile = self.organizer.exp_config['postproc']['bias']['wind'][
