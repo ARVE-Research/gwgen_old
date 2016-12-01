@@ -793,11 +793,9 @@ class SensitivityPlot2D(SensitivityPlot):
             for variable in self.task_config.names:
                 df = full_df[full_df.vname == variable]
                 vals = {
-                    key: group[ind] for key, group in df.groupby('thresh')}
+                    key: group.set_index('gp_shape').sort_index()[ind]
+                    for key, group in df.groupby('thresh')}
                 y = psyd._infer_interval_breaks(sorted(vals.keys()))
-                x_vals = {key: psyd._infer_interval_breaks(
-                              group.gp_shape.sort_values())
-                          for key, group in df.groupby('thresh')}
                 fig = plt.figure(edgecolor='none', facecolor='none')
                 ax = plt.axes(axisbg='0.9')
                 all_vals = np.concatenate(list(vals.values()))
@@ -812,10 +810,10 @@ class SensitivityPlot2D(SensitivityPlot):
                 plots = []
                 for i, key in enumerate(sorted(df.thresh.unique())):
                     data = np.ma.array(vals[key], mask=np.isnan(vals[key]))
-                    plots.append(
-                        ax.pcolormesh(
-                            x_vals[key], y[i:i+2], data[np.newaxis, :],
-                            norm=norm, cmap=cmap))
+                    x = psyd._infer_interval_breaks(vals[key].index.values)
+                    plots.append(ax.pcolormesh(
+                        x, y[i:i+2], data[np.newaxis, :], norm=norm,
+                        cmap=cmap))
                 ax.set_xlabel('Generalized Pareto shape parameter')
                 ax.set_ylabel('Gamma-GP crossover point [mm]')
                 ax.set_title(self.variables_meta[variable])
