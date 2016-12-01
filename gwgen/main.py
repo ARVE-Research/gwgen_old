@@ -769,8 +769,8 @@ class GWGENOrganizer(ModelOrganizer):
         import subprocess as spr
         import stat
         import f90nml
-        logger = self.logger
         self.app_main(**kwargs)
+        logger = self.logger
         exp_config = self.fix_paths(self.exp_config)
         project_config = self.fix_paths(self.project_config)
         experiment = self.experiment
