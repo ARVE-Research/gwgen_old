@@ -79,71 +79,71 @@ module weathergenmod
     ! ------------------- Defaults for the namelist parameters --------------------
     ! -----------------------------------------------------------------------------
 
-    real(sp)                 :: thresh = 15.0 ! Threshold for transition from gamma to gp distribution
+    real(sp)                 :: thresh = 5.0 ! Threshold for transition from gamma to gp distribution
 
     logical :: thresh_pctl = .false. ! interpret the thresh as percentile
     ! coefficient to esimate the gamma scale parameter via
     ! g_scale = g_scale_coeff * mean_monthly_precip / number_of_wet_days
     ! following Geng et al., 1986
-    real(sp)                 :: g_scale_coeff = 1.24896 ! coefficient to esimate the gamma scale parameter
+    real(sp)                 :: g_scale_coeff = 1.268022 ! coefficient to esimate the gamma scale parameter
 
-    real(sp)                 :: gp_shape = 0.08303 ! shape parameter for the Generalized Pareto distribution
+    real(sp)                 :: gp_shape = 1.5 ! shape parameter for the Generalized Pareto distribution
 
     real(sp), dimension(4,4) :: A = reshape((/ & ! A matrix used for cross correlation following Richardson_1984 equation (4)
-        0.915395, 0.032931, -0.020349, 4.3e-05, &
-        0.500123, 0.138388, -0.072738, -0.047751, &
-        0.002037, -0.047249, 0.589393, 0.027476, &
-        0.009912, -0.0451, -0.018483, 0.673857 /), (/4, 4/))
+        0.913437, 0.032532,  -0.020658, 0.000573, &
+        0.488761, 0.137304,  -0.07251,  -0.046058, &
+        -0.00199, -0.04573,  0.591761,  0.026439, &
+        0.010905, -0.044171, -0.018568, 0.666672 /), (/4, 4/))
     real(sp), dimension(4,4) :: B = reshape((/ & ! B matrix used for cross correlation following Richardson_1984 equation (4)
-        0.35534,  0.0,       0.0,      0.0, &
-        0.115141, 0.792894,  0.0,      0.0, &
-        0.148959, -0.06072,  0.783592, 0.0, &
-        0.080738, -0.016318, 0.065818, 0.729933/), (/4, 4/))
+        0.361854, 0.0,       0.0,      0.0, &
+        0.11441,  0.802987,  0.0,      0.0, &
+        0.144862, -0.060622, 0.782791, 0.0, &
+        0.080593, -0.015829, 0.066186, 0.736713/), (/4, 4/))
 
     ! transition probability correlations
-    real(sp) :: p11_1 = 0.2448     ! intercept of p11 best line fit
-    real(sp) :: p11_2 = 0.7552     ! slope of p11 best line fit
-    real(sp) :: p101_1 = 0.0       ! intercept of p101 best line fit
-    real(sp) :: p101_2 = 0.8649    ! slope of p101 best line fit
-    real(sp) :: p001_1 = 0.0       ! intercept of p001 best line fit
-    real(sp) :: p001_2 = 0.7000    ! slope of p001 best line fit
+    real(sp) :: p11_1 = 0.254877     ! intercept of p11 best line fit
+    real(sp) :: p11_2 = 0.745123     ! slope of p11 best line fit
+    real(sp) :: p101_1 = 0.0         ! intercept of p101 best line fit
+    real(sp) :: p101_2 = 0.846326    ! slope of p101 best line fit
+    real(sp) :: p001_1 = 0.0         ! intercept of p001 best line fit
+    real(sp) :: p001_2 = 0.724019    ! slope of p001 best line fit
 
     ! temperature and cloud correlation parameters corresponding to wet or dry day
     ! minimum temperature regression results
-    real(sp) :: tmin_w1 = 1.0388        ! intercept of best line fit of tmin on wet days (see :f:subr:`meansd`)
-    real(sp) :: tmin_w2 = 0.9633        ! slope of best line fit of tmin on wet days (see :f:subr:`meansd`)
-    real(sp) :: tmin_sd_w1 = 3.6244     ! intercept of best line fit of std. dev. of tmin on wet days (see :f:subr:`meansd`)
-    real(sp) :: tmin_sd_w2 = -0.0978    ! slope of best line fit of std. dev. of tmin on wet days (see :f:subr:`meansd`)
-    real(sp) :: tmin_d1 = -0.5473       ! intercept of best line fit of tmin on dry days (see :f:subr:`meansd`)
-    real(sp) :: tmin_d2 = 1.0253        ! slope of best line fit of tmin on dry days (see :f:subr:`meansd`)
-    real(sp) :: tmin_sd_d1 = 4.1502     ! intercept of best line fit of std. dev. of tmin on dry days (see :f:subr:`meansd`)
-    real(sp) :: tmin_sd_d2 = -0.0959    ! slope of best line fit of tmin on dry days (see :f:subr:`meansd`)
+    real(sp) :: tmin_w1 = 1.164653        ! intercept of best line fit of tmin on wet days (see :f:subr:`meansd`)
+    real(sp) :: tmin_w2 = 0.955787        ! slope of best line fit of tmin on wet days (see :f:subr:`meansd`)
+    real(sp) :: tmin_sd_w1 = 3.038786     ! intercept of best line fit of std. dev. of tmin on wet days (see :f:subr:`meansd`)
+    real(sp) :: tmin_sd_w2 = -0.050466    ! slope of best line fit of std. dev. of tmin on wet days (see :f:subr:`meansd`)
+    real(sp) :: tmin_d1 = -0.528308       ! intercept of best line fit of tmin on dry days (see :f:subr:`meansd`)
+    real(sp) :: tmin_d2 = 1.020964        ! slope of best line fit of tmin on dry days (see :f:subr:`meansd`)
+    real(sp) :: tmin_sd_d1 = 3.544901     ! intercept of best line fit of std. dev. of tmin on dry days (see :f:subr:`meansd`)
+    real(sp) :: tmin_sd_d2 = -0.042829    ! slope of best line fit of tmin on dry days (see :f:subr:`meansd`)
 
     ! maximum temperature regression results
-    real(sp) :: tmax_w1 = -0.0909       ! intercept of best line fit of tmax on wet days (see :f:subr:`meansd`)
-    real(sp) :: tmax_w2 = 0.9316        ! slope of best line fit of tmax on wet days (see :f:subr:`meansd`)
-    real(sp) :: tmax_sd_w1 = 4.2203     ! intercept of best line fit of std. dev. of tmax on wet days (see :f:subr:`meansd`)
-    real(sp) :: tmax_sd_w2 = -0.0497    ! slope of best line fit of std. dev. of tmax on wet days (see :f:subr:`meansd`)
-    real(sp) :: tmax_d1 = -0.1278       ! intercept of best line fit of tmax on dry days (see :f:subr:`meansd`)
-    real(sp) :: tmax_d2 = 1.0295        ! slope of best line fit of tmax on dry days (see :f:subr:`meansd`)
-    real(sp) :: tmax_sd_d1 = 5.0683     ! intercept of best line fit of std. dev. of tmax on dry days (see :f:subr:`meansd`)
-    real(sp) :: tmax_sd_d2 = -0.0702    ! slope of best line fit of tmax on dry days (see :f:subr:`meansd`)
+    real(sp) :: tmax_w1 = -0.586296       ! intercept of best line fit of tmax on wet days (see :f:subr:`meansd`)
+    real(sp) :: tmax_w2 = 0.948669        ! slope of best line fit of tmax on wet days (see :f:subr:`meansd`)
+    real(sp) :: tmax_sd_w1 = 3.91589      ! intercept of best line fit of std. dev. of tmax on wet days (see :f:subr:`meansd`)
+    real(sp) :: tmax_sd_w2 = -0.029385    ! slope of best line fit of std. dev. of tmax on wet days (see :f:subr:`meansd`)
+    real(sp) :: tmax_d1 = 0.386508        ! intercept of best line fit of tmax on dry days (see :f:subr:`meansd`)
+    real(sp) :: tmax_d2 = 1.0061          ! slope of best line fit of tmax on dry days (see :f:subr:`meansd`)
+    real(sp) :: tmax_sd_d1 = 4.470039     ! intercept of best line fit of std. dev. of tmax on dry days (see :f:subr:`meansd`)
+    real(sp) :: tmax_sd_d2 = -0.038717    ! slope of best line fit of tmax on dry days (see :f:subr:`meansd`)
 
     ! cloud regression results
-    real(sp) :: cldf_w = -0.7085    ! *a* parameter for cloud fit on wet days (see :f:subr:`meansd`)
-    real(sp) :: cldf_d = 0.4555     ! *a* parameter for cloud fit on dry days (see :f:subr:`meansd`)
-    real(sp) :: cldf_sd_w = 1.0310  ! *a* parameter for std. dev. of cloud fit on wet days (see :f:subr:`meansd`)
-    real(sp) :: cldf_sd_d = 1.0696  ! *a* parameter for std. dev. of cloud fit on dry days (see :f:subr:`meansd`)
+    real(sp) :: cldf_w = -0.738271    ! *a* parameter for cloud fit on wet days (see :f:subr:`meansd`)
+    real(sp) :: cldf_d = 0.420534     ! *a* parameter for cloud fit on dry days (see :f:subr:`meansd`)
+    real(sp) :: cldf_sd_w = 0.981917  ! *a* parameter for std. dev. of cloud fit on wet days (see :f:subr:`meansd`)
+    real(sp) :: cldf_sd_d = 1.041732  ! *a* parameter for std. dev. of cloud fit on dry days (see :f:subr:`meansd`)
 
     ! wind regression results
-    real(sp) :: wind_w1 = 0.0          ! intercept of best line fit of wind on wet days (see :f:subr:`meansd`)
-    real(sp) :: wind_w2 = 1.05564      ! slope of best line fit of wind on wet days (see :f:subr:`meansd`)
-    real(sp) :: wind_d1 = 0.0          ! intercept of best line fit of wind on dry days (see :f:subr:`meansd`)
-    real(sp) :: wind_d2 = 0.96591      ! slope of best line fit of wind on wet days (see :f:subr:`meansd`)
-    real(sp) :: wind_sd_w1 = 0.0       ! intercept of best line fit of std. dev. of wind on wet days (see :f:subr:`meansd`)
-    real(sp) :: wind_sd_w2 = 0.29040   ! slope of best line fit of std. dev. of wind on wet days (see :f:subr:`meansd`)
-    real(sp) :: wind_sd_d1 = 0.0       ! intercept of best line fit of std. dev. wind on dry days (see :f:subr:`meansd`)
-    real(sp) :: wind_sd_d2 = 0.32268   ! slope of best line fit of std. dev. wind on dry days (see :f:subr:`meansd`)
+    real(sp) :: wind_w1 = 0.0           ! intercept of best line fit of wind on wet days (see :f:subr:`meansd`)
+    real(sp) :: wind_w2 = 1.092938      ! slope of best line fit of wind on wet days (see :f:subr:`meansd`)
+    real(sp) :: wind_d1 = 0.0           ! intercept of best line fit of wind on dry days (see :f:subr:`meansd`)
+    real(sp) :: wind_d2 = 0.945229      ! slope of best line fit of wind on wet days (see :f:subr:`meansd`)
+    real(sp) :: wind_sd_w1 = 0.0        ! intercept of best line fit of std. dev. of wind on wet days (see :f:subr:`meansd`)
+    real(sp) :: wind_sd_w2 = 0.440435   ! slope of best line fit of std. dev. of wind on wet days (see :f:subr:`meansd`)
+    real(sp) :: wind_sd_d1 = 0.0        ! intercept of best line fit of std. dev. wind on dry days (see :f:subr:`meansd`)
+    real(sp) :: wind_sd_d2 = 0.512037   ! slope of best line fit of std. dev. wind on dry days (see :f:subr:`meansd`)
 
     ! wind bias correction (Note: Default is no correction)
     ! parameters of the slope - unorm best fit line
