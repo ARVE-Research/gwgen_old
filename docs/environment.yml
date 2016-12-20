@@ -1,6 +1,7 @@
 name: gwgen-docs
 channels:
     - chilipp
+    - conda-forge
 dependencies:
     - gcc
     - matplotlib

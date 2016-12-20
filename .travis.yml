@@ -26,6 +26,7 @@ install:
     - conda create -n test python="$TRAVIS_PYTHON_VERSION" gcc scipy numpy statsmodels matplotlib xarray
     - source activate test
     - pip install model-organization
+    - pip install coveralls
     # use latest development version
     # NOTE: Remove this when psyplot is stable enough
     - git clone "https://github.com/Chilipp/psyplot.git" -b dev
