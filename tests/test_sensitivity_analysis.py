@@ -22,6 +22,10 @@ class SensitivityAnalysisTest(bt.BaseTest):
 
     def test_setup(self):
         self._test_init()
+        self.organizer.exp_config['input'] = osp.join(
+            bt.test_root, 'test_data', 'input.csv')
+        self.organizer.exp_config['reference'] = osp.join(
+            bt.test_root, 'test_data', 'reference.csv')
         self.organizer.sensitivity_analysis(
             setup={}, experiment=self.organizer.experiment)
         projectname = self.projectname
@@ -34,14 +38,14 @@ class SensitivityAnalysisTest(bt.BaseTest):
         self.organizer.exp_config['eval_stations'] = self.stations_file
         if not sparse:
             self.organizer.parse_args(
-                ('-id {} sens init -nml thresh=13;14,16 '
-                 'gp_shape=0.1;0.4,1.1,0.3').format(experiment).split())
+                ('-id {} sens init -nml thresh=13,14-16 '
+                 'gp_shape=0.1,0.4-1.1-0.3').format(experiment).split())
             threshs = np.arange(13, 16)
             shapes = np.arange(0.1, 1.1, 0.3)
         else:
             self.organizer.parse_args(
-                ('-id {} sens init -nml thresh=13,15 '
-                 'gp_shape=0.1,0.5,0.3').format(experiment).split())
+                ('-id {} sens init -nml thresh=13-15 '
+                 'gp_shape=0.1-0.5-0.3').format(experiment).split())
             threshs = np.arange(13, 15)
             shapes = np.arange(0.1, 0.5, 0.3)
         shapes, threshs = np.meshgrid(shapes, threshs)
@@ -64,8 +68,8 @@ class SensitivityAnalysisTest(bt.BaseTest):
         self.organizer.exp_config['param_stations'] = self.stations_file
         n_shape = 2
         self.organizer.parse_args(
-            ('-id {} sens init -nml thresh=10,16,5 '
-             'gp_shape=-1err,1err,{}').format(experiment, n_shape).split())
+            ('-id {} sens init -nml thresh=10-16-5 '
+             'gp_shape=-1err-1err-{}').format(experiment, n_shape).split())
         threshs = np.arange(10, 16, 5)
         _, threshs = np.meshgrid(range(n_shape + 1), threshs)
         n = threshs.size
