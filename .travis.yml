@@ -38,7 +38,7 @@ install:
     - python setup.py install
     # export the environment for debugging
     - conda env export -n test
-    - alias gfortran=$GFORTRAN_BIN
+    - conda uninstall --force libgfortran  # uninstall because it uses gcc 4
 
 before_script:
     - "export DISPLAY=:99.0"
@@ -46,7 +46,6 @@ before_script:
     - sleep 3 # give xvfb some time to start
 
 script:
-    - which gfortran
     - py.test -xv tests
     #- coverage run --source=gwgen setup.py test
 #
