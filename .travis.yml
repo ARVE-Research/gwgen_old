@@ -41,7 +41,7 @@ before_script:
     - sleep 3 # give xvfb some time to start
 
 script:
-    - py.test -v tests
+    - py.test -xv tests
     #- coverage run --source=gwgen setup.py test
 #
 #after_success:
