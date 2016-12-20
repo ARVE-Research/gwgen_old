@@ -29,7 +29,7 @@ install:
     - conda update -q conda
     # Useful for debugging any issues with conda
     - conda info -a
-    - conda create -n test python="$TRAVIS_PYTHON_VERSION" seaborn scipy numpy statsmodels matplotlib xarray
+    - conda create -n test python="$TRAVIS_PYTHON_VERSION" dask seaborn scipy numpy statsmodels matplotlib xarray
     - source activate test
     - pip install model-organization
     - pip install coveralls pytest
@@ -47,7 +47,7 @@ before_script:
     - sleep 3 # give xvfb some time to start
 
 script:
-    - coverage run --source=gwgen setup.py test -a "-x"
+    - coverage run --source=gwgen setup.py test -a "-vx"
 #
 #after_success:
 #    coveralls
