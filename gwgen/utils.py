@@ -95,6 +95,9 @@ docstrings.params['str_ranges.s_help'] = """
     ``[2009, 2012, 2015]``"""
 
 
+minus_patt = re.compile(r'(?<!^)(?<!-)-')
+
+
 @docstrings.dedent
 def str_ranges(s):
     """
@@ -109,9 +112,9 @@ def str_ranges(s):
     list
         The values in s converted to a list"""
     def get_numbers(s):
-        splitted = s.split('-')
+        splitted = minus_patt.split(s)
         try:
-            nums = list(map(float, s.split('-')))
+            nums = list(map(float, minus_patt.split(s)))
         except ValueError:
             return splitted
         if len(nums) == 1:
