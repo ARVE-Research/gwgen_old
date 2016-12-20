@@ -2,6 +2,7 @@ name: gwgen-docs
 channels:
     - chilipp
 dependencies:
+    - gcc
     - matplotlib
     - numpy
     - sphinx
