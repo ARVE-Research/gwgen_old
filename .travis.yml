@@ -48,6 +48,6 @@ before_script:
 
 script:
     - coverage run --source=gwgen setup.py test -a "-vx"
-#
-#after_success:
-#    coveralls
+
+after_success:
+    coveralls
