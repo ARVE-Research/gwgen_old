@@ -15,7 +15,7 @@ install:
           wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
       fi
     # install gfortran
-    - sudo apt-get install gfortran
+    - sudo apt-get install gfortran-6
     - "ls -l `which gfortran`"
     - "GFORTRAN_BIN=`which gfortran`"
     # make sure we use an 'innocent' default matplotlib environment
