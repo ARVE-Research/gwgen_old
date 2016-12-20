@@ -36,7 +36,8 @@ class OrganizerTest(bt.BaseTest):
         self._test_init()
         self.organizer.parse_args(
             ('evaluate -s %s prepare -to-csv' % self.stations_file).split())
-        self.organizer.parse_args(['run'])
+        ifile = osp.join(bt.test_root, 'test_data', 'input.csv')
+        self.organizer.parse_args(['run',  '-i', ifile])
         self.organizer.parse_args('bias wind'.split())
         self.organizer.fix_paths(self.organizer.exp_config)
         ofile = self.organizer.exp_config['postproc']['bias']['wind'][
