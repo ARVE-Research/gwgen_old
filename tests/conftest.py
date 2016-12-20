@@ -14,6 +14,9 @@ def pytest_addoption(parser):
                     help=("The hostname for the postgres database. Default: "
                           "%(default)s"), default='127.0.0.1')
     group.addoption('--port', help="The port of the postgres database.")
+    group.addoption('--no-remove', action='store_true',
+                    help=("Do not remove the test directory at the end of the "
+                          "tests."))
 
 
 def pytest_configure(config):
@@ -24,3 +27,5 @@ def pytest_configure(config):
         bt.use_db = False
     for option in ['database', 'user', 'host', 'port']:
         bt.db_config[option] = config.getoption(option)
+    if config.getoption('no_remove'):
+        bt.BaseTest.remove_at_cleanup = False
