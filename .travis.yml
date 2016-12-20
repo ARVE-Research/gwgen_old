@@ -23,7 +23,7 @@ install:
     - conda update -q conda
     # Useful for debugging any issues with conda
     - conda info -a
-    - conda create -n test python="$TRAVIS_PYTHON_VERSION" scipy numpy statsmodels matplotlib pandas xarray
+    - conda create -n test python="$TRAVIS_PYTHON_VERSION" gcc scipy numpy statsmodels matplotlib xarray
     - pip install model-organization
     # use latest development version
     # NOTE: Remove this when psyplot is stable enough
