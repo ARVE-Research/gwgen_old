@@ -16,6 +16,7 @@ install:
       fi
     # install gfortran
     - sudo apt-get install gfortran
+    - "ls -l `which gfortran`"
     - "GFORTRAN_BIN=`which gfortran`"
     # make sure we use an 'innocent' default matplotlib environment
     - touch matplotlibrc
