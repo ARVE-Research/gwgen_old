@@ -30,6 +30,8 @@ class BaseTest(unittest.TestCase):
 
     test_dir = None
 
+    remove_at_cleanup = True
+
     def setUp(self):
         self.test_dir = tempfile.mkdtemp(prefix='tmp_gwgentest')
         os.environ['GWGENCONFIGDIR'] = self.config_dir = osp.join(
@@ -54,12 +56,13 @@ class BaseTest(unittest.TestCase):
             global_conf.update(db_config)
 
     def tearDown(self):
-        if osp.exists(self.test_dir):
-            shutil.rmtree(self.test_dir)
-        if osp.exists(self.config_dir):
-            shutil.rmtree(self.config_dir)
-        if use_db:
-            self._clear_db()
+        if self.remove_at_cleanup:
+            if osp.exists(self.test_dir):
+                shutil.rmtree(self.test_dir)
+            if osp.exists(self.config_dir):
+                shutil.rmtree(self.config_dir)
+            if use_db:
+                self._clear_db()
         del self.organizer
         del self.test_dir
         del self.config_dir
