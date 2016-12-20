@@ -33,7 +33,7 @@ install:
     - cd psyplot && python setup.py install && cd .. && rm -rf psyplot
     - python setup.py install
     # export the environment for debugging
-    - conda env export -n psyplot_$ENVKEY
+    - conda env export -n test
 
 before_script:
     - "export DISPLAY=:99.0"
@@ -41,7 +41,8 @@ before_script:
     - sleep 3 # give xvfb some time to start
 
 script:
-    - coverage run --source=gwgen setup.py test
-
-after_success:
-    coveralls
+    - py.test -v tests
+    #- coverage run --source=gwgen setup.py test
+#
+#after_success:
+#    coveralls
