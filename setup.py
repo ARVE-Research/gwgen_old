@@ -1,4 +1,5 @@
 from setuptools import find_packages
+from setuptools.command.test import test as TestCommand
 from numpy.distutils.core import Extension, setup
 import sys
 import six
@@ -10,10 +11,22 @@ parseghcnrow = Extension(
 parseeecra = Extension(
     name='gwgen._parseeecra', sources=[osp.join('gwgen', 'mo_parseeecra.f90')],
     f2py_options=['only:', 'parse_file', 'extract_data', ':'],
-    extra_f90_compile_args = ["-fopenmp"], extra_link_args = ["-lgomp"])
+    extra_f90_compile_args=["-fopenmp"], extra_link_args=["-lgomp"])
 
-needs_pytest = {'pytest', 'test', 'ptr'}.intersection(sys.argv)
-pytest_runner = ['pytest-runner'] if needs_pytest else []
+
+class PyTest(TestCommand):
+    user_options = [('pytest-args=', 'a', "Arguments to pass to pytest")]
+
+    def initialize_options(self):
+        TestCommand.initialize_options(self)
+        self.pytest_args = []
+
+    def run_tests(self):
+        import shlex
+        # import here, cause outside the eggs aren't loaded
+        import pytest
+        errno = pytest.main(shlex.split(self.pytest_args))
+        sys.exit(errno)
 
 
 def readme():
@@ -77,8 +90,8 @@ setup(name='gwgen',
           'gwgen/data/*',
           ]},
       include_package_data=True,
-      setup_requires=pytest_runner,
       tests_require=['pytest'],
+      cmdclass={'test': PyTest},
       entry_points={'console_scripts': ['gwgen=gwgen.main:main']},
       zip_safe=False,
       ext_modules=[parseghcnrow, parseeecra],
