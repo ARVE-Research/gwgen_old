@@ -38,7 +38,7 @@ install:
     - python setup.py install
     # export the environment for debugging
     - conda env export -n test
-    - conda uninstall --force libgfortran  # uninstall because it uses gcc 4
+    - "ls -l `which gfortran`"
 
 before_script:
     - "export DISPLAY=:99.0"
