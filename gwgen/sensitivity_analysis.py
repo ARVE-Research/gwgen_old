@@ -808,9 +808,11 @@ class SensitivityPlot2D(SensitivityPlot):
                 cmap.set_bad((0.7686274509803922, 0.3058823529411765,
                               0.3215686274509804))
                 plots = []
+                x_vals = {}
                 for i, key in enumerate(sorted(df.thresh.unique())):
                     data = np.ma.array(vals[key], mask=np.isnan(vals[key]))
-                    x = psyd._infer_interval_breaks(vals[key].index.values)
+                    x_vals[key] = x = psyd._infer_interval_breaks(
+                        vals[key].index.values)
                     plots.append(ax.pcolormesh(
                         x, y[i:i+2], data[np.newaxis, :], norm=norm,
                         cmap=cmap))
