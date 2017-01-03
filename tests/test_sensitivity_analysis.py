@@ -4,6 +4,7 @@ import os.path as osp
 import numpy as np
 import pandas as pd
 import _base_testing as bt
+import pytest
 
 
 class SensitivityAnalysisTest(bt.BaseTest):
@@ -20,6 +21,7 @@ class SensitivityAnalysisTest(bt.BaseTest):
         return [exp_id for exp_id in all_exps
                 if all_exps[exp_id]['project'] == projectname]
 
+    @pytest.mark.fullrun
     def test_setup(self):
         self._test_init()
         self.organizer.exp_config['input'] = osp.join(
@@ -61,6 +63,7 @@ class SensitivityAnalysisTest(bt.BaseTest):
         self.assertAlmostArrayEqual(
             df.gp_shape.values, shapes.ravel())
 
+    @pytest.mark.fullrun
     def test_init_and_param(self):
         self.test_setup()
         experiment = self.organizer.experiment
@@ -107,6 +110,7 @@ class SensitivityAnalysisTest(bt.BaseTest):
         self.assertTrue(osp.exists(binpath),
                         msg='binary %s does not exist!' % binpath)
 
+    @pytest.mark.fullrun
     def test_run(self, param=False):
         if param:
             self.test_init_and_param()
@@ -125,6 +129,7 @@ class SensitivityAnalysisTest(bt.BaseTest):
                             msg='Missing output file %s for experiment %s' % (
                             all_exps[exp]['outdata'], exp))
 
+    @pytest.mark.fullrun
     def test_evaluate(self, param=False, full=False):
         self.test_run(param=param)
         orig_serial = self.organizer.global_config.get('serial')
