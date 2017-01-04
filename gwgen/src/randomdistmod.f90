@@ -8,11 +8,8 @@ module randomdistmod
     !
     ! - http://www.johndcook.com/SimpleRNG.cpp for the random number generators
     ! - http://people.sc.fsu.edu/~jburkardt/f_src/prob/prob.html by John
-    !   Burkardt for the gamma and normal distribution
-    ! -
+    !   Burkardt for the gamma and normal distribution functions
 
-
-    use ieee_arithmetic
     use parametersmod, only : sp, i4
 
     implicit none
@@ -452,7 +449,8 @@ module randomdistmod
         real(kind = 8) :: p2, q, s1, s2, s3, s4, s5, s6, t, x
 
         real(kind = 8), parameter :: EPS1 = 1.0e-2, EPS2 = 5.0e-7, &
-                                     pMIN = 1.0e-25, pMAX = (1-1e-14)
+                                     pMIN = 1.0e-25, pMAX = (1-1e-14), &
+                                     pNEGinf = -10e34
         integer, parameter :: MAXIT = 1000
         integer :: i
 
@@ -486,7 +484,7 @@ module randomdistmod
                 goto 10001
             end if
 
-            if ((p2 == ieee_value(p2, ieee_negative_inf)) .or. (ch <= 0)) then
+            if ((p2 < pNEGinf) .or. (ch <= 0)) then
                 ch = ch0
                 goto 10001
             end if
