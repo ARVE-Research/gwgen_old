@@ -8,6 +8,7 @@ function doCompile {
     pip install sphinx-fortran sphinx=1.3.5
     cd docs
     make html
+    mv _build/html/* ../out
     cd ../
 }
 
