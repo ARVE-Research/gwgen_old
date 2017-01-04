@@ -1,8 +1,14 @@
 language: python
-python:
-    # We don't actually use the Travis Python, but this keeps it organized.
-    - "2.7"
-    - "3.5"
+env:
+    global:
+        - ENCRYPTION_LABEL: "56bf8f63e969"
+        - COMMIT_AUTHOR_EMAIL: "philipp.sommer@unil.ch"
+matrix:
+    include:
+        - python: 2.7
+          env: BUILD_DOCS=true
+        - python: 3.5
+          env: BUILD_DOCS=false
 services:
     - postgresql
 sudo: required
@@ -48,7 +54,9 @@ before_script:
     - sleep 3 # give xvfb some time to start
 
 script:
-    - coverage run --source=gwgen setup.py test -a "-v -m 'not fullrun'"
+    - py.test -xvk compile
+    #- coverage run --source=gwgen setup.py test -a "-v -m 'not fullrun'"
 
 after_success:
-    coveralls
+    - coveralls
+    - ./deploy.sh
