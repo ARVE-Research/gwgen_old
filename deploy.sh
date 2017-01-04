@@ -5,7 +5,7 @@ SOURCE_BRANCH="master"
 TARGET_BRANCH="gh-pages"
 
 function doCompile {
-    pip install sphinx-fortran sphinx=1.3.5
+    pip install sphinx-fortran sphinx==1.3.5
     cd docs
     make html
     mv _build/html/* ../out
