@@ -8,8 +8,7 @@ TARGET_BRANCH="gh-pages"
 function doCompile {
     pip install sphinx-fortran sphinx==1.3.5 sphinx_rtd_theme ipython sphinx-argparse autodocsumm
     cd docs
-    make html
-    mv _build/html/* ../out
+    sphinx-build . ../out
     cd ../
 }
 
@@ -33,7 +32,7 @@ git checkout $TARGET_BRANCH || git checkout --orphan $TARGET_BRANCH
 cd ..
 
 # Clean out existing contents
-rm -rf out/**/* || exit 0
+ls -ad out/.* out/* | grep -v "out/.git" | grep -v "out/.$" | grep -v "out/..$" | xargs rm -r
 
 # Run our compile script
 doCompile
