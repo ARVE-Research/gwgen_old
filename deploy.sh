@@ -9,6 +9,7 @@ function doCompile {
     pip install sphinx-fortran sphinx==1.3.5 sphinx_rtd_theme ipython sphinx-argparse autodocsumm
     cd docs
     sphinx-build . ../out
+    touch ../out/.nojekyll
     cd ../
 }
 
