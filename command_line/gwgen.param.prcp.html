@@ -1,0 +1,327 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>gwgen param prcp &mdash; gwgen 0.2.0.dev0 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="gwgen 0.2.0.dev0 documentation" href="../index.html"/>
+        <link rel="up" title="gwgen param" href="gwgen.param.html"/>
+        <link rel="next" title="gwgen param wind" href="gwgen.param.wind.html"/>
+        <link rel="prev" title="gwgen param yearly_cday" href="gwgen.param.yearly_cday.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> gwgen
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="gwgen.html">Command Line API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="gwgen.setup.html">gwgen setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gwgen.compile.html">gwgen compile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gwgen.init.html">gwgen init</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gwgen.unarchive.html">gwgen unarchive</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gwgen.configure.html">gwgen configure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gwgen.set-value.html">gwgen set-value</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gwgen.get-value.html">gwgen get-value</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gwgen.del-value.html">gwgen del-value</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gwgen.info.html">gwgen info</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gwgen.preproc.html">gwgen preproc</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="gwgen.param.html">gwgen param</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="gwgen.param.hourly_cloud.html">gwgen param hourly_cloud</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gwgen.param.daily_cloud.html">gwgen param daily_cloud</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gwgen.param.day.html">gwgen param day</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gwgen.param.month.html">gwgen param month</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gwgen.param.yearly_cmonth.html">gwgen param yearly_cmonth</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gwgen.param.monthly_cloud.html">gwgen param monthly_cloud</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gwgen.param.cmonthly_wind.html">gwgen param cmonthly_wind</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gwgen.param.yearly_cmonthly_wind.html">gwgen param yearly_cmonthly_wind</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gwgen.param.cday.html">gwgen param cday</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gwgen.param.temp.html">gwgen param temp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gwgen.param.cdaily_cloud.html">gwgen param cdaily_cloud</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gwgen.param.cmonth.html">gwgen param cmonth</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gwgen.param.markov.html">gwgen param markov</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gwgen.param.cmonthly_cloud.html">gwgen param cmonthly_cloud</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gwgen.param.cloud.html">gwgen param cloud</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gwgen.param.yearly_cdaily_cloud.html">gwgen param yearly_cdaily_cloud</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gwgen.param.corr.html">gwgen param corr</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gwgen.param.yearly_cmonthly_cloud.html">gwgen param yearly_cmonthly_cloud</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gwgen.param.yearly_cday.html">gwgen param yearly_cday</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="">gwgen param prcp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gwgen.param.wind.html">gwgen param wind</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="gwgen.run.html">gwgen run</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gwgen.evaluate.html">gwgen evaluate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gwgen.bias.html">gwgen bias</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gwgen.sens.html">gwgen sens</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gwgen.archive.html">gwgen archive</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gwgen.remove.html">gwgen remove</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api/gwgen.html">Python API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../fortran_api/index.html">Fortran API Reference</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../index.html">gwgen</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="gwgen.html">Command Line API Reference</a> &raquo;</li>
+      
+          <li><a href="gwgen.param.html">gwgen param</a> &raquo;</li>
+      
+    <li>gwgen param prcp</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/command_line/gwgen.param.prcp.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="gwgen-param-prcp">
+<h1>gwgen param prcp<a class="headerlink" href="#gwgen-param-prcp" title="Permalink to this headline">¶</a></h1>
+<div class="highlight-python"><div class="highlight"><pre><span></span>usage: gwgen param prcp [-h] [-ido str] [-t float] [-t2c float [float ...]]
+                        [-f { &#39;scratch&#39; | &#39;file&#39; | &#39;db&#39; | None }] [-to-csv]
+                        [-to-db] [-rm] [-o str] [-onc str] [-op str] [-np]
+                        [-p str]
+</pre></div>
+</div>
+<dl class="docutils">
+<dt>Options:</dt>
+<dd><table class="first last docutils option-list" frame="void" rules="none">
+<col class="option" />
+<col class="description" />
+<tbody valign="top">
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-ido</span>, <span class="option">--other_id</span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>    Use the configuration from another experiment</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-t=15.0</span>, <span class="option">--thresh=15.0</span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>    The threshold to use for the configuration. Default: %(default)s</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-t2c=[5, 7.5, 10, 12.5, 15, 17.5, 20]</span>, <span class="option">--threshs2compute=[5, 7.5, 10, 12.5, 15, 17.5, 20]</span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>    The thresholds to compute during the setup of the data</td></tr>
+<tr><td class="option-group">
+<kbd><span class="option">-f</span>, <span class="option">--from</span></kbd></td>
+<td><p class="first">    The method how to setup the instance either from
+
+    ``&#8217;scratch&#8217;``
+        To set up the task from the raw data
+    ``&#8217;file&#8217;``
+        Set up the task from an existing file
+    ``&#8217;db&#8217;``
+        Set up the task from a database
+    ``None``
+        If the file name of this this task exists, use this one,
+        otherwise a database is provided, use this one, otherwise go
+        from scratch</p>
+<p class="last">Possible choices: scratch, file, db</p>
+</td></tr>
+<tr><td class="option-group">
+<kbd><span class="option">-to-csv=False</span></kbd></td>
+<td>    If True, the data at setup will be written to a csv file</td></tr>
+<tr><td class="option-group">
+<kbd><span class="option">-to-db=False</span></kbd></td>
+<td>    If True, the data at setup will be written to into a database</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-rm=False</span>, <span class="option">--remove=False</span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>    If True and the old data file already exists, remove before writing to it</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-o</span>, <span class="option">--plot-output</span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>    An alternative path to use for the PDF file of the plot</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-onc</span>, <span class="option">--nc-output</span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>    An alternative path (or multiples depending on the task) to use for the
+    netCDF file of the plot data</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-op</span>, <span class="option">--project-output</span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>    An alternative path to use for the psyplot project file of the plot</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-np=False</span>, <span class="option">--new-project=False</span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>    If True, a new project will be created even if a file in `project_output`
+    exists already</td></tr>
+<tr><td class="option-group">
+<kbd><span class="option">-p</span>, <span class="option">--project</span></kbd></td>
+<td>    The path to a psyplot project file to use for this parameterization</td></tr>
+</tbody>
+</table>
+</dd>
+</dl>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="gwgen.param.wind.html" class="btn btn-neutral float-right" title="gwgen param wind" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="gwgen.param.yearly_cday.html" class="btn btn-neutral" title="gwgen param yearly_cday" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Philipp Sommer.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.2.0.dev0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
