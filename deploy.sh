@@ -40,7 +40,7 @@ doCompile
 
 # Now let's go have some fun with the cloned repo
 cd out
-git config user.name "Travis CI"
+git config user.name "Travis"
 git config user.email "$COMMIT_AUTHOR_EMAIL"
 
 # If there are no changes to the compiled out (e.g. this is a README update) then just bail.
@@ -62,7 +62,7 @@ ENCRYPTED_IV=${!ENCRYPTED_IV_VAR}
 openssl aes-256-cbc -K $ENCRYPTED_KEY -iv $ENCRYPTED_IV -in deploy_key.enc -out deploy_key -d
 chmod 600 deploy_key
 eval `ssh-agent -s`
-cp deploy_key ~/.ssh/id_rsa
+ssh-add deploy_key
 
 # Now that we're all set up, we can push.
 git push $SSH_REPO $TARGET_BRANCH
