@@ -32,7 +32,7 @@ git checkout $TARGET_BRANCH || git checkout --orphan $TARGET_BRANCH
 cd ..
 
 # Clean out existing contents
-ls -ad out/.* out/* | grep -v "out/.git" | grep -v "out/.$" | grep -v "out/..$" | xargs rm -r
+ls -ad out/.* out/* | grep -v "out/.git$" | grep -v "out/.$" | grep -v "out/..$" | xargs rm -r
 
 # Run our compile script
 doCompile
