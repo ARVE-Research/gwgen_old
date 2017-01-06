@@ -24,7 +24,7 @@ install:
           wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
       fi
     # set build_docs to the real value
-    - if [ "$TRAVIS_PULL_REQUEST" != "false" -o "$TRAVIS_BRANCH" != "$SOURCE_BRANCH" -o "$BUILD_DOCS" != "true" ]; then
+    - if [ "$TRAVIS_PULL_REQUEST" != "false" -o "$TRAVIS_BRANCH" != "master" -o "$BUILD_DOCS" != "true" ]; then
           BUILD_DOCS="false";
       else
           BUILD_DOCS="true";
