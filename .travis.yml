@@ -69,7 +69,7 @@ before_script:
     - sleep 3 # give xvfb some time to start
 
 script:
-    - py.test -xvk DailyGHCN
+    - py.test -xsvk DailyGHCN --user postgres
     - if [[ "$BUILD_DOCS" == "true" ]]; then
           sphinx-build docs deploy;
       fi
