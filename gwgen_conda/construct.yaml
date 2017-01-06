@@ -1,0 +1,22 @@
+name: gwgen_conda
+version: 0.2.0.dev0
+
+channels:
+  - http://repo.continuum.io/pkgs/free/
+  - https://conda.anaconda.org/chilipp
+  - https://conda.anaconda.org/conda-forge
+
+specs:
+    - python TRAVIS_PYTHON_VERSION
+    - scipy
+    - matplotlib
+    - dask
+    - xarray
+    - netcdf4
+    - cartopy
+    - seaborn
+    - bottleneck
+    - statsmodels
+    - psyplot
+
+license_file: EULA.txt
