@@ -25,6 +25,12 @@ install:
       else
           wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
       fi
+    # set build_docs to the real value
+    - if [ "$TRAVIS_PULL_REQUEST" != "false" -o "$TRAVIS_BRANCH" != "$SOURCE_BRANCH" -o "$BUILD_DOCS" != "true" ]; then
+          BUILD_DOCS="false";
+      else
+          BUILD_DOCS="true";
+      fi
     # make sure we use an 'innocent' default matplotlib environment
     - touch matplotlibrc
     - bash miniconda.sh -b -p $HOME/miniconda
@@ -45,6 +51,17 @@ install:
     - git clone "https://github.com/Chilipp/psyplot.git" -b dev
     - cd psyplot && python setup.py install && cd .. && rm -rf psyplot
     - python setup.py install
+    # install necessary module for the documentation and clone the existing
+    # gh-pages for this repo into the *deploy* folder and clear everything
+    - if [[ "$BUILD_DOCS" == "true" ]]; then
+          pip install sphinx-fortran sphinx==1.3.5 sphinx_rtd_theme ipython sphinx-argparse autodocsumm;
+          git clone $REPO deploy;
+          cd deploy;
+          git checkout $TARGET_BRANCH || git checkout --orphan $TARGET_BRANCH;
+          ls -ad  | grep -v ".git$" | grep -v ".$" | grep -v "..$" | xargs rm -r;
+          touch .nojekyll
+          cd ..;
+      fi
     # export the environment for debugging
     - conda env export -n test
 
@@ -55,6 +72,9 @@ before_script:
 
 script:
     - py.test -xvk compile
+    - if [[ "$BUILD_DOCS" == "true" ]]; then
+          sphinx-build docs deploy;
+      fi
     #- coverage run --source=gwgen setup.py test -a "-v -m 'not fullrun'"
 
 after_success:
