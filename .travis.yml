@@ -76,7 +76,7 @@ before_script:
 
 script:
     # run test suite
-    - py.test -xsvk DailyGHCN --user postgres
+    - py.test -xvk compile --user postgres
     # build docs
     - if [[ "$BUILD_DOCS" == "true" ]]; then
           sphinx-build docs deploy;
@@ -94,7 +94,7 @@ after_success:
       fi
 
 before_deploy:
-    - ORIG_FILE=$(ls gwgen_conda/gwgen_conda*.sh)
+    - ORIG_FILE=$(ls gwgen_conda-*.sh)
     - export FINAL_FILE="${ORIG_FILE/.sh/}_${TRAVIS_PYTHON_VERSION}.sh"
     - mv "$ORIG_FILE" "$FINAL_FILE"
 
