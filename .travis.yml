@@ -42,7 +42,7 @@ install:
     # install the conda constructor for releases
     - if [[ "$TRAVIS_TAG" != "" ]]; then
           conda install -n root constructor;
-          sed -i "s/TRAVIS_PYTHON_VERSION/${TRAVIS_PYTHON_VERSION}*/" gwgen_conda/construct.yaml
+          sed -i "s/TRAVIS_PYTHON_VERSION/${TRAVIS_PYTHON_VERSION}*/" gwgen_conda/construct.yaml;
       fi
     - conda create -n test python="$TRAVIS_PYTHON_VERSION" dask seaborn scipy numpy statsmodels matplotlib xarray
     - source activate test
@@ -62,7 +62,7 @@ install:
           cd deploy;
           git checkout "gh-pages" || git checkout --orphan "gh-pages";
           ls -ad  | grep -v ".git$" | grep -v ".$" | grep -v "..$" | xargs rm -r;
-          touch .nojekyll
+          touch .nojekyll;
           cd ..;
       fi
     # export the environment for debugging
