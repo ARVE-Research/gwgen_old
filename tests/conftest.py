@@ -24,7 +24,7 @@ def pytest_configure(config):
     if config.getoption('offline'):
         bt.online = False
     if config.getoption('no_db'):
-        bt.use_db = False
+        bt.BaseTest.use_db = False
     for option in ['database', 'user', 'host', 'port']:
         bt.db_config[option] = config.getoption(option)
     if config.getoption('no_remove'):

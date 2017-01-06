@@ -32,6 +32,18 @@ class BaseTest(unittest.TestCase):
 
     remove_at_cleanup = True
 
+    use_db = True
+
+    @classmethod
+    def setUpClass(cls):
+        # try to connect to a postgres database
+        if cls.use_db:
+            try:
+                utils.get_postgres_engine(create=True, test=True, **db_config)
+                cls.use_db = True
+            except:
+                cls.use_db = False
+
     def setUp(self):
         self.test_dir = tempfile.mkdtemp(prefix='tmp_gwgentest')
         os.environ['GWGENCONFIGDIR'] = self.config_dir = osp.join(
@@ -51,7 +63,7 @@ class BaseTest(unittest.TestCase):
         global_conf = self.organizer.config.global_config
         global_conf['data'] = osp.join(test_root, 'test_data')
         global_conf['use_relative_links'] = False
-        if use_db:
+        if self.use_db:
             self._clear_db()
             global_conf.update(db_config)
 
@@ -61,7 +73,7 @@ class BaseTest(unittest.TestCase):
                 shutil.rmtree(self.test_dir)
             if osp.exists(self.config_dir):
                 shutil.rmtree(self.config_dir)
-            if use_db:
+            if self.use_db:
                 self._clear_db()
         del self.organizer
         del self.test_dir
@@ -173,11 +185,3 @@ try:
     online = True
 except:
     online = False
-
-
-# try to connect to a postgres database
-try:
-    utils.get_postgres_engine(create=True, test=True, **db_config)
-    use_db = True
-except:
-    use_db = False

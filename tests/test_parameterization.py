@@ -53,8 +53,7 @@ class _ParameterizerTestMixin(object):
         return self.param_cls.name
 
     def test_param(self, check_index_duplicates=True,
-                   check_data_duplicates=False, to_csv=True,
-                   to_db=bt.use_db, **kwargs):
+                   check_data_duplicates=False, to_csv=True, **kwargs):
         def get_data(task):
             if not isinstance(task.data, pd.DataFrame):
                 return task.data
@@ -65,6 +64,7 @@ class _ParameterizerTestMixin(object):
 
         if self.param_cls is None:
             return
+        to_db = self.use_db
         name = self.name
         self._test_init()
         kwargs.setdefault(name, {})
