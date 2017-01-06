@@ -15,7 +15,7 @@ eval `ssh-agent -s`
 ssh-add deploy_key
 
 # Now let's go have some fun with the cloned repo
-cd out
+cd deploy
 git config user.name "Travis"
 git config user.email "$COMMIT_AUTHOR_EMAIL"
 
