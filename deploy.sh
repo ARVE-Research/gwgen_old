@@ -4,6 +4,9 @@ set -x
 
 TARGET_BRANCH="gh-pages"
 
+SSH_REPO=${REPO/https:\/\/github.com\//git@github.com:}
+SHA=`git rev-parse --verify HEAD`
+
 # Get the deploy key by using Travis's stored variables to decrypt deploy_key.enc
 ENCRYPTED_KEY_VAR="encrypted_${ENCRYPTION_LABEL}_key"
 ENCRYPTED_IV_VAR="encrypted_${ENCRYPTION_LABEL}_iv"
