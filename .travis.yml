@@ -102,7 +102,7 @@ deploy:
     provider: releases
     api_key:
         secure: fPAdjbV4Ey11TiqWQaQ1NspLggpOc3aUUz+0U1D+gnolzi3ZeljsRbRvnbVn9ZcfEbQyCdTGJ1wscODB/Q0OIv0ET8bpj1DfhRRFQqVqDVfgTfaCeDZLu1gx5quwC7wRIQ/vXBfC0x3r+fkUir7mnN5BSynngo+qwhYlGnannbSIuC2UIBQ1nh1uI7S13rjntMz4aWcU2SufKpXkowgmrKcbe/b/ihCDc+udKuZrmbPfcu3kRJBsVQ9ltRqbv2GdqWJNcMUajQfL4BVs6GLNpSPcFDez+mvGJubtABV/nSfbr1lDk653fOHS5x6Ud3VrBZ7wjyxhBE6SqhzyS3BYHUngOoiaosimEXENPe4Qbv8x4M6YQXirkEh6d0ELh1IDdpMBuFOVS3N5WanrCypoMVWj4cq2o2HR3zAHKASpTp/kt/99iMSPrvOgxvY8w+7uTMjHT/onOreiVboCUVN4QMtzRPraELDKkc0TjlxzI7pnq2KAmmg5ep5k21ULI2Sj5Ui+0S0zqurvwB05W8USXPm+Jyyp+xYHRM+NaImtlx2RCX5wjX+3ZXPYKWTBYT+TDCvpXLa0xg2V2JZF4W5x2aMVBFxYKILI0xO7vLmLHqHupGqv1vKnkztYFGMFtpAJ9iCHrubUKr3Q/+fSSBVkjSb8gfuxa4sKDTyYCknVBgk=
-    file: '"${FINAL_FILE}"'
+    file: "${FINAL_FILE}"
     skip_cleanup: true
     on:
         tags: true
