@@ -7,7 +7,7 @@ channels:
   - https://conda.anaconda.org/conda-forge
 
 specs:
-    - python TRAVIS_PYTHON_VERSION
+    - python PYTHON_VERSION
     - scipy
     - matplotlib
     - dask
