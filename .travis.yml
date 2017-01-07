@@ -21,6 +21,11 @@ addons:  # install gfortran
   apt:
     packages:
     - gfortran
+osx_image: xcode8.2
+before_install:
+    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+          brew install gcc;
+      fi
 install:
     # We do this conditionally because it saves us some downloading if the
     # version is the same.
