@@ -102,10 +102,10 @@ before_deploy:
 
 deploy:
     provider: releases
+    user: Chilipp
     api_key:
-        secure: ExrGruYlkUzuG3CPNGbvYakLN0oVQgfh9GUElWpMD7OJoweeEwOT8zOA8U4TwhuszPXOgxZBnwxc2OMlIERO833TdQuZd9IUN5VY+WBKYUCO+crAG9scCMDr3HJIKyg99zOI0Z3CgilEztASKt986rbxOPaXDCB0EtEXyH/Meb0gkWFWvDRbkX39umzdeK+W4MD5hm/s7fXJupiQ2era9ffJZOfVgzGDSVeO1QIUfUsZus/d6XX8NOT8m48WWLgTYNYzm4MnZNkf4xfhJLjmL2qbtKEig2AievCYEw4rv7Eeh/5dXjUVCSBrE0MmP6Pn3rqLZDlNn6BovXavdJs9w/u9nQV7ia5g0OjmRQd5njpvKtv8OfuYNRxSM1b2vSEtBULIZ2EdMeFMrh+zT+Nrv/83Xq22QmmGFWYKsUYSKQZSAPUPSqBvBv7nKuzFqOMUkxj27gjoBsBG9Kzh6p5rtPxDF5RVjuxNOd+6Sebw9YoGvXqqk/JM+PIDlamDvNC+iUHkCLKi4NhIUpnCeSmQlgxp33J04j7p4BEAylaMhyC9+7YElVwv/n6KX41FphFZPchOFkUc8VjK00dw9W6gdfuUbvEj53mO07X6vAgsZUv3np6dZZFa29IuNvshIGBAfiiQiu0jNOOFlywXYARygIXQRC/Zu4mHn4Gjp4Da6lI=
+        secure: hEjs//bXlppO5xWAYy4vXva+n/vTJlzfwp7+uz4IdfFCyBIxEi1D7F+5Bp7wXi1l/Up19e7/2VaaCLVoVS6trUb9KuItgr++/pTOg+hWx6Zdgv1iXW4gMshQ4KIkk/izs2l0D+eYF/AdqYqKLA9gO9KdgyqSomiXDOHNiDbGC4321nm9nbGIqCloTbBmrraFgr/B5fKvXG9nPHWfWvEyOXZzUZRD57OJn4IA5EyIN1Q8FTuobAg4LSo0NwTgEymmFySvyARRkyc5AZNsEFRVm7DTYqtKYEgl3W/g9NrZoGiZ/q/y5nioqM25eHTE5VN5VwFfZedzlqrcW58gqIGLQoJ65vpsnZT8g0fUfTKMfRP/jNENiwZ1uKUJHwLpaFxBdtRVnPlX06m95aWQMEzdCN4DrcjkHQ+TcybZKAxdhkrxqEiwH4ZAMiFyLb341T1qHqIdONjyPg1SUiXefe1oWgsxUVaNbMi9A2TrVhySivZRVsHEYuPin8FCICcl74fL3mkYoEYcgUuVtCCY8AwewodItSUeiAzRm3XsnGkNC5wDxtmYQOoS0LS2xTvGClcmyFkJhgVsyiqJGxP+o3iqJudbHdW+wzKaQwTsyq/WgxUD3SCPKfj5/kLSYEBY5m71ZeGXQNh3QpOszh1l4EFxTP8lpfvLkvjN5tZ0P+bH+FA=
     file: "${FINAL_FILE}"
     skip_cleanup: true
     on:
         tags: true
-        repo: ARVE-Research/gwgen
