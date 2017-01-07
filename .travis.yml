@@ -1,4 +1,4 @@
-language: python
+language: generic
 env:
     global:
         - ENCRYPTION_LABEL: "56bf8f63e969"
@@ -6,14 +6,15 @@ env:
         - BUILD_DOCS: false
 matrix:
     include:
-        - python: 2.7
-          env: BUILD_DOCS=true
+        - env:
+            - BUILD_DOCS=true
+            - PYTHON_VERSION=2.7
           os: linux
-        - python: 3.5
+        - env: PYTHON_VERSION=3.5
           os: linux
-        - python: 2.7
+        - env: PYTHON_VERSION=3.5
           os: osx
-        - python: 3.5
+        - env: PYTHON_VERSION=3.5
           os: osx
 services:
     - postgresql
@@ -29,17 +30,18 @@ before_install:
 install:
     # We do this conditionally because it saves us some downloading if the
     # version is the same.
-    - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
+    - if [[ "$PYTHON_VERSION" == "2.7" ]]; then
           wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
       else
           wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
       fi
     # set build_docs to the real value
-    - if [[ "$TRAVIS_OS_NAME" != "linux" || "$TRAVIS_PULL_REQUEST" != "false" || ("$TRAVIS_BRANCH" != "master" && "$TRAVIS_TAG" != "") || "$BUILD_DOCS" != "true" ]]; then
-          export BUILD_DOCS="false";
-      else
+    - if [[  "$BUILD_DOCS" == "true" && "$TRAVIS_PULL_REQUEST" == "false" && ("$TRAVIS_BRANCH" == "master" || "$TRAVIS_TAG" == "") ]]; then
           export BUILD_DOCS="true";
+      else
+          export BUILD_DOCS="false";
       fi
+    - echo "$BUILD_DOCS"
     # make sure we use an 'innocent' default matplotlib environment
     - touch matplotlibrc
     - bash miniconda.sh -b -p $HOME/miniconda
@@ -53,9 +55,9 @@ install:
     # install the conda constructor for releases
     - if [[ "$TRAVIS_TAG" != "" ]]; then
           conda install -n root constructor;
-          sed -i "s/TRAVIS_PYTHON_VERSION/${TRAVIS_PYTHON_VERSION}*/" gwgen_conda/construct.yaml;
+          sed -i "s/PYTHON_VERSION/${PYTHON_VERSION}*/" gwgen_conda/construct.yaml;
       fi
-    - conda create -n test python="$TRAVIS_PYTHON_VERSION" dask seaborn scipy numpy statsmodels matplotlib xarray
+    - conda create -n test python="$PYTHON_VERSION" dask seaborn scipy numpy statsmodels matplotlib xarray
     - source activate test
     - conda install -c conda-forge cartopy
     - pip install model-organization
@@ -103,13 +105,13 @@ script:
 
 after_success:
     - coveralls
-    - if [[ "$BUILD_DOCS" == "true" ]]; then
+    - if [[ "$BUILD_DOCS" == "true" && "$TRAVIS_TAG" != "" ]]; then
           ./deploy.sh;
       fi
 
 before_deploy:
     - ORIG_FILE=$(ls gwgen_conda-*.sh)
-    - export FINAL_FILE="${ORIG_FILE/.sh/}_${TRAVIS_PYTHON_VERSION}.sh"
+    - export FINAL_FILE="${ORIG_FILE/.sh/}_${PYTHON_VERSION}.sh"
     - mv "$ORIG_FILE" "$FINAL_FILE"
 
 deploy:
