@@ -62,7 +62,8 @@ install:
           git clone $REPO deploy;
           cd deploy;
           git checkout "gh-pages" || git checkout --orphan "gh-pages";
-          ls -ad  | grep -v ".git$" | grep -v ".$" | grep -v "..$" | xargs rm -r;
+          echo ls -ad .* . | grep -v ".git$" | grep -v ".$" | grep -v "..$";
+          ls -ad .* . | grep -v ".git$" | grep -v ".$" | grep -v "..$" | xargs rm -r;
           touch .nojekyll;
           cd ..;
       fi
@@ -100,8 +101,10 @@ before_deploy:
 
 deploy:
     provider: releases
-    api_key: e007c5b951ab2438bbfe84d476aba3d6beda3e62
+    api_key:
+        secure: ExrGruYlkUzuG3CPNGbvYakLN0oVQgfh9GUElWpMD7OJoweeEwOT8zOA8U4TwhuszPXOgxZBnwxc2OMlIERO833TdQuZd9IUN5VY+WBKYUCO+crAG9scCMDr3HJIKyg99zOI0Z3CgilEztASKt986rbxOPaXDCB0EtEXyH/Meb0gkWFWvDRbkX39umzdeK+W4MD5hm/s7fXJupiQ2era9ffJZOfVgzGDSVeO1QIUfUsZus/d6XX8NOT8m48WWLgTYNYzm4MnZNkf4xfhJLjmL2qbtKEig2AievCYEw4rv7Eeh/5dXjUVCSBrE0MmP6Pn3rqLZDlNn6BovXavdJs9w/u9nQV7ia5g0OjmRQd5njpvKtv8OfuYNRxSM1b2vSEtBULIZ2EdMeFMrh+zT+Nrv/83Xq22QmmGFWYKsUYSKQZSAPUPSqBvBv7nKuzFqOMUkxj27gjoBsBG9Kzh6p5rtPxDF5RVjuxNOd+6Sebw9YoGvXqqk/JM+PIDlamDvNC+iUHkCLKi4NhIUpnCeSmQlgxp33J04j7p4BEAylaMhyC9+7YElVwv/n6KX41FphFZPchOFkUc8VjK00dw9W6gdfuUbvEj53mO07X6vAgsZUv3np6dZZFa29IuNvshIGBAfiiQiu0jNOOFlywXYARygIXQRC/Zu4mHn4Gjp4Da6lI=
     file: "${FINAL_FILE}"
     skip_cleanup: true
     on:
         tags: true
+        repo: ARVE-Research/gwgen
