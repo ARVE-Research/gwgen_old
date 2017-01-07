@@ -103,7 +103,7 @@ before_deploy:
 
 deploy:
     - provider: releases
-     user: Chilipp
+      user: Chilipp
       api_key:
           secure: hEjs//bXlppO5xWAYy4vXva+n/vTJlzfwp7+uz4IdfFCyBIxEi1D7F+5Bp7wXi1l/Up19e7/2VaaCLVoVS6trUb9KuItgr++/pTOg+hWx6Zdgv1iXW4gMshQ4KIkk/izs2l0D+eYF/AdqYqKLA9gO9KdgyqSomiXDOHNiDbGC4321nm9nbGIqCloTbBmrraFgr/B5fKvXG9nPHWfWvEyOXZzUZRD57OJn4IA5EyIN1Q8FTuobAg4LSo0NwTgEymmFySvyARRkyc5AZNsEFRVm7DTYqtKYEgl3W/g9NrZoGiZ/q/y5nioqM25eHTE5VN5VwFfZedzlqrcW58gqIGLQoJ65vpsnZT8g0fUfTKMfRP/jNENiwZ1uKUJHwLpaFxBdtRVnPlX06m95aWQMEzdCN4DrcjkHQ+TcybZKAxdhkrxqEiwH4ZAMiFyLb341T1qHqIdONjyPg1SUiXefe1oWgsxUVaNbMi9A2TrVhySivZRVsHEYuPin8FCICcl74fL3mkYoEYcgUuVtCCY8AwewodItSUeiAzRm3XsnGkNC5wDxtmYQOoS0LS2xTvGClcmyFkJhgVsyiqJGxP+o3iqJudbHdW+wzKaQwTsyq/WgxUD3SCPKfj5/kLSYEBY5m71ZeGXQNh3QpOszh1l4EFxTP8lpfvLkvjN5tZ0P+bH+FA=
       file: "${FINAL_FILE}"
@@ -111,11 +111,11 @@ deploy:
       on:
           tags: true
     - provider: releases
-     user: Chilipp
+      user: Chilipp
       api_key:
           secure: hEjs//bXlppO5xWAYy4vXva+n/vTJlzfwp7+uz4IdfFCyBIxEi1D7F+5Bp7wXi1l/Up19e7/2VaaCLVoVS6trUb9KuItgr++/pTOg+hWx6Zdgv1iXW4gMshQ4KIkk/izs2l0D+eYF/AdqYqKLA9gO9KdgyqSomiXDOHNiDbGC4321nm9nbGIqCloTbBmrraFgr/B5fKvXG9nPHWfWvEyOXZzUZRD57OJn4IA5EyIN1Q8FTuobAg4LSo0NwTgEymmFySvyARRkyc5AZNsEFRVm7DTYqtKYEgl3W/g9NrZoGiZ/q/y5nioqM25eHTE5VN5VwFfZedzlqrcW58gqIGLQoJ65vpsnZT8g0fUfTKMfRP/jNENiwZ1uKUJHwLpaFxBdtRVnPlX06m95aWQMEzdCN4DrcjkHQ+TcybZKAxdhkrxqEiwH4ZAMiFyLb341T1qHqIdONjyPg1SUiXefe1oWgsxUVaNbMi9A2TrVhySivZRVsHEYuPin8FCICcl74fL3mkYoEYcgUuVtCCY8AwewodItSUeiAzRm3XsnGkNC5wDxtmYQOoS0LS2xTvGClcmyFkJhgVsyiqJGxP+o3iqJudbHdW+wzKaQwTsyq/WgxUD3SCPKfj5/kLSYEBY5m71ZeGXQNh3QpOszh1l4EFxTP8lpfvLkvjN5tZ0P+bH+FA=
       file: gwgen_docs_"$TRAVIS_TAG".zip
       skip_cleanup: true
       on:
           tags: true
-          condition: "$BUILD_DOCS" == "true"
+          condition: $BUILD_DOCS = true
