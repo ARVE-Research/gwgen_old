@@ -3,6 +3,9 @@ env:
     global:
         - ENCRYPTION_LABEL: "56bf8f63e969"
         - COMMIT_AUTHOR_EMAIL: "philipp.sommer@unil.ch"
+os:
+  - linux
+  - osx
 matrix:
     include:
         - python: 2.7
@@ -24,10 +27,10 @@ install:
           wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
       fi
     # set build_docs to the real value
-    - if [[ "$TRAVIS_PULL_REQUEST" != "false" || ("$TRAVIS_BRANCH" != "master" && "$TRAVIS_TAG" != "") || "$BUILD_DOCS" != "true" ]]; then
-          BUILD_DOCS="false";
+    - if [[ "$TRAVIS_OS_NAME" != "linux" || "$TRAVIS_PULL_REQUEST" != "false" || ("$TRAVIS_BRANCH" != "master" && "$TRAVIS_TAG" != "") || "$BUILD_DOCS" != "true" ]]; then
+          export BUILD_DOCS="false";
       else
-          BUILD_DOCS="true";
+          export BUILD_DOCS="true";
       fi
     # make sure we use an 'innocent' default matplotlib environment
     - touch matplotlibrc
@@ -120,4 +123,4 @@ deploy:
       overwrite: true
       on:
           tags: true
-          condition: "$BUILD_DOCS = true"
+          condition: "$BUILD_DOCS == true"
