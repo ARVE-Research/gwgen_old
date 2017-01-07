@@ -62,8 +62,8 @@ install:
           git clone $REPO deploy;
           cd deploy;
           git checkout "gh-pages" || git checkout --orphan "gh-pages";
-          echo ls -ad .* . | grep -v ".git$" | grep -v ".$" | grep -v "..$";
-          ls -ad .* . | grep -v ".git$" | grep -v ".$" | grep -v "..$" | xargs rm -r;
+          ls -ad;
+          ls -ad | grep -v ".git$" | grep -v ".$" | grep -v "..$" | xargs rm -r;
           touch .nojekyll;
           cd ..;
       fi
