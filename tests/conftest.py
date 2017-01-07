@@ -1,8 +1,15 @@
+from warnings import warn
+
 
 def pytest_addoption(parser):
     group = parser.getgroup("gwgen", "GWGEN specific options")
-    group.addoption('--offline', help="Block outgoing internet connections",
-                    action='store_true')
+    try:
+        group.addoption('--offline', action='store_true',
+                        help="Block outgoing internet connections")
+    except ValueError:  # offline option already registerd
+        warn("offline option already registered in gwgen group! The "
+             "registered options are %s" % group.options)
+        pass
     group.addoption('--no-db', help="Don't test postgres databases",
                     action='store_true')
     group.addoption('--database',
