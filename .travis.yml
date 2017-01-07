@@ -43,7 +43,7 @@ install:
           wget https://repo.continuum.io/miniconda/Miniconda3-latest-"${OS_NAME}"-x86_64.sh -O miniconda.sh;
       fi
     # set build_docs to the real value
-    - if [[  "$BUILD_DOCS" == "true" && "$TRAVIS_PULL_REQUEST" == "false" && ("$TRAVIS_BRANCH" == "master" || "$TRAVIS_TAG" == "") ]]; then
+    - if [[  "$BUILD_DOCS" == "true" && "$TRAVIS_PULL_REQUEST" == "false" && ("$TRAVIS_BRANCH" == "master" || "$TRAVIS_TAG" != "") ]]; then
           export BUILD_DOCS="true";
       else
           export BUILD_DOCS="false";
