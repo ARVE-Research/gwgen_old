@@ -98,7 +98,8 @@ before_script:
 
 script:
     # run test suite
-    - py.test -xvk compile --user postgres
+#    - py.test -xvk compile --user postgres
+    - coverage run --source=gwgen setup.py test -a "-v -m 'not fullrun' --user postgres"
     # build docs
     - if [[ "$BUILD_DOCS" == "true" ]]; then
           sphinx-build docs deploy;
@@ -110,7 +111,6 @@ script:
     - if [[ "$TRAVIS_TAG" != "" && "$BUILD_DOCS" == "true" ]]; then
           cd deploy && zip -r "../gwgen_docs_${TRAVIS_TAG}.zip" . -x *.git* && cd ..;
       fi
-    #- coverage run --source=gwgen setup.py test -a "-v -m 'not fullrun'"
 
 after_success:
     - coveralls
