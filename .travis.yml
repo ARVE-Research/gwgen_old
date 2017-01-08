@@ -108,7 +108,7 @@ script:
           constructor gwgen_conda;
       fi
     - if [[ "$TRAVIS_TAG" != "" && "$BUILD_DOCS" == "true" ]]; then
-          cd deploy && zip -r "../gwgen_docs_${TRAVIS_TAG}.zip" . --exclude .git && cd ..;
+          cd deploy && zip -r "../gwgen_docs_${TRAVIS_TAG}.zip" . -x *.git* && cd ..;
       fi
     #- coverage run --source=gwgen setup.py test -a "-v -m 'not fullrun'"
 
