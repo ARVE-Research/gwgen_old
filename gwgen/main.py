@@ -2,6 +2,7 @@ from __future__ import print_function, division
 import os
 import os.path as osp
 import six
+import re
 import shutil
 import sys
 import datetime as dt
@@ -58,7 +59,7 @@ class GWGENOrganizer(ModelOrganizer):
 
     @docstrings.dedent
     def setup(self, root_dir, projectname=None, link=False, src_project=None,
-              **kwargs):
+              compiler=None, **kwargs):
         """
         Perform the initial setup for the model
 
@@ -70,6 +71,9 @@ class GWGENOrganizer(ModelOrganizer):
             of copied
         src_project: str
             Another model name to use the source model files from
+        compiler: str
+            The path to the compiler to use. If None, the global compiler
+            option is used
         """
         root_dir = super(GWGENOrganizer, self).setup(
             root_dir, projectname=projectname, **kwargs)
@@ -89,12 +93,21 @@ class GWGENOrganizer(ModelOrganizer):
                 self._link(osp.join(module_src, f), target)
             else:
                 shutil.copyfile(osp.join(module_src, f), target)
+        compiler = compiler or self.global_config.get('compiler')
+        if compiler is not None:
+            with open(osp.join(src_dir, 'Makefile')) as f:
+                make_file = f.read()
+            make_file = re.sub('^\s*FC\s*=\s*.*$', 'FC = ' + compiler,
+                               make_file, flags=re.MULTILINE)
+            with open(osp.join(src_dir, 'Makefile'), 'w') as f:
+                f.write(make_file)
         return root_dir
 
     def _modify_setup(self, parser):
         parser.setup_args(ModelOrganizer.setup)
         self._modify_app_main(parser)
         parser.update_arg('src_project', short='src')
+        parser.update_arg('compiler', short='c')
 
     @docstrings.dedent
     def compile_model(self, projectname=None, **kwargs):
@@ -148,7 +161,7 @@ class GWGENOrganizer(ModelOrganizer):
     @docstrings.dedent
     def configure(self, update_nml=None, max_stations=None,
                   datadir=None, database=None, user=None, host=None, port=None,
-                  chunksize=None, **kwargs):
+                  chunksize=None, compiler=None, **kwargs):
         """
         Configure the projects and experiments
 
@@ -173,7 +186,9 @@ class GWGENOrganizer(ModelOrganizer):
         port: int
             The port to use to log into the the database
         chunksize: int
-            The chunksize to use for the parameterization and evaluation"""
+            The chunksize to use for the parameterization and evaluation
+        compiler: str
+            The path to the fortran compiler to use"""
         super(GWGENOrganizer, self).configure(**kwargs)
         exp_config = self.exp_config
         if update_nml is not None:
@@ -199,6 +214,8 @@ class GWGENOrganizer(ModelOrganizer):
             gconf['host'] = '127.0.0.1'
         if chunksize is not None:
             gconf['chunksize'] = chunksize
+        if compiler is not None:
+            gconf['compiler'] = compiler
 
     def _modify_configure(self, parser):
         parser.setup_args(super(GWGENOrganizer, self).configure)
@@ -207,6 +224,7 @@ class GWGENOrganizer(ModelOrganizer):
         parser.update_arg('update_nml', short='u')
         parser.update_arg('max_stations', short='max', type=int)
         parser.update_arg('database', short='db')
+        parser.update_arg('compiler', short='c')
 
     # -------------------------------------------------------------------------
     # -------------------------- Preprocessing --------------------------------
