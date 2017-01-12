@@ -159,6 +159,7 @@ class SensitivityAnalysisTest(bt.BaseTest):
         """Test whether the plot of a simple sensitivity analysis works"""
         self._test_plot()
 
+    @pytest.mark.long
     def test_plot_complex(self):
         """Test whether the plot of a complex sensitivity analysis works"""
         self._test_plot(True)
