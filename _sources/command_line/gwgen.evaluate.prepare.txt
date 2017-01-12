@@ -1,3 +1,5 @@
+.. _gwgen.evaluate.prepare:
+
 gwgen evaluate prepare
 ======================
 

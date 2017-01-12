@@ -1,3 +1,5 @@
+.. _gwgen.preproc.cloud.eecra_ghcn_map:
+
 gwgen preproc cloud eecra_ghcn_map
 ==================================
 

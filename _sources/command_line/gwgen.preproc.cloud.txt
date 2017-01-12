@@ -1,3 +1,5 @@
+.. _gwgen.preproc.cloud:
+
 gwgen preproc cloud
 ===================
 

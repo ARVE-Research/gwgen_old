@@ -1,3 +1,5 @@
+.. _gwgen.sens.compile:
+
 gwgen sens compile
 ==================
 

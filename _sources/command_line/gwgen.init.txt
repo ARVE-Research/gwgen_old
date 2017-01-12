@@ -1,3 +1,5 @@
+.. _gwgen.init:
+
 gwgen init
 ==========
 

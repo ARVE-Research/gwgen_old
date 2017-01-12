@@ -75,7 +75,7 @@
 <dl class="class">
 <dt id="gwgen.main.GWGENOrganizer">
 <em class="property">class </em><code class="descclassname">gwgen.main.</code><code class="descname">GWGENOrganizer</code><span class="sig-paren">(</span><em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/gwgen/main.html#GWGENOrganizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gwgen.main.GWGENOrganizer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="http://model-organization.readthedocs.io/en/latest/api/model_organization.html#model_organization.ModelOrganizer" title="(in model-organization v0.1.6)"><code class="xref py py-class docutils literal"><span class="pre">model_organization.ModelOrganizer</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="http://model-organization.readthedocs.io/en/latest/api/model_organization.html#model_organization.ModelOrganizer" title="(in model-organization v0.1.7)"><code class="xref py py-class docutils literal"><span class="pre">model_organization.ModelOrganizer</span></code></a></p>
 <p>A class for organizing a model</p>
 <p>This class is indended to have hold the basic functions for organizing a
 model. You can subclass the functions <code class="docutils literal"><span class="pre">setup,</span> <span class="pre">init</span></code> to fit to your model.
@@ -85,7 +85,7 @@ When using the model from the command line, you can also use the
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>config</strong> (<a class="reference external" href="http://model-organization.readthedocs.io/en/latest/api/model_organization.config.html#model_organization.config.Config" title="(in model-organization v0.1.6)"><em>model_organization.config.Config</em></a>) &#8211; The configuration of the organizer</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>config</strong> (<a class="reference external" href="http://model-organization.readthedocs.io/en/latest/api/model_organization.config.html#model_organization.config.Config" title="(in model-organization v0.1.7)"><em>model_organization.config.Config</em></a>) &#8211; The configuration of the organizer</td>
 </tr>
 </tbody>
 </table>
@@ -129,7 +129,7 @@ When using the model from the command line, you can also use the
 <tr class="row-odd"><td><a class="reference internal" href="#gwgen.main.GWGENOrganizer.sensitivity_analysis" title="gwgen.main.GWGENOrganizer.sensitivity_analysis"><code class="xref py py-obj docutils literal"><span class="pre">sensitivity_analysis</span></code></a>(**kwargs)</td>
 <td>Perform a sensitivity analysis on the given parameters</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#gwgen.main.GWGENOrganizer.setup" title="gwgen.main.GWGENOrganizer.setup"><code class="xref py py-obj docutils literal"><span class="pre">setup</span></code></a>(root_dir[,&nbsp;projectname,&nbsp;link,&nbsp;src_project])</td>
+<tr class="row-even"><td><a class="reference internal" href="#gwgen.main.GWGENOrganizer.setup" title="gwgen.main.GWGENOrganizer.setup"><code class="xref py py-obj docutils literal"><span class="pre">setup</span></code></a>(root_dir[,&nbsp;projectname,&nbsp;link,&nbsp;...])</td>
 <td>Perform the initial setup for the model</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#gwgen.main.GWGENOrganizer.tmin_bias_correction" title="gwgen.main.GWGENOrganizer.tmin_bias_correction"><code class="xref py py-obj docutils literal"><span class="pre">tmin_bias_correction</span></code></a>(info[,&nbsp;new_project,&nbsp;...])</td>
@@ -247,7 +247,7 @@ specified by the current experiment</li>
 
 <dl class="method">
 <dt id="gwgen.main.GWGENOrganizer.configure">
-<code class="descname">configure</code><span class="sig-paren">(</span><em>update_nml=None</em>, <em>max_stations=None</em>, <em>datadir=None</em>, <em>database=None</em>, <em>user=None</em>, <em>host=None</em>, <em>port=None</em>, <em>chunksize=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/gwgen/main.html#GWGENOrganizer.configure"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gwgen.main.GWGENOrganizer.configure" title="Permalink to this definition">¶</a></dt>
+<code class="descname">configure</code><span class="sig-paren">(</span><em>update_nml=None</em>, <em>max_stations=None</em>, <em>datadir=None</em>, <em>database=None</em>, <em>user=None</em>, <em>host=None</em>, <em>port=None</em>, <em>chunksize=None</em>, <em>compiler=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/gwgen/main.html#GWGENOrganizer.configure"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gwgen.main.GWGENOrganizer.configure" title="Permalink to this definition">¶</a></dt>
 <dd><p>Configure the projects and experiments</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -284,6 +284,7 @@ configuration)</li>
 <li><strong>host</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; the host which runs the database server</li>
 <li><strong>port</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; The port to use to log into the the database</li>
 <li><strong>chunksize</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; The chunksize to use for the parameterization and evaluation</li>
+<li><strong>compiler</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The path to the fortran compiler to use</li>
 </ul>
 </td>
 </tr>
@@ -513,7 +514,7 @@ others</p>
 
 <dl class="method">
 <dt id="gwgen.main.GWGENOrganizer.setup">
-<code class="descname">setup</code><span class="sig-paren">(</span><em>root_dir</em>, <em>projectname=None</em>, <em>link=False</em>, <em>src_project=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/gwgen/main.html#GWGENOrganizer.setup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gwgen.main.GWGENOrganizer.setup" title="Permalink to this definition">¶</a></dt>
+<code class="descname">setup</code><span class="sig-paren">(</span><em>root_dir</em>, <em>projectname=None</em>, <em>link=False</em>, <em>src_project=None</em>, <em>compiler=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/gwgen/main.html#GWGENOrganizer.setup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gwgen.main.GWGENOrganizer.setup" title="Permalink to this definition">¶</a></dt>
 <dd><p>Perform the initial setup for the model</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -530,6 +531,8 @@ of copied</li>
 <li><strong>link</strong> &#8211; If set, the source files are linked to the original ones instead
 of copied</li>
 <li><strong>src_project</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Another model name to use the source model files from</li>
+<li><strong>compiler</strong> (<a class="reference external" href="https://docs.python.org/2.7/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The path to the compiler to use. If None, the global compiler
+option is used</li>
 </ul>
 </td>
 </tr>
@@ -680,6 +683,8 @@ The covriance matrix of the intercept fit</li>
 
 <h3>Navigation</h3>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../command_line/gwgen.html">Command Line API Reference</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="gwgen.html">Python API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../fortran_api/index.html">Fortran API Reference</a></li>

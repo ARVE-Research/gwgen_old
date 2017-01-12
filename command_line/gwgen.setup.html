@@ -44,8 +44,8 @@
           <div class="body" role="main">
             
   <div class="section" id="gwgen-setup">
-<h1>gwgen setup<a class="headerlink" href="#gwgen-setup" title="Permalink to this headline">¶</a></h1>
-<div class="highlight-python"><div class="highlight"><pre><span></span>usage: gwgen setup [-h] [-p str] [-link] [-src str] str
+<span id="id1"></span><h1>gwgen setup<a class="headerlink" href="#gwgen-setup" title="Permalink to this headline">¶</a></h1>
+<div class="highlight-python"><div class="highlight"><pre><span></span>usage: gwgen setup [-h] [-p str] [-link] [-src str] [-c str] str
 </pre></div>
 </div>
 <dl class="docutils">
@@ -83,6 +83,10 @@ link: bool
 <kbd><span class="option">-src</span>, <span class="option">--src-project</span></kbd></td>
 </tr>
 <tr><td>&nbsp;</td><td>    Another model name to use the source model files from</td></tr>
+<tr><td class="option-group">
+<kbd><span class="option">-c</span>, <span class="option">--compiler</span></kbd></td>
+<td>    The path to the compiler to use. If None, the global compiler
+    option is used</td></tr>
 </tbody>
 </table>
 </dd>
@@ -125,6 +129,8 @@ link: bool
 
 <h3>Navigation</h3>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting started</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="gwgen.html">Command Line API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/gwgen.html">Python API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../fortran_api/index.html">Fortran API Reference</a></li>

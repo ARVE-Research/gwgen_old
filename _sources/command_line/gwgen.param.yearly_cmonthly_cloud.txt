@@ -1,3 +1,5 @@
+.. _gwgen.param.yearly_cmonthly_cloud:
+
 gwgen param yearly_cmonthly_cloud
 =================================
 

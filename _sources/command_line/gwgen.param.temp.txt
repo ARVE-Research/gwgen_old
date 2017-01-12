@@ -1,3 +1,5 @@
+.. _gwgen.param.temp:
+
 gwgen param temp
 ================
 

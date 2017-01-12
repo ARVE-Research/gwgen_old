@@ -1,3 +1,5 @@
+.. _gwgen.sens.plot.plot1d:
+
 gwgen sens plot plot1d
 ======================
 

@@ -1,3 +1,5 @@
+.. _gwgen.param.daily_cloud:
+
 gwgen param daily_cloud
 =======================
 

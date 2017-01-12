@@ -1,3 +1,5 @@
+.. _gwgen.unarchive:
+
 gwgen unarchive
 ===============
 

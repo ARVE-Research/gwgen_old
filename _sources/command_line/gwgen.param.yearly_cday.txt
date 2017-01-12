@@ -1,3 +1,5 @@
+.. _gwgen.param.yearly_cday:
+
 gwgen param yearly_cday
 =======================
 

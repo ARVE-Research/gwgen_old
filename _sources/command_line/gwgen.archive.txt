@@ -1,3 +1,5 @@
+.. _gwgen.archive:
+
 gwgen archive
 =============
 

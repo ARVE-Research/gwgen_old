@@ -1,3 +1,5 @@
+.. _gwgen.setup:
+
 gwgen setup
 ===========
 

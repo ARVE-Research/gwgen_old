@@ -1,3 +1,5 @@
+.. _gwgen.bias.tmin:
+
 gwgen bias tmin
 ===============
 

@@ -1,3 +1,5 @@
+.. _gwgen.bias.wind:
+
 gwgen bias wind
 ===============
 

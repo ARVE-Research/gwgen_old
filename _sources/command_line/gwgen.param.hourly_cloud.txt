@@ -1,3 +1,5 @@
+.. _gwgen.param.hourly_cloud:
+
 gwgen param hourly_cloud
 ========================
 

@@ -26,7 +26,7 @@
     <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="top" title="gwgen 0.2.0.dev0 documentation" href="../index.html" />
     <link rel="next" title="gwgen setup" href="gwgen.setup.html" />
-    <link rel="prev" title="GWGEN: A global weather generator for daily data" href="../index.html" />
+    <link rel="prev" title="Getting started" href="../getting_started.html" />
    
   <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
   
@@ -43,18 +43,18 @@
           <div class="body" role="main">
             
   <div class="section" id="command-line-api-reference">
-<h1>Command Line API Reference<a class="headerlink" href="#command-line-api-reference" title="Permalink to this headline">¶</a></h1>
+<span id="id1"></span><h1>Command Line API Reference<a class="headerlink" href="#command-line-api-reference" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="gwgen.setup.html">gwgen setup</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gwgen.compile.html">gwgen compile</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gwgen.init.html">gwgen init</a></li>
-<li class="toctree-l1"><a class="reference internal" href="gwgen.unarchive.html">gwgen unarchive</a></li>
-<li class="toctree-l1"><a class="reference internal" href="gwgen.configure.html">gwgen configure</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gwgen.set-value.html">gwgen set-value</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gwgen.get-value.html">gwgen get-value</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gwgen.del-value.html">gwgen del-value</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gwgen.info.html">gwgen info</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gwgen.unarchive.html">gwgen unarchive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gwgen.configure.html">gwgen configure</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gwgen.preproc.html">gwgen preproc</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gwgen.param.html">gwgen param</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gwgen.run.html">gwgen run</a></li>
@@ -117,7 +117,7 @@
 <dd><dl class="first last docutils">
 <dt><strong>setup</strong></dt>
 <dd><p class="first">Perform the initial setup for the model</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span>usage: gwgen setup [-h] [-p str] [-link] [-src str] str
+<div class="highlight-python"><div class="highlight"><pre><span></span>usage: gwgen setup [-h] [-p str] [-link] [-src str] [-c str] str
 </pre></div>
 </div>
 <dl class="last docutils">
@@ -155,6 +155,10 @@ link: bool
 <kbd><span class="option">-src</span>, <span class="option">--src-project</span></kbd></td>
 </tr>
 <tr><td>&nbsp;</td><td>    Another model name to use the source model files from</td></tr>
+<tr><td class="option-group">
+<kbd><span class="option">-c</span>, <span class="option">--compiler</span></kbd></td>
+<td>    The path to the compiler to use. If None, the global compiler
+    option is used</td></tr>
 </tbody>
 </table>
 </dd>
@@ -537,8 +541,8 @@ link: bool
 <dd><p class="first">Configure the projects and experiments</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span>usage: gwgen configure [-h] [-u str or dict] [-max int] [-d str] [-db str]
                        [-user str] [-host str] [-port int] [-chunksize int]
-                       [-g] [-p] [-i str] [-f str] [-s] [-n int or &#39;all&#39;]
-                       [-update-from str]
+                       [-c str] [-g] [-p] [-i str] [-f str] [-s]
+                       [-n int or &#39;all&#39;] [-update-from str]
 </pre></div>
 </div>
 <dl class="last docutils">
@@ -577,6 +581,9 @@ link: bool
 <tr><td class="option-group">
 <kbd><span class="option">-chunksize</span></kbd></td>
 <td>    The chunksize to use for the parameterization and evaluation</td></tr>
+<tr><td class="option-group">
+<kbd><span class="option">-c</span>, <span class="option">--compiler</span></kbd></td>
+<td>    The path to the fortran compiler to use</td></tr>
 <tr><td class="option-group" colspan="2">
 <kbd><span class="option">-g=False</span>, <span class="option">--globally=False</span></kbd></td>
 </tr>
@@ -2049,7 +2056,7 @@ Default: %(default)s</p>
 </tr>
 <tr><td>&nbsp;</td><td>    Use the configuration from another experiment</td></tr>
 <tr><td class="option-group" colspan="2">
-<kbd><span class="option">-t=15.0</span>, <span class="option">--thresh=15.0</span></kbd></td>
+<kbd><span class="option">-t=5.0</span>, <span class="option">--thresh=5.0</span></kbd></td>
 </tr>
 <tr><td>&nbsp;</td><td>    The threshold to use for the configuration. Default: %(default)s</td></tr>
 <tr><td class="option-group" colspan="2">
@@ -3453,6 +3460,8 @@ parameterization.</td></tr>
 
 <h3>Navigation</h3>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting started</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="">Command Line API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/gwgen.html">Python API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../fortran_api/index.html">Fortran API Reference</a></li>
@@ -3462,7 +3471,7 @@ parameterization.</td></tr>
 <h3>Related Topics</h3>
 <ul>
   <li><a href="../index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="../index.html" title="previous chapter">GWGEN: A global weather generator for daily data</a></li>
+      <li>Previous: <a href="../getting_started.html" title="previous chapter">Getting started</a></li>
       <li>Next: <a href="gwgen.setup.html" title="next chapter">gwgen setup</a></li>
   </ul></li>
 </ul>

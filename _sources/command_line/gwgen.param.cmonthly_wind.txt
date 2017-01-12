@@ -1,3 +1,5 @@
+.. _gwgen.param.cmonthly_wind:
+
 gwgen param cmonthly_wind
 =========================
 

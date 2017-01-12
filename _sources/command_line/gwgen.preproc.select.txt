@@ -1,3 +1,5 @@
+.. _gwgen.preproc.select:
+
 gwgen preproc select
 ====================
 

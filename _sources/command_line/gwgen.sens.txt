@@ -1,3 +1,5 @@
+.. _gwgen.sens:
+
 gwgen sens
 ==========
 

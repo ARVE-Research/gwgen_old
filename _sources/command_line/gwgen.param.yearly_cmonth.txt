@@ -1,3 +1,5 @@
+.. _gwgen.param.yearly_cmonth:
+
 gwgen param yearly_cmonth
 =========================
 

@@ -1,3 +1,5 @@
+.. _gwgen.sens.init:
+
 gwgen sens init
 ===============
 

@@ -46,6 +46,7 @@
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">os.path</span> <span class="kn">as</span> <span class="nn">osp</span>
 <span class="kn">import</span> <span class="nn">six</span>
+<span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">shutil</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">datetime</span> <span class="kn">as</span> <span class="nn">dt</span>
@@ -102,7 +103,7 @@
 
     <span class="nd">@docstrings.dedent</span>
 <div class="viewcode-block" id="GWGENOrganizer.setup"><a class="viewcode-back" href="../../api/gwgen.main.html#gwgen.main.GWGENOrganizer.setup">[docs]</a>    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">root_dir</span><span class="p">,</span> <span class="n">projectname</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">link</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">src_project</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-              <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+              <span class="n">compiler</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Perform the initial setup for the model</span>
 
@@ -114,6 +115,9 @@
 <span class="sd">            of copied</span>
 <span class="sd">        src_project: str</span>
 <span class="sd">            Another model name to use the source model files from</span>
+<span class="sd">        compiler: str</span>
+<span class="sd">            The path to the compiler to use. If None, the global compiler</span>
+<span class="sd">            option is used</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">root_dir</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">GWGENOrganizer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span>
             <span class="n">root_dir</span><span class="p">,</span> <span class="n">projectname</span><span class="o">=</span><span class="n">projectname</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -133,12 +137,21 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">_link</span><span class="p">(</span><span class="n">osp</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">module_src</span><span class="p">,</span> <span class="n">f</span><span class="p">),</span> <span class="n">target</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">shutil</span><span class="o">.</span><span class="n">copyfile</span><span class="p">(</span><span class="n">osp</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">module_src</span><span class="p">,</span> <span class="n">f</span><span class="p">),</span> <span class="n">target</span><span class="p">)</span>
+        <span class="n">compiler</span> <span class="o">=</span> <span class="n">compiler</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;compiler&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">compiler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">osp</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">src_dir</span><span class="p">,</span> <span class="s1">&#39;Makefile&#39;</span><span class="p">))</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">make_file</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+            <span class="n">make_file</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;^\s*FC\s*=\s*.*$&#39;</span><span class="p">,</span> <span class="s1">&#39;FC = &#39;</span> <span class="o">+</span> <span class="n">compiler</span><span class="p">,</span>
+                               <span class="n">make_file</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span><span class="p">)</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">osp</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">src_dir</span><span class="p">,</span> <span class="s1">&#39;Makefile&#39;</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">make_file</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">root_dir</span></div>
 
     <span class="k">def</span> <span class="nf">_modify_setup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">setup_args</span><span class="p">(</span><span class="n">ModelOrganizer</span><span class="o">.</span><span class="n">setup</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_modify_app_main</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">update_arg</span><span class="p">(</span><span class="s1">&#39;src_project&#39;</span><span class="p">,</span> <span class="n">short</span><span class="o">=</span><span class="s1">&#39;src&#39;</span><span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">update_arg</span><span class="p">(</span><span class="s1">&#39;compiler&#39;</span><span class="p">,</span> <span class="n">short</span><span class="o">=</span><span class="s1">&#39;c&#39;</span><span class="p">)</span>
 
     <span class="nd">@docstrings.dedent</span>
 <div class="viewcode-block" id="GWGENOrganizer.compile_model"><a class="viewcode-back" href="../../api/gwgen.main.html#gwgen.main.GWGENOrganizer.compile_model">[docs]</a>    <span class="k">def</span> <span class="nf">compile_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">projectname</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -192,7 +205,7 @@
     <span class="nd">@docstrings.dedent</span>
 <div class="viewcode-block" id="GWGENOrganizer.configure"><a class="viewcode-back" href="../../api/gwgen.main.html#gwgen.main.GWGENOrganizer.configure">[docs]</a>    <span class="k">def</span> <span class="nf">configure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">update_nml</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">max_stations</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                   <span class="n">datadir</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">database</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-                  <span class="n">chunksize</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                  <span class="n">chunksize</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">compiler</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Configure the projects and experiments</span>
 
@@ -217,7 +230,9 @@
 <span class="sd">        port: int</span>
 <span class="sd">            The port to use to log into the the database</span>
 <span class="sd">        chunksize: int</span>
-<span class="sd">            The chunksize to use for the parameterization and evaluation&quot;&quot;&quot;</span>
+<span class="sd">            The chunksize to use for the parameterization and evaluation</span>
+<span class="sd">        compiler: str</span>
+<span class="sd">            The path to the fortran compiler to use&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">GWGENOrganizer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="n">exp_config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exp_config</span>
         <span class="k">if</span> <span class="n">update_nml</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
@@ -242,7 +257,9 @@
         <span class="k">if</span> <span class="n">host</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">gconf</span><span class="p">[</span><span class="s1">&#39;host&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;127.0.0.1&#39;</span>
         <span class="k">if</span> <span class="n">chunksize</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="n">gconf</span><span class="p">[</span><span class="s1">&#39;chunksize&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">chunksize</span></div>
+            <span class="n">gconf</span><span class="p">[</span><span class="s1">&#39;chunksize&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">chunksize</span>
+        <span class="k">if</span> <span class="n">compiler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">gconf</span><span class="p">[</span><span class="s1">&#39;compiler&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">compiler</span></div>
 
     <span class="k">def</span> <span class="nf">_modify_configure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">setup_args</span><span class="p">(</span><span class="nb">super</span><span class="p">(</span><span class="n">GWGENOrganizer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">configure</span><span class="p">)</span>
@@ -251,6 +268,7 @@
         <span class="n">parser</span><span class="o">.</span><span class="n">update_arg</span><span class="p">(</span><span class="s1">&#39;update_nml&#39;</span><span class="p">,</span> <span class="n">short</span><span class="o">=</span><span class="s1">&#39;u&#39;</span><span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">update_arg</span><span class="p">(</span><span class="s1">&#39;max_stations&#39;</span><span class="p">,</span> <span class="n">short</span><span class="o">=</span><span class="s1">&#39;max&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">update_arg</span><span class="p">(</span><span class="s1">&#39;database&#39;</span><span class="p">,</span> <span class="n">short</span><span class="o">=</span><span class="s1">&#39;db&#39;</span><span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">update_arg</span><span class="p">(</span><span class="s1">&#39;compiler&#39;</span><span class="p">,</span> <span class="n">short</span><span class="o">=</span><span class="s1">&#39;c&#39;</span><span class="p">)</span>
 
     <span class="c1"># -------------------------------------------------------------------------</span>
     <span class="c1"># -------------------------- Preprocessing --------------------------------</span>
@@ -1665,6 +1683,8 @@
 
 <h3>Navigation</h3>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../command_line/gwgen.html">Command Line API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api/gwgen.html">Python API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../fortran_api/index.html">Fortran API Reference</a></li>

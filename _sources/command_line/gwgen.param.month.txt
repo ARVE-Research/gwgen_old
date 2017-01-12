@@ -1,3 +1,5 @@
+.. _gwgen.param.month:
+
 gwgen param month
 =================
 

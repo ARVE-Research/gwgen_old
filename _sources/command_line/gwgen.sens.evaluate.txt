@@ -1,3 +1,5 @@
+.. _gwgen.sens.evaluate:
+
 gwgen sens evaluate
 ===================
 

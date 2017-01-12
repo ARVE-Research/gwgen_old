@@ -1,3 +1,5 @@
+.. _gwgen.set-value:
+
 gwgen set-value
 ===============
 
