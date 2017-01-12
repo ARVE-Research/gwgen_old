@@ -13,6 +13,8 @@
 # serve to show the default.
 
 import sphinx
+from docutils import nodes, utils
+from sphinx.util.nodes import split_explicit_title
 import os
 import re
 import six
@@ -438,6 +440,23 @@ def link_aliases(app, what, name, obj, options, lines):
         lines[i] = line.replace(key, val)
 
 
+def doi_role(typ, rawtext, text, lineno, inliner, options={}, content=[]):
+    """Role for DOI. Copied from
+    https://gist.github.com/jonls/b910afc46473b02597c4"""
+    text = utils.unescape(text)
+    has_explicit_title, title, part = split_explicit_title(text)
+    full_url = 'https://doi.org/' + part
+    if not has_explicit_title:
+        title = 'doi:' + part
+    pnode = nodes.reference(title, title, internal=False, refuri=full_url)
+    return [pnode], []
+
+
+def setup_link_role(app):
+    app.add_role('doi', doi_role)
+
+
 def setup(app):
+    app.connect('builder-inited', setup_link_role)
     app.connect('autodoc-process-docstring', link_aliases)
     return {'version': sphinx.__display_version__, 'parallel_read_safe': True}
