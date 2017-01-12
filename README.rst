@@ -1,13 +1,50 @@
 GWGEN: A global weather generator for daily data
 ================================================
 
+
+.. start-badges
+
+.. list-table::
+    :stub-columns: 1
+    :widths: 10 90
+
+    * - tests
+      - |travis| |requires| |coveralls|
+
+.. |travis| image:: https://travis-ci.org/Chilipp/gwgen.svg?branch=master
+    :alt: Travis
+    :target: https://travis-ci.org/Chilipp/gwgen
+
+.. |coveralls| image:: https://coveralls.io/repos/github/Chilipp/gwgen/badge.svg?branch=master
+    :alt: Coverage
+    :target: https://coveralls.io/github/Chilipp/gwgen?branch=master
+
+.. |requires| image:: https://requires.io/github/Chilipp/gwgen/requirements.svg?branch=master
+    :alt: Requirements Status
+    :target: https://requires.io/github/Chilipp/gwgen/requirements/?branch=master
+
+.. end-badges
+
+
 Welcome! This synthesis of FORTRAN and Python is a globally applicable
 weather generator inspired by the original WGEN weather generator of
 [Richardson1981]_ and parameterized through a global dataset of [GHCN]_ and
 [EECRA]_ data. A paper with the scientific documentation is in progress, the
-`technical documentation`_ is hosted on github.
+`technical documentation`_ with more information is hosted on github.io.
 
 .. _technical documentation: https://arve-research.github.io/gwgen/
+
+
+Authors
+-------
+This package has been developped by `Philipp S. Sommer`_ and `Jed O. Kaplan`_.
+We also want to acknowledge `Dr. Shawn Koppenhoefer`_ for his help in the
+beginning of the project, as well as the Swiss National Fund (SNF) and the
+European Research Council (ERC) for their funding.
+
+.. _Philipp S. Sommer: https://github.com/Chilipp
+.. _Jed O. Kaplan: https://github.com/jedokaplan
+.. _Dr. Shawn Koppenhoefer: http://arve.unil.ch/people/shawn-koppenhoefer/
 
 References
 ----------
