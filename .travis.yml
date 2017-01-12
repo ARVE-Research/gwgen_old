@@ -120,7 +120,8 @@ script:
 
 after_success:
     - coveralls
-    - if [[ "$BUILD_DOCS" == "true" && "$TRAVIS_TAG" != "" ]]; then
+    # upload the documentation on master branch
+    - if [[ "$BUILD_DOCS" == "true" && "$TRAVIS_TAG" == "" ]]; then
           ./deploy.sh;
       fi
 
