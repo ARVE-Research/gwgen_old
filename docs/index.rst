@@ -15,17 +15,17 @@ GWGEN: A global weather generator for daily data
     * - tests
       - |travis| |requires| |coveralls|
 
-.. |travis| image:: https://travis-ci.org/Chilipp/gwgen.svg?branch=master
+.. |travis| image:: https://travis-ci.org/ARVE-Research/gwgen.svg?branch=master
     :alt: Travis
-    :target: https://travis-ci.org/Chilipp/gwgen
+    :target: https://travis-ci.org/ARVE-Research/gwgen
 
-.. |coveralls| image:: https://coveralls.io/repos/github/Chilipp/gwgen/badge.svg?branch=master
+.. |coveralls| image:: https://coveralls.io/repos/github/ARVE-Research/gwgen/badge.svg?branch=master
     :alt: Coverage
-    :target: https://coveralls.io/github/Chilipp/gwgen?branch=master
+    :target: https://coveralls.io/github/ARVE-Research/gwgen?branch=master
 
-.. |requires| image:: https://requires.io/github/Chilipp/gwgen/requirements.svg?branch=master
+.. |requires| image:: https://requires.io/github/ARVE-Research/gwgen/requirements.svg?branch=master
     :alt: Requirements Status
-    :target: https://requires.io/github/Chilipp/gwgen/requirements/?branch=master
+    :target: https://requires.io/github/ARVE-Research/gwgen/requirements/?branch=master
 
 .. end-badges
 
