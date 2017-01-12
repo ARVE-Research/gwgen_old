@@ -50,7 +50,7 @@ def configuration(parent_package='', top_path=None):
     return config
 
 install_requires = ['f90nml', 'psyplot', 'scipy', 'sqlalchemy', 'psycopg2',
-                    'statsmodels', 'docrep']
+                    'statsmodels', 'docrep', 'model-organization', 'xarray']
 
 if six.PY2:
     install_requires.append('argparse')
@@ -58,7 +58,7 @@ if six.PY2:
 
 setup(name='gwgen',
       version='0.2.0.dev0',
-      description='Python package for interactive data visualization',
+      description='A global weather generator for daily data',
       long_description=readme(),
       classifiers=[
         'Development Status :: 2 - Pre-Alpha',
@@ -79,7 +79,7 @@ setup(name='gwgen',
         'Operating System :: MacOS',
       ],
       keywords='wgen weathergen ghcn eecra richardson geng',
-      url='https://github.com/Chilipp/gwgen',
+      url='https://github.com/ARVE-Research/gwgen',
       author='Philipp Sommer',
       author_email='philipp.sommer@unil.ch',
       license="GPLv2",
