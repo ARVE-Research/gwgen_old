@@ -443,7 +443,7 @@ PrcpConfig = utils.enhanced_config(_PrcpConfig, 'PrcpConfig')
 
 @docstrings.dedent
 def default_prcp_config(
-        thresh=15., threshs2compute=[5, 7.5, 10, 12.5, 15, 17.5, 20],
+        thresh=5., threshs2compute=[5, 7.5, 10, 12.5, 15, 17.5, 20],
         *args, **kwargs):
     """
     The default configuration for :class:`PrcpDistParams` instances.
