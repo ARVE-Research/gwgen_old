@@ -1,3 +1,5 @@
+.. _gwgen.param.cmonth:
+
 gwgen param cmonth
 ==================
 

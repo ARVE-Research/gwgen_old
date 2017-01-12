@@ -1,3 +1,5 @@
+.. _gwgen.evaluate:
+
 gwgen evaluate
 ==============
 

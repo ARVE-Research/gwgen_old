@@ -1,3 +1,5 @@
+.. _gwgen.param.yearly_cdaily_cloud:
+
 gwgen param yearly_cdaily_cloud
 ===============================
 

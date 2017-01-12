@@ -1,3 +1,5 @@
+.. _gwgen.get-value:
+
 gwgen get-value
 ===============
 

@@ -1,3 +1,5 @@
+.. _gwgen.preproc.cloud.eecra_inventory:
+
 gwgen preproc cloud eecra_inventory
 ===================================
 

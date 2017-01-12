@@ -1,3 +1,5 @@
+.. _gwgen.evaluate.quality:
+
 gwgen evaluate quality
 ======================
 

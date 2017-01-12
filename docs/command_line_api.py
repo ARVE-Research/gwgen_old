@@ -13,6 +13,8 @@ def document_parsers(parser, base_key='gwgen'):
         title = 'Command Line API Reference'
     else:
         title = base_key.replace('.', ' ')
+
+    f.write('.. _' + title.replace(' ', '.') + ':\n\n')
     f.write(title + '\n')
     f.write('=' * len(title) + '\n\n')
 

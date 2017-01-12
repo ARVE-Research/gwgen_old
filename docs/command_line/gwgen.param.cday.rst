@@ -1,3 +1,5 @@
+.. _gwgen.param.cday:
+
 gwgen param cday
 ================
 

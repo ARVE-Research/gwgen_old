@@ -20,6 +20,7 @@ Documentation
     :maxdepth: 1
 
     install
+    getting_started
     command_line/gwgen.rst
     api/gwgen.rst
     fortran_api/index.rst

@@ -1,3 +1,5 @@
+.. _gwgen.param.day:
+
 gwgen param day
 ===============
 

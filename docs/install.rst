@@ -41,9 +41,10 @@ This will create the `weathergen` executable in the same directory.
 
 Installing the full GWGEN
 -------------------------
-If you not only want the source code, but also the parameterization or the
-experiment organization features of the model, you need the full python package
-which includes the FORTRAN source files.
+If you not only want the source code, but also the
+:ref:`parameterization <parameterization>` or the experiment organization
+features of the model, you need the full python package which includes the
+FORTRAN source files.
 
 The code is hosted open-source on Github_ and can be downloaded via
 

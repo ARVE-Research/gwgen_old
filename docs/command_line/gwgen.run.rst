@@ -1,3 +1,5 @@
+.. _gwgen.run:
+
 gwgen run
 =========
 

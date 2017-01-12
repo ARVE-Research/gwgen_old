@@ -1,3 +1,5 @@
+.. _gwgen.evaluate.ks:
+
 gwgen evaluate ks
 =================
 

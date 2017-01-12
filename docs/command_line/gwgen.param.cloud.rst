@@ -1,3 +1,5 @@
+.. _gwgen.param.cloud:
+
 gwgen param cloud
 =================
 

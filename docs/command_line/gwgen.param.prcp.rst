@@ -1,3 +1,5 @@
+.. _gwgen.param.prcp:
+
 gwgen param prcp
 ================
 

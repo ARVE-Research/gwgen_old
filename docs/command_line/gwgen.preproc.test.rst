@@ -1,3 +1,5 @@
+.. _gwgen.preproc.test:
+
 gwgen preproc test
 ==================
 

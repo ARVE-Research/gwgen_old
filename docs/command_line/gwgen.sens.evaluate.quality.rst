@@ -1,3 +1,5 @@
+.. _gwgen.sens.evaluate.quality:
+
 gwgen sens evaluate quality
 ===========================
 

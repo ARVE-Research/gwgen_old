@@ -1,3 +1,5 @@
+.. _gwgen.del-value:
+
 gwgen del-value
 ===============
 

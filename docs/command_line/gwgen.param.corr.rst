@@ -1,3 +1,5 @@
+.. _gwgen.param.corr:
+
 gwgen param corr
 ================
 

@@ -1,3 +1,5 @@
+.. _gwgen.compile:
+
 gwgen compile
 =============
 

@@ -1,3 +1,5 @@
+.. _gwgen.sens.run:
+
 gwgen sens run
 ==============
 

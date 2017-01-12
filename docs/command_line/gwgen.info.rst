@@ -1,3 +1,5 @@
+.. _gwgen.info:
+
 gwgen info
 ==========
 

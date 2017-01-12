@@ -1,3 +1,5 @@
+.. _gwgen.param.wind:
+
 gwgen param wind
 ================
 
