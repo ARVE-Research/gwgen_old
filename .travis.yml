@@ -101,8 +101,8 @@ before_script:
 script:
     # run test suite
     - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-          coverage run --source=gwgen setup.py test -a "-v -m 'not fullrun and not long' ";
-      else if [[ "$ONLINE_TEST" == "true" ]]; then
+          coverage run --source=gwgen setup.py test -a "-v -m 'not fullrun and not long'";
+      elif [[ "$ONLINE_TEST" == "true" ]]; then
           coverage run --source=gwgen setup.py test -a "-v -m 'not fullrun' --user postgres";
       else
           coverage run --source=gwgen setup.py test -a "-v -m 'not fullrun' --user postgres --offline";
