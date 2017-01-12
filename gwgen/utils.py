@@ -54,7 +54,12 @@ def download_file(url, target=None):
         return request.urlretrieve(url, target)[0]
     else:
         import urllib
-        return urllib.urlretrieve(url, target)[0]
+        ret = urllib.urlretrieve(url, target)[0]
+        # workaround. clean up urls. otherwise you get problems if downloading
+        # more than one file from the same source
+        # (http://bugs.python.org/issue27973)
+        urllib.urlcleanup()
+        return ret
 
 
 def dir_contains(dirname, path, exists=True):
