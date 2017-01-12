@@ -98,7 +98,12 @@
         <span class="k">return</span> <span class="n">request</span><span class="o">.</span><span class="n">urlretrieve</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">target</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="kn">import</span> <span class="nn">urllib</span>
-        <span class="k">return</span> <span class="n">urllib</span><span class="o">.</span><span class="n">urlretrieve</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">target</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">urlretrieve</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">target</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c1"># workaround. clean up urls. otherwise you get problems if downloading</span>
+        <span class="c1"># more than one file from the same source</span>
+        <span class="c1"># (http://bugs.python.org/issue27973)</span>
+        <span class="n">urllib</span><span class="o">.</span><span class="n">urlcleanup</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">ret</span></div>
 
 
 <div class="viewcode-block" id="dir_contains"><a class="viewcode-back" href="../../api/gwgen.utils.html#gwgen.utils.dir_contains">[docs]</a><span class="k">def</span> <span class="nf">dir_contains</span><span class="p">(</span><span class="n">dirname</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">exists</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>

@@ -157,7 +157,7 @@ your region but note that you should have as many weather stations as you can.</
 <p>and save the corresponding IDs in a file</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [5]: </span><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;hamburg_stations.dat&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
 <span class="gp">   ...: </span>    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;GM000010147</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-<span class="gp">   ...: </span>    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;GM000010147&#39;</span><span class="p">)</span>
+<span class="gp">   ...: </span>    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;GM000003865&#39;</span><span class="p">)</span>
 <span class="gp">   ...: </span>
 </pre></div>
 </div>
@@ -166,49 +166,9 @@ data files and run our <a class="reference internal" href="command_line/gwgen.pa
 <div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="o">!</span>gwgen param -s hamburg_stations.dat day --download single prcp
 <span class="go">INFO:gwgen.my_first_experiment:Parameterizing experiment my_first_experiment of project my_first_project</span>
 <span class="go">INFO:gwgen.utils:Downloading ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/all/GM000010147.dly to /home/travis/build/ARVE-Research/gwgen/my_first_project/data/ghcn/ghcnd_all/GM000010147.dly</span>
-<span class="go">INFO:gwgen.utils:Downloading ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/all/GM000010147.dly to /home/travis/build/ARVE-Research/gwgen/my_first_project/data/ghcn/ghcnd_all/GM000010147.dly</span>
-<span class="go">Traceback (most recent call last):</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/bin/gwgen&quot;, line 11, in &lt;module&gt;</span>
-<span class="go">    load_entry_point(&#39;gwgen==0.2.0.dev0&#39;, &#39;console_scripts&#39;, &#39;gwgen&#39;)()</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/lib/python2.7/site-packages/gwgen-0.2.0.dev0-py2.7-linux-x86_64.egg/gwgen/main.py&quot;, line 1600, in main</span>
-<span class="go">    GWGENOrganizer.main(args)</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/lib/python2.7/site-packages/model_organization/__init__.py&quot;, line 152, in main</span>
-<span class="go">    organizer.parse_args(args)</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/lib/python2.7/site-packages/model_organization/__init__.py&quot;, line 1566, in parse_args</span>
-<span class="go">    ret = self.start(**vars(self.parser.parse_args(args)))</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/lib/python2.7/site-packages/model_organization/__init__.py&quot;, line 183, in start</span>
-<span class="go">    ret[cmd] = func(**kws)</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/lib/python2.7/site-packages/gwgen-0.2.0.dev0-py2.7-linux-x86_64.egg/gwgen/main.py&quot;, line 646, in param</span>
-<span class="go">    parameterizer_kws)</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/lib/python2.7/site-packages/gwgen-0.2.0.dev0-py2.7-linux-x86_64.egg/gwgen/main.py&quot;, line 1494, in _setup_manager</span>
-<span class="go">    manager.initialize_tasks(stations, task_kws=base_kws)</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/lib/python2.7/site-packages/gwgen-0.2.0.dev0-py2.7-linux-x86_64.egg/gwgen/utils.py&quot;, line 1483, in initialize_tasks</span>
-<span class="go">    instance.init_task()</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/lib/python2.7/site-packages/gwgen-0.2.0.dev0-py2.7-linux-x86_64.egg/gwgen/utils.py&quot;, line 983, in init_task</span>
-<span class="go">    return self._setup_or_init(&#39;init&#39;)</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/lib/python2.7/site-packages/gwgen-0.2.0.dev0-py2.7-linux-x86_64.egg/gwgen/utils.py&quot;, line 975, in _setup_or_init</span>
-<span class="go">    ret = getattr(self, method + &#39;_from_&#39; + setup_from)()</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/lib/python2.7/site-packages/gwgen-0.2.0.dev0-py2.7-linux-x86_64.egg/gwgen/parameterization.py&quot;, line 206, in init_from_scratch</span>
-<span class="go">    self.http_single.format(osp.basename(f)), f)</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/lib/python2.7/site-packages/gwgen-0.2.0.dev0-py2.7-linux-x86_64.egg/gwgen/utils.py&quot;, line 57, in download_file</span>
-<span class="go">    return urllib.urlretrieve(url, target)[0]</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/lib/python2.7/urllib.py&quot;, line 98, in urlretrieve</span>
-<span class="go">    return opener.retrieve(url, filename, reporthook, data)</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/lib/python2.7/urllib.py&quot;, line 245, in retrieve</span>
-<span class="go">    fp = self.open(url, data)</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/lib/python2.7/urllib.py&quot;, line 213, in open</span>
-<span class="go">    return getattr(self, name)(url)</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/lib/python2.7/urllib.py&quot;, line 558, in open_ftp</span>
-<span class="go">    (fp, retrlen) = self.ftpcache[key].retrfile(file, type)</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/lib/python2.7/urllib.py&quot;, line 906, in retrfile</span>
-<span class="go">    conn, retrlen = self.ftp.ntransfercmd(cmd)</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/lib/python2.7/ftplib.py&quot;, line 334, in ntransfercmd</span>
-<span class="go">    host, port = self.makepasv()</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/lib/python2.7/ftplib.py&quot;, line 312, in makepasv</span>
-<span class="go">    host, port = parse227(self.sendcmd(&#39;PASV&#39;))</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/lib/python2.7/ftplib.py&quot;, line 830, in parse227</span>
-<span class="go">    raise error_reply, resp</span>
-<span class="go">IOError: [Errno ftp error] 200 Type set to I</span>
+<span class="go">INFO:gwgen.utils:Downloading ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/all/GM000003865.dly to /home/travis/build/ARVE-Research/gwgen/my_first_project/data/ghcn/ghcnd_all/GM000003865.dly</span>
+<span class="go">INFO:gwgen.utils.TaskManager.MainProcess:Processing 4 tasks in parallel</span>
+<span class="go">INFO:gwgen.utils.PrcpDistParams.prcp.MainProcess:Calculating prcp task</span>
 </pre></div>
 </div>
 <p>This then also creates a plot that shows the relation ship between the mean
@@ -218,20 +178,10 @@ the gamma shape parameter</p>
 <p>This procedure now modified the namelist of our experiment and added two
 namelist parameters</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [7]: </span><span class="o">!</span>gwgen get-value namelist
-<span class="go">Traceback (most recent call last):</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/bin/gwgen&quot;, line 11, in &lt;module&gt;</span>
-<span class="go">    load_entry_point(&#39;gwgen==0.2.0.dev0&#39;, &#39;console_scripts&#39;, &#39;gwgen&#39;)()</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/lib/python2.7/site-packages/gwgen-0.2.0.dev0-py2.7-linux-x86_64.egg/gwgen/main.py&quot;, line 1600, in main</span>
-<span class="go">    GWGENOrganizer.main(args)</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/lib/python2.7/site-packages/model_organization/__init__.py&quot;, line 152, in main</span>
-<span class="go">    organizer.parse_args(args)</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/lib/python2.7/site-packages/model_organization/__init__.py&quot;, line 1566, in parse_args</span>
-<span class="go">    ret = self.start(**vars(self.parser.parse_args(args)))</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/lib/python2.7/site-packages/model_organization/__init__.py&quot;, line 183, in start</span>
-<span class="go">    ret[cmd] = func(**kws)</span>
-<span class="go">  File &quot;/home/travis/miniconda/envs/test/lib/python2.7/site-packages/model_organization/__init__.py&quot;, line 1184, in get_value</span>
-<span class="go">    ret[i] = sub_config[key]</span>
-<span class="go">KeyError: u&#39;namelist&#39;</span>
+<span class="go">weathergen_ctl:</span>
+<span class="go">  g_scale_coeff: 1.3895585825946883</span>
+<span class="go">  thresh: 5.0</span>
+<span class="go">  gp_shape: 0.1071</span>
 </pre></div>
 </div>
 <p>Otherwise you can of course always modify the namelist of your experiment using

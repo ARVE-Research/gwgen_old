@@ -129,7 +129,7 @@ and save the corresponding IDs in a file
 
     In [5]: with open('hamburg_stations.dat', 'w') as f:
        ...:     f.write('GM000010147\n')
-       ...:     f.write('GM000010147')
+       ...:     f.write('GM000003865')
 
 then, we use the :ref:`day <gwgen.param.day>` task to download the necessary
 data files and run our :ref:`prcp <gwgen.param.prcp>` parameterization:
