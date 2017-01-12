@@ -13,7 +13,7 @@ GWGEN: A global weather generator for daily data
     :widths: 10 90
 
     * - tests
-      - |travis| |requires| |coveralls|
+      - |travis| |coveralls|
 
 .. |travis| image:: https://travis-ci.org/ARVE-Research/gwgen.svg?branch=master
     :alt: Travis
@@ -22,10 +22,6 @@ GWGEN: A global weather generator for daily data
 .. |coveralls| image:: https://coveralls.io/repos/github/ARVE-Research/gwgen/badge.svg?branch=master
     :alt: Coverage
     :target: https://coveralls.io/github/ARVE-Research/gwgen?branch=master
-
-.. |requires| image:: https://requires.io/github/ARVE-Research/gwgen/requirements.svg?branch=master
-    :alt: Requirements Status
-    :target: https://requires.io/github/ARVE-Research/gwgen/requirements/?branch=master
 
 .. end-badges
 
