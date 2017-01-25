@@ -57,7 +57,7 @@ if six.PY2:
 
 
 setup(name='gwgen',
-      version='0.2.0.dev0',
+      version='1.0.0',
       description='A global weather generator for daily data',
       long_description=readme(),
       classifiers=[
