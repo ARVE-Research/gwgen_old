@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>gwgen.parameterization &mdash; gwgen 0.2.0.dev0 documentation</title>
+    <title>gwgen.parameterization &mdash; gwgen 1.0.0 documentation</title>
     
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../',
-        VERSION:     '0.2.0.dev0',
+        VERSION:     '1.0.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
     <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <link rel="top" title="gwgen 0.2.0.dev0 documentation" href="../../index.html" />
+    <link rel="top" title="gwgen 1.0.0 documentation" href="../../index.html" />
     <link rel="up" title="Module code" href="../index.html" />
    
   <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
@@ -117,9 +117,9 @@
         <span class="n">info</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_gp_info</span><span class="p">)</span></div>
 
     <span class="nd">@classmethod</span>
-<div class="viewcode-block" id="Parameterizer.get_task_for_nml_key"><a class="viewcode-back" href="../../api/gwgen.parameterization.html#gwgen.parameterization.Parameterizer.get_task_for_nml_key">[docs]</a>    <span class="k">def</span> <span class="nf">get_task_for_nml_key</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">nml_key</span><span class="p">):</span>
+<div class="viewcode-block" id="Parameterizer.get_task_for_nml_key"><a class="viewcode-back" href="../../api/gwgen.parameterization.html#gwgen.parameterization.Parameterizer.get_task_for_nml_key">[docs]</a>    <span class="k">def</span> <span class="nf">get_task_for_nml_key</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">nml_key</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="n">para_cls</span> <span class="k">for</span> <span class="n">para_cls</span> <span class="ow">in</span> <span class="n">cls</span><span class="o">.</span><span class="n">_registry</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="n">para_cls</span> <span class="k">for</span> <span class="n">para_cls</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_registry</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
                         <span class="k">if</span> <span class="n">nml_key</span> <span class="ow">in</span> <span class="n">para_cls</span><span class="o">.</span><span class="n">namelist_keys</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Unknown namelist key </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">nml_key</span><span class="p">,</span> <span class="p">))</span></div>
@@ -131,8 +131,8 @@
         <span class="k">return</span> <span class="n">d</span><span class="p">[</span><span class="n">key</span><span class="p">]</span></div>
 
     <span class="nd">@classmethod</span>
-<div class="viewcode-block" id="Parameterizer.get_config_key"><a class="viewcode-back" href="../../api/gwgen.parameterization.html#gwgen.parameterization.Parameterizer.get_config_key">[docs]</a>    <span class="k">def</span> <span class="nf">get_config_key</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">nml_key</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">cls</span><span class="o">.</span><span class="n">task_config_keys</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">nml_key</span><span class="p">)</span></div></div>
+<div class="viewcode-block" id="Parameterizer.get_config_key"><a class="viewcode-back" href="../../api/gwgen.parameterization.html#gwgen.parameterization.Parameterizer.get_config_key">[docs]</a>    <span class="k">def</span> <span class="nf">get_config_key</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">nml_key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">task_config_keys</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">nml_key</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="DailyGHCNData"><a class="viewcode-back" href="../../api/gwgen.parameterization.html#gwgen.parameterization.DailyGHCNData">[docs]</a><span class="k">class</span> <span class="nc">DailyGHCNData</span><span class="p">(</span><span class="n">Parameterizer</span><span class="p">):</span>
@@ -217,9 +217,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Done.&#39;</span><span class="p">)</span></div>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_modify_parser</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_modify_parser</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">setup_args</span><span class="p">(</span><span class="n">default_daily_ghcn_config</span><span class="p">)</span>
-        <span class="n">parser</span><span class="p">,</span> <span class="n">setup_grp</span><span class="p">,</span> <span class="n">run_grp</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">DailyGHCNData</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_modify_parser</span><span class="p">(</span>
+        <span class="n">parser</span><span class="p">,</span> <span class="n">setup_grp</span><span class="p">,</span> <span class="n">run_grp</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">DailyGHCNData</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_modify_parser</span><span class="p">(</span>
             <span class="n">parser</span><span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">update_arg</span><span class="p">(</span><span class="s1">&#39;download&#39;</span><span class="p">,</span> <span class="n">short</span><span class="o">=</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">setup_grp</span><span class="p">,</span>
                           <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;single&#39;</span><span class="p">,</span> <span class="s1">&#39;all&#39;</span><span class="p">])</span>
@@ -432,8 +432,8 @@
         <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">DailyGHCNData</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">default_config</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_modify_parser</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">DailyGHCNData</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_modify_parser</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_modify_parser</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">DailyGHCNData</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_modify_parser</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
 
 <div class="viewcode-block" id="CompleteDailyGHCNData.init_from_scratch"><a class="viewcode-back" href="../../api/gwgen.parameterization.html#gwgen.parameterization.CompleteDailyGHCNData.init_from_scratch">[docs]</a>    <span class="k">def</span> <span class="nf">init_from_scratch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">pass</span></div>
@@ -559,9 +559,9 @@
         <span class="k">return</span> <span class="n">ret</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_modify_parser</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_modify_parser</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">setup_args</span><span class="p">(</span><span class="n">default_prcp_config</span><span class="p">)</span>
-        <span class="n">parser</span><span class="p">,</span> <span class="n">setup_grp</span><span class="p">,</span> <span class="n">run_grp</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">PrcpDistParams</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_modify_parser</span><span class="p">(</span>
+        <span class="n">parser</span><span class="p">,</span> <span class="n">setup_grp</span><span class="p">,</span> <span class="n">run_grp</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">PrcpDistParams</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_modify_parser</span><span class="p">(</span>
             <span class="n">parser</span><span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">update_arg</span><span class="p">(</span><span class="s1">&#39;thresh&#39;</span><span class="p">,</span> <span class="n">short</span><span class="o">=</span><span class="s1">&#39;t&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">run_grp</span><span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">append2help</span><span class="p">(</span><span class="s1">&#39;thresh&#39;</span><span class="p">,</span> <span class="s1">&#39;. Default: </span><span class="si">%(default)s</span><span class="s1">&#39;</span><span class="p">)</span>
@@ -800,7 +800,7 @@
         <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">MarkovChain</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_from_db</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
     <span class="nd">@classmethod</span>
-<div class="viewcode-block" id="MarkovChain.calc_ndays"><a class="viewcode-back" href="../../api/gwgen.parameterization.html#gwgen.parameterization.MarkovChain.calc_ndays">[docs]</a>    <span class="k">def</span> <span class="nf">calc_ndays</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">df</span><span class="p">):</span>
+<div class="viewcode-block" id="MarkovChain.calc_ndays"><a class="viewcode-back" href="../../api/gwgen.parameterization.html#gwgen.parameterization.MarkovChain.calc_ndays">[docs]</a>    <span class="k">def</span> <span class="nf">calc_ndays</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">df</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([[</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">]</span> <span class="o">*</span> <span class="mi">9</span><span class="p">],</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span>
                 <span class="s1">&#39;n&#39;</span><span class="p">,</span> <span class="s1">&#39;nwet&#39;</span><span class="p">,</span> <span class="s1">&#39;ndry&#39;</span><span class="p">,</span> <span class="s1">&#39;np11&#39;</span><span class="p">,</span> <span class="s1">&#39;np01&#39;</span><span class="p">,</span>  <span class="s1">&#39;np001&#39;</span><span class="p">,</span> <span class="s1">&#39;np001_denom&#39;</span><span class="p">,</span>
@@ -840,14 +840,14 @@
                      <span class="s1">&#39;np001_denom&#39;</span><span class="p">,</span> <span class="s1">&#39;np101&#39;</span><span class="p">,</span> <span class="s1">&#39;np101_denom&#39;</span><span class="p">])</span></div>
 
     <span class="nd">@classmethod</span>
-<div class="viewcode-block" id="MarkovChain.calculate_probabilities"><a class="viewcode-back" href="../../api/gwgen.parameterization.html#gwgen.parameterization.MarkovChain.calculate_probabilities">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_probabilities</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">df</span><span class="p">):</span>
+<div class="viewcode-block" id="MarkovChain.calculate_probabilities"><a class="viewcode-back" href="../../api/gwgen.parameterization.html#gwgen.parameterization.MarkovChain.calculate_probabilities">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_probabilities</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">df</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculate the transition probabilities for one month across multiple</span>
 <span class="sd">        years&quot;&quot;&quot;</span>
         <span class="c1"># we group here for each month because we do not want to treat each</span>
         <span class="c1"># month separately</span>
         <span class="n">g</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;year&#39;</span><span class="p">,</span> <span class="s1">&#39;month&#39;</span><span class="p">])</span>
         <span class="k">if</span> <span class="n">g</span><span class="o">.</span><span class="n">ngroups</span> <span class="o">&gt;</span> <span class="mi">10</span><span class="p">:</span>
-            <span class="n">dfs</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">cls</span><span class="o">.</span><span class="n">calc_ndays</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="n">dfs</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">calc_ndays</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
             <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">OrderedDict</span><span class="p">([</span>
                 <span class="p">(</span><span class="s1">&#39;p11&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">dfs</span><span class="o">.</span><span class="n">np11</span> <span class="o">/</span> <span class="n">dfs</span><span class="o">.</span><span class="n">nwet</span> <span class="k">if</span> <span class="n">dfs</span><span class="o">.</span><span class="n">nwet</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span><span class="p">]),</span>
                 <span class="p">(</span><span class="s1">&#39;p01&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">dfs</span><span class="o">.</span><span class="n">np01</span> <span class="o">/</span> <span class="n">dfs</span><span class="o">.</span><span class="n">ndry</span> <span class="k">if</span> <span class="n">dfs</span><span class="o">.</span><span class="n">ndry</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span><span class="p">]),</span>
@@ -1053,12 +1053,12 @@
         <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">d</span><span class="p">)</span></div>
 
     <span class="nd">@classmethod</span>
-<div class="viewcode-block" id="TemperatureParameterizer.calculate_probabilities"><a class="viewcode-back" href="../../api/gwgen.parameterization.html#gwgen.parameterization.TemperatureParameterizer.calculate_probabilities">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_probabilities</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">df</span><span class="p">):</span>
+<div class="viewcode-block" id="TemperatureParameterizer.calculate_probabilities"><a class="viewcode-back" href="../../api/gwgen.parameterization.html#gwgen.parameterization.TemperatureParameterizer.calculate_probabilities">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_probabilities</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">df</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculate the statistics for one month across multiple years&quot;&quot;&quot;</span>
         <span class="c1"># we group here for each month because we do not want to treat each</span>
         <span class="c1"># month separately</span>
         <span class="n">g</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;year&#39;</span><span class="p">])</span>
-        <span class="k">return</span> <span class="n">g</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">cls</span><span class="o">.</span><span class="n">calc_monthly_props</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span></div>
+        <span class="k">return</span> <span class="n">g</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">calc_monthly_props</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="TemperatureParameterizer.setup_from_file"><a class="viewcode-back" href="../../api/gwgen.parameterization.html#gwgen.parameterization.TemperatureParameterizer.setup_from_file">[docs]</a>    <span class="k">def</span> <span class="nf">setup_from_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;index_col&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="s1">&#39;month&#39;</span><span class="p">]</span>
@@ -1187,7 +1187,7 @@
 
     <span class="nd">@setup_from.setter</span>
     <span class="k">def</span> <span class="nf">setup_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">CloudParameterizerBase</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__class__</span><span class="p">)</span><span class="o">.</span><span class="n">setup_from</span><span class="o">.</span><span class="n">fset</span><span class="p">(</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CloudParameterizerBase</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span><span class="o">.</span><span class="n">setup_from</span><span class="o">.</span><span class="n">fset</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
 
     <span class="nd">@property</span>
@@ -1231,23 +1231,23 @@
 
 <div class="viewcode-block" id="CloudParameterizerBase.eecra_ghcn_map"><a class="viewcode-back" href="../../api/gwgen.parameterization.html#gwgen.parameterization.CloudParameterizerBase.eecra_ghcn_map">[docs]</a>    <span class="k">def</span> <span class="nf">eecra_ghcn_map</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Get a dataframe mapping from GHCN id to EECRA station_id&quot;&quot;&quot;</span>
-        <span class="n">cls</span> <span class="o">=</span> <span class="n">CloudParameterizerBase</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="n">CloudParameterizerBase</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">args_type</span> <span class="o">==</span> <span class="s1">&#39;eecra&#39;</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eecra_stations</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;station_id&#39;</span><span class="p">],</span>
                                 <span class="n">index</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eecra_stations</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;id&#39;</span><span class="p">))</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">cls</span><span class="o">.</span><span class="n">_eecra_ghcn_map</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_eecra_ghcn_map</span>
         <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
             <span class="n">fname</span> <span class="o">=</span> <span class="n">osp</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="p">,</span> <span class="s1">&#39;eecra_ghcn_map.csv&#39;</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">osp</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">fname</span><span class="p">):</span>
                 <span class="n">fname</span> <span class="o">=</span> <span class="n">osp</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                    <span class="n">utils</span><span class="o">.</span><span class="n">get_module_path</span><span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">getmodule</span><span class="p">(</span><span class="n">cls</span><span class="p">)),</span> <span class="s1">&#39;data&#39;</span><span class="p">,</span>
+                    <span class="n">utils</span><span class="o">.</span><span class="n">get_module_path</span><span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">getmodule</span><span class="p">(</span><span class="bp">cls</span><span class="p">)),</span> <span class="s1">&#39;data&#39;</span><span class="p">,</span>
                     <span class="s1">&#39;eecra_ghcn_map.csv&#39;</span><span class="p">)</span>
-            <span class="n">cls</span><span class="o">.</span><span class="n">_eecra_ghcn_map</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="s1">&#39;id&#39;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">cls</span><span class="o">.</span><span class="n">_eecra_ghcn_map</span></div>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_eecra_ghcn_map</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="s1">&#39;id&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_eecra_ghcn_map</span></div>
 
     <span class="nd">@classmethod</span>
-<div class="viewcode-block" id="CloudParameterizerBase.filter_stations"><a class="viewcode-back" href="../../api/gwgen.parameterization.html#gwgen.parameterization.CloudParameterizerBase.filter_stations">[docs]</a>    <span class="k">def</span> <span class="nf">filter_stations</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">stations</span><span class="p">):</span>
+<div class="viewcode-block" id="CloudParameterizerBase.filter_stations"><a class="viewcode-back" href="../../api/gwgen.parameterization.html#gwgen.parameterization.CloudParameterizerBase.filter_stations">[docs]</a>    <span class="k">def</span> <span class="nf">filter_stations</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">stations</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Get the GHCN stations that are also in the EECRA dataset</span>
 
 <span class="sd">        Parameters</span>
@@ -1259,16 +1259,16 @@
 <span class="sd">        -------</span>
 <span class="sd">        np.ndarray</span>
 <span class="sd">            The ids in `stations` that can be mapped to the eecra dataset&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">cls</span><span class="o">.</span><span class="n">eecra_ghcn_map</span><span class="p">()</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">stations</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">values</span></div>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">eecra_ghcn_map</span><span class="p">()</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">stations</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">values</span></div>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_modify_parser</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_modify_parser</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">setup_args</span><span class="p">(</span><span class="n">default_cloud_config</span><span class="p">)</span>
         <span class="n">parser</span><span class="p">,</span> <span class="n">setup_grp</span><span class="p">,</span> <span class="n">run_grp</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span>
-            <span class="n">CloudParameterizerBase</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_modify_parser</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+            <span class="n">CloudParameterizerBase</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_modify_parser</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">pop_key</span><span class="p">(</span><span class="s1">&#39;args_type&#39;</span><span class="p">,</span> <span class="s1">&#39;metavar&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
         <span class="n">choices</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ghcn&#39;</span><span class="p">,</span> <span class="s1">&#39;eecra&#39;</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">cls</span><span class="o">.</span><span class="n">allow_files</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">allow_files</span><span class="p">:</span>
             <span class="n">choices</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;files&#39;</span><span class="p">]</span>
             <span class="n">append</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">    files</span><span class="se">\n</span><span class="s2">&quot;</span>
@@ -1282,7 +1282,7 @@
 
     <span class="nd">@classmethod</span>
     <span class="nd">@docstrings.dedent</span>
-<div class="viewcode-block" id="CloudParameterizerBase.from_task"><a class="viewcode-back" href="../../api/gwgen.parameterization.html#gwgen.parameterization.CloudParameterizerBase.from_task">[docs]</a>    <span class="k">def</span> <span class="nf">from_task</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="CloudParameterizerBase.from_task"><a class="viewcode-back" href="../../api/gwgen.parameterization.html#gwgen.parameterization.CloudParameterizerBase.from_task">[docs]</a>    <span class="k">def</span> <span class="nf">from_task</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        %(TaskBase.from_task.summary)s</span>
 
@@ -1294,9 +1294,9 @@
 <span class="sd">        ----------------</span>
 <span class="sd">        %(TaskBase.from_task.other_parameters)s</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">cls</span><span class="o">.</span><span class="n">allow_files</span> <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">task_config</span><span class="p">,</span> <span class="s1">&#39;args_type&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">allow_files</span> <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">task_config</span><span class="p">,</span> <span class="s1">&#39;args_type&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
             <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;args_type&#39;</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">task_config</span><span class="o">.</span><span class="n">args_type</span><span class="p">)</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">CloudParameterizerBase</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">from_task</span><span class="p">(</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">CloudParameterizerBase</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">from_task</span><span class="p">(</span>
             <span class="n">task</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
 
 
@@ -1396,7 +1396,7 @@
     <span class="nd">@classmethod</span>
     <span class="nd">@docstrings.get_sectionsf</span><span class="p">(</span><span class="s1">&#39;HourlyCloud.eecra_fname&#39;</span><span class="p">)</span>
     <span class="nd">@docstrings.dedent</span>
-<div class="viewcode-block" id="HourlyCloud.eecra_fname"><a class="viewcode-back" href="../../api/gwgen.parameterization.html#gwgen.parameterization.HourlyCloud.eecra_fname">[docs]</a>    <span class="k">def</span> <span class="nf">eecra_fname</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">year</span><span class="p">,</span> <span class="n">mon</span><span class="p">,</span> <span class="n">ext</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="HourlyCloud.eecra_fname"><a class="viewcode-back" href="../../api/gwgen.parameterization.html#gwgen.parameterization.HourlyCloud.eecra_fname">[docs]</a>    <span class="k">def</span> <span class="nf">eecra_fname</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">year</span><span class="p">,</span> <span class="n">mon</span><span class="p">,</span> <span class="n">ext</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;The the name of the eecra file</span>
 
 <span class="sd">        Parameters</span>
@@ -1405,13 +1405,13 @@
 <span class="sd">            The year of the data</span>
 <span class="sd">        month: int</span>
 <span class="sd">            The integer of the month between 1 and 12&quot;&quot;&quot;</span>
-        <span class="n">c_mon</span> <span class="o">=</span> <span class="n">cls</span><span class="o">.</span><span class="n">mon_map</span><span class="p">[</span><span class="n">mon</span><span class="p">]</span>
+        <span class="n">c_mon</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">mon_map</span><span class="p">[</span><span class="n">mon</span><span class="p">]</span>
         <span class="n">c_yr</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">year</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">c_mon</span> <span class="o">+</span> <span class="n">c_yr</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">+</span> <span class="s1">&#39;L&#39;</span> <span class="o">+</span> <span class="n">ext</span></div>
 
     <span class="nd">@classmethod</span>
     <span class="nd">@docstrings.dedent</span>
-<div class="viewcode-block" id="HourlyCloud.get_eecra_url"><a class="viewcode-back" href="../../api/gwgen.parameterization.html#gwgen.parameterization.HourlyCloud.get_eecra_url">[docs]</a>    <span class="k">def</span> <span class="nf">get_eecra_url</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">year</span><span class="p">,</span> <span class="n">mon</span><span class="p">):</span>
+<div class="viewcode-block" id="HourlyCloud.get_eecra_url"><a class="viewcode-back" href="../../api/gwgen.parameterization.html#gwgen.parameterization.HourlyCloud.get_eecra_url">[docs]</a>    <span class="k">def</span> <span class="nf">get_eecra_url</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">year</span><span class="p">,</span> <span class="n">mon</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Get the download path for the file for a specific year and month</span>
 
@@ -1419,9 +1419,9 @@
 <span class="sd">        ----------</span>
 <span class="sd">        %(HourlyCloud.eecra_fname.parameters)s</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">for</span> <span class="p">(</span><span class="n">d0</span><span class="p">,</span> <span class="n">d1</span><span class="p">),</span> <span class="n">url</span> <span class="ow">in</span> <span class="n">cls</span><span class="o">.</span><span class="n">urls</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">d0</span><span class="p">,</span> <span class="n">d1</span><span class="p">),</span> <span class="n">url</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">urls</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">mon</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">d0</span> <span class="ow">and</span> <span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">mon</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">d1</span><span class="p">:</span>
-                <span class="k">return</span> <span class="n">url</span> <span class="o">+</span> <span class="n">cls</span><span class="o">.</span><span class="n">eecra_fname</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">mon</span><span class="p">,</span> <span class="s1">&#39;.Z&#39;</span><span class="p">)</span></div>
+                <span class="k">return</span> <span class="n">url</span> <span class="o">+</span> <span class="bp">cls</span><span class="o">.</span><span class="n">eecra_fname</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">mon</span><span class="p">,</span> <span class="s1">&#39;.Z&#39;</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_download_worker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qin</span><span class="p">,</span> <span class="n">qout</span><span class="p">):</span>
         <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">_continue</span><span class="p">:</span>
@@ -2262,11 +2262,11 @@
         <span class="n">info</span><span class="p">[</span><span class="s1">&#39;M1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">m1</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span></div>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_modify_parser</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_modify_parser</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Reimplemented because there are no run keywords for this task&quot;&quot;&quot;</span>
-        <span class="n">cls</span><span class="o">.</span><span class="n">has_run</span> <span class="o">=</span> <span class="bp">False</span>
-        <span class="n">ret</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">CrossCorrelation</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_modify_parser</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
-        <span class="n">cls</span><span class="o">.</span><span class="n">has_run</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">has_run</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">CrossCorrelation</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_modify_parser</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">has_run</span> <span class="o">=</span> <span class="bp">True</span>
         <span class="k">return</span> <span class="n">ret</span></div>
 </pre></div>
 

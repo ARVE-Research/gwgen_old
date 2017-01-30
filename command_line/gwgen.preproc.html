@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>gwgen preproc &mdash; gwgen 0.2.0.dev0 documentation</title>
+    <title>gwgen preproc &mdash; gwgen 1.0.0 documentation</title>
     
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.2.0.dev0',
+        VERSION:     '1.0.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <link rel="top" title="gwgen 0.2.0.dev0 documentation" href="../index.html" />
+    <link rel="top" title="gwgen 1.0.0 documentation" href="../index.html" />
     <link rel="up" title="Command Line API Reference" href="gwgen.html" />
     <link rel="next" title="gwgen preproc select" href="gwgen.preproc.select.html" />
     <link rel="prev" title="gwgen configure" href="gwgen.configure.html" />
@@ -56,6 +56,17 @@
 </pre></div>
 </div>
 <dl class="docutils">
+<dt>Preprocessing tasks</dt>
+<dd><table class="first last docutils option-list" frame="void" rules="none">
+<col class="option" />
+<col class="description" />
+<tbody valign="top">
+<tr><td class="option-group">
+<kbd></kbd></td>
+<td>Possible choices: select, cloud, test</td></tr>
+</tbody>
+</table>
+</dd>
 <dt>Sub-commands:</dt>
 <dd><dl class="first last docutils">
 <dt><strong>select</strong></dt>
@@ -67,7 +78,7 @@
 </pre></div>
 </div>
 <dl class="last docutils">
-<dt>Options:</dt>
+<dt>optional arguments</dt>
 <dd><table class="first last docutils option-list" frame="void" rules="none">
 <col class="option" />
 <col class="description" />
@@ -135,7 +146,7 @@
 </pre></div>
 </div>
 <dl class="last docutils">
-<dt>Options:</dt>
+<dt>optional arguments</dt>
 <dd><table class="first last docutils option-list" frame="void" rules="none">
 <col class="option" />
 <col class="description" />
@@ -145,6 +156,23 @@
 </tr>
 <tr><td>&nbsp;</td><td>    The maximum number of files to process during one process. If None,
     it is determined by the global ``&#8217;max_stations&#8217;`` key</td></tr>
+</tbody>
+</table>
+</dd>
+<dt>Tasks</dt>
+<dd><table class="first last docutils option-list" frame="void" rules="none">
+<col class="option" />
+<col class="description" />
+<tbody valign="top">
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-mf</span>, <span class="option">--max-files</span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td><p class="first last">    The maximum number of files to process during one process. If None,
+    it is determined by the global ``&#8217;max_stations&#8217;`` key</p>
+</td></tr>
+<tr><td class="option-group">
+<kbd></kbd></td>
+<td>Possible choices: eecra_inventory, eecra_ghcn_map</td></tr>
 </tbody>
 </table>
 </dd>
@@ -159,7 +187,7 @@
 </pre></div>
 </div>
 <dl class="last docutils">
-<dt>Options:</dt>
+<dt>optional arguments</dt>
 <dd><table class="first last docutils option-list" frame="void" rules="none">
 <col class="option" />
 <col class="description" />
@@ -168,6 +196,19 @@
 <kbd><span class="option">-ido</span>, <span class="option">--other_id</span></kbd></td>
 </tr>
 <tr><td>&nbsp;</td><td>    Use the configuration from another experiment</td></tr>
+</tbody>
+</table>
+</dd>
+<dt>Setup arguments</dt>
+<dd><table class="first last docutils option-list" frame="void" rules="none">
+<col class="option" />
+<col class="description" />
+<tbody valign="top">
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-ido</span>, <span class="option">--other_id</span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td><p class="first last">    Use the configuration from another experiment</p>
+</td></tr>
 <tr><td class="option-group">
 <kbd><span class="option">-xstall=True</span></kbd></td>
 <td>    If True (default), download the XSTALL file from http://cdiac.ornl.gov/ftp/ndp026c/XSTALL.
@@ -212,7 +253,7 @@
 </pre></div>
 </div>
 <dl class="last docutils">
-<dt>Options:</dt>
+<dt>optional arguments</dt>
 <dd><table class="first last docutils option-list" frame="void" rules="none">
 <col class="option" />
 <col class="description" />
@@ -221,6 +262,19 @@
 <kbd><span class="option">-ido</span>, <span class="option">--other_id</span></kbd></td>
 </tr>
 <tr><td>&nbsp;</td><td>    Use the configuration from another experiment</td></tr>
+</tbody>
+</table>
+</dd>
+<dt>Setup arguments</dt>
+<dd><table class="first last docutils option-list" frame="void" rules="none">
+<col class="option" />
+<col class="description" />
+<tbody valign="top">
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-ido</span>, <span class="option">--other_id</span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td><p class="first last">    Use the configuration from another experiment</p>
+</td></tr>
 <tr><td class="option-group" colspan="2">
 <kbd><span class="option">-md=1000.0</span>, <span class="option">--max-distance=1000.0</span></kbd></td>
 </tr>
@@ -263,7 +317,7 @@
 </tbody>
 </table>
 </dd>
-<dt>Options:</dt>
+<dt>optional arguments</dt>
 <dd><table class="first last docutils option-list" frame="void" rules="none">
 <col class="option" />
 <col class="description" />

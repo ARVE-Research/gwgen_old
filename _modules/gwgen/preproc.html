@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>gwgen.preproc &mdash; gwgen 0.2.0.dev0 documentation</title>
+    <title>gwgen.preproc &mdash; gwgen 1.0.0 documentation</title>
     
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../',
-        VERSION:     '0.2.0.dev0',
+        VERSION:     '1.0.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
     <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <link rel="top" title="gwgen 0.2.0.dev0 documentation" href="../../index.html" />
+    <link rel="top" title="gwgen 1.0.0 documentation" href="../../index.html" />
     <link rel="up" title="Module code" href="../index.html" />
    
   <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
@@ -103,17 +103,17 @@
         <span class="k">return</span> <span class="n">df</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_modify_parser</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_modify_parser</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">setup_args</span><span class="p">(</span><span class="n">default_cloud_inventory_config</span><span class="p">)</span>
-        <span class="n">cls</span><span class="o">.</span><span class="n">has_run</span> <span class="o">=</span> <span class="bp">False</span>
-        <span class="n">parser</span><span class="p">,</span> <span class="n">setup_grp</span><span class="p">,</span> <span class="n">run_grp</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">CloudInventory</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_modify_parser</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">has_run</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="n">parser</span><span class="p">,</span> <span class="n">setup_grp</span><span class="p">,</span> <span class="n">run_grp</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">CloudInventory</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_modify_parser</span><span class="p">(</span>
             <span class="n">parser</span><span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">update_arg</span><span class="p">(</span><span class="s1">&#39;xstall&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">setup_grp</span><span class="p">)</span>
-        <span class="n">cls</span><span class="o">.</span><span class="n">has_run</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">has_run</span> <span class="o">=</span> <span class="bp">True</span>
         <span class="k">return</span> <span class="n">parser</span><span class="p">,</span> <span class="n">setup_grp</span><span class="p">,</span> <span class="n">run_grp</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">CloudInventory</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CloudInventory</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__setup</span> <span class="o">=</span> <span class="bp">False</span>
 
 <div class="viewcode-block" id="CloudInventory.setup"><a class="viewcode-back" href="../../api/gwgen.preproc.html#gwgen.preproc.CloudInventory.setup">[docs]</a>    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -224,19 +224,19 @@
             <span class="o">**</span><span class="nb">super</span><span class="p">(</span><span class="n">CloudGHCNMap</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">default_config</span><span class="o">.</span><span class="n">_asdict</span><span class="p">())</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_modify_parser</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_modify_parser</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">setup_args</span><span class="p">(</span><span class="n">default_cloud_ghcn_map_config</span><span class="p">)</span>
-        <span class="n">cls</span><span class="o">.</span><span class="n">has_run</span> <span class="o">=</span> <span class="bp">False</span>
-        <span class="n">parser</span><span class="p">,</span> <span class="n">setup_grp</span><span class="p">,</span> <span class="n">run_grp</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">CloudGHCNMap</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_modify_parser</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">has_run</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="n">parser</span><span class="p">,</span> <span class="n">setup_grp</span><span class="p">,</span> <span class="n">run_grp</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">CloudGHCNMap</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_modify_parser</span><span class="p">(</span>
             <span class="n">parser</span><span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">update_arg</span><span class="p">(</span><span class="s1">&#39;max_distance&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">setup_grp</span><span class="p">,</span> <span class="n">short</span><span class="o">=</span><span class="s1">&#39;md&#39;</span><span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">pop_arg</span><span class="p">(</span><span class="s1">&#39;to_db&#39;</span><span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">pop_arg</span><span class="p">(</span><span class="s1">&#39;setup_from&#39;</span><span class="p">)</span>
-        <span class="n">cls</span><span class="o">.</span><span class="n">has_run</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">has_run</span> <span class="o">=</span> <span class="bp">True</span>
         <span class="k">return</span> <span class="n">parser</span><span class="p">,</span> <span class="n">setup_grp</span><span class="p">,</span> <span class="n">run_grp</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">CloudGHCNMap</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CloudGHCNMap</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">task_config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_config</span><span class="o">.</span><span class="n">_replace</span><span class="p">(</span>
             <span class="n">setup_from</span><span class="o">=</span><span class="s1">&#39;scratch&#39;</span><span class="p">,</span> <span class="n">to_db</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__setup</span> <span class="o">=</span> <span class="bp">False</span>

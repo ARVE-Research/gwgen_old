@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>gwgen.evaluation &mdash; gwgen 0.2.0.dev0 documentation</title>
+    <title>gwgen.evaluation &mdash; gwgen 1.0.0 documentation</title>
     
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../',
-        VERSION:     '0.2.0.dev0',
+        VERSION:     '1.0.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
     <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <link rel="top" title="gwgen 0.2.0.dev0 documentation" href="../../index.html" />
+    <link rel="top" title="gwgen 1.0.0 documentation" href="../../index.html" />
     <link rel="up" title="Module code" href="../index.html" />
    
   <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
@@ -189,11 +189,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_modify_parser</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_modify_parser</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">setup_args</span><span class="p">(</span><span class="n">default_preparation_config</span><span class="p">)</span>
         <span class="c1"># disable plot_output, etc.</span>
         <span class="n">parser</span><span class="p">,</span> <span class="n">setup_grp</span><span class="p">,</span> <span class="n">run_grp</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span>
-            <span class="n">EvaluationPreparation</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_modify_parser</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+            <span class="n">EvaluationPreparation</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_modify_parser</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">update_arg</span><span class="p">(</span><span class="s1">&#39;setup_raw&#39;</span><span class="p">,</span> <span class="n">short</span><span class="o">=</span><span class="s1">&#39;fr&#39;</span><span class="p">,</span> <span class="nb">long</span><span class="o">=</span><span class="s1">&#39;raw-from&#39;</span><span class="p">,</span>
                           <span class="n">group</span><span class="o">=</span><span class="n">setup_grp</span><span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">update_arg</span><span class="p">(</span><span class="s1">&#39;input_path&#39;</span><span class="p">,</span> <span class="n">short</span><span class="o">=</span><span class="s1">&#39;i&#39;</span><span class="p">,</span> <span class="nb">long</span><span class="o">=</span><span class="s1">&#39;input&#39;</span><span class="p">,</span>
@@ -225,9 +225,9 @@
                                <span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="s1">&#39;lon&#39;</span><span class="p">,</span> <span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;year&#39;</span><span class="p">,</span> <span class="s1">&#39;month&#39;</span><span class="p">]]</span>  <span class="c1"># input</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">EvaluationPreparation</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_from_file</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_manager</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;manager&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">EvaluationPreparation</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">EvaluationPreparation</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_config</span><span class="o">.</span><span class="n">to_csv</span><span class="p">:</span>  <span class="c1"># update the configuration</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">reference_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_path</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">input_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_path</span>
@@ -255,7 +255,7 @@
                    <span class="n">to_csv</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">task_config</span><span class="o">.</span><span class="n">raw2csv</span><span class="p">,</span>
                    <span class="n">to_db</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">task_config</span><span class="o">.</span><span class="n">raw2db</span><span class="p">,</span>
                    <span class="n">setup_from</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">task_config</span><span class="o">.</span><span class="n">setup_raw</span><span class="p">)</span>
-        <span class="n">base_kws</span> <span class="o">=</span> <span class="p">{</span><span class="n">cls</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">kws</span> <span class="k">for</span> <span class="n">cls</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">}</span>
+        <span class="n">base_kws</span> <span class="o">=</span> <span class="p">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">kws</span> <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_manager</span> <span class="o">=</span> <span class="n">Parameterizer</span><span class="o">.</span><span class="n">get_manager</span><span class="p">(</span>
             <span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">global_config</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_manager</span><span class="o">.</span><span class="n">initialize_tasks</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stations</span><span class="p">,</span> <span class="n">task_kws</span><span class="o">=</span><span class="n">base_kws</span><span class="p">)</span>
@@ -519,8 +519,8 @@
         <span class="n">ds</span><span class="o">.</span><span class="n">pctl</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;long_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Percentile&#39;</span>
         <span class="k">return</span> <span class="n">ds</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">QuantileEvaluation</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">QuantileEvaluation</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="n">names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_config</span><span class="o">.</span><span class="n">names</span>
         <span class="k">if</span> <span class="n">names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">names</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span>
@@ -584,11 +584,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span></div>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_modify_parser</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_modify_parser</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">setup_args</span><span class="p">(</span><span class="n">default_ks_config</span><span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">setup_args</span><span class="p">(</span><span class="n">default_quantile_config</span><span class="p">)</span>
         <span class="n">parser</span><span class="p">,</span> <span class="n">setup_grp</span><span class="p">,</span> <span class="n">run_grp</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span>
-            <span class="n">QuantileEvaluation</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_modify_parser</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+            <span class="n">QuantileEvaluation</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_modify_parser</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">update_arg</span><span class="p">(</span>
             <span class="s1">&#39;quantiles&#39;</span><span class="p">,</span> <span class="n">short</span><span class="o">=</span><span class="s1">&#39;q&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">run_grp</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">utils</span><span class="o">.</span><span class="n">str_ranges</span><span class="p">,</span>
             <span class="n">metavar</span><span class="o">=</span><span class="s1">&#39;f1[;f21[,f22[,f23]]]&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="n">docstrings</span><span class="o">.</span><span class="n">dedents</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
@@ -597,7 +597,7 @@
         <span class="n">parser</span><span class="o">.</span><span class="n">update_arg</span><span class="p">(</span><span class="s1">&#39;no_rounding&#39;</span><span class="p">,</span> <span class="n">short</span><span class="o">=</span><span class="s1">&#39;nr&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">run_grp</span><span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">update_arg</span><span class="p">(</span><span class="s1">&#39;names&#39;</span><span class="p">,</span> <span class="n">short</span><span class="o">=</span><span class="s1">&#39;n&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">setup_grp</span><span class="p">,</span>
                           <span class="n">nargs</span><span class="o">=</span><span class="s1">&#39;+&#39;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s1">&#39;variable&#39;</span><span class="p">,</span>
-                          <span class="n">choices</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">cls</span><span class="o">.</span><span class="n">names</span><span class="p">))</span>
+                          <span class="n">choices</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">names</span><span class="p">))</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">update_arg</span><span class="p">(</span><span class="s1">&#39;transform_wind&#39;</span><span class="p">,</span> <span class="n">short</span><span class="o">=</span><span class="s1">&#39;tw&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">setup_grp</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">parser</span><span class="p">,</span> <span class="n">setup_grp</span><span class="p">,</span> <span class="n">run_grp</span>
 
@@ -825,14 +825,14 @@
             <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s1">&#39;all&#39;</span><span class="p">)</span></div>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_modify_parser</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_modify_parser</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">setup_args</span><span class="p">(</span><span class="n">default_ks_config</span><span class="p">)</span>
         <span class="n">parser</span><span class="p">,</span> <span class="n">setup_grp</span><span class="p">,</span> <span class="n">run_grp</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span>
-            <span class="n">QuantileEvaluation</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_modify_parser</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+            <span class="n">QuantileEvaluation</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_modify_parser</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">update_arg</span><span class="p">(</span><span class="s1">&#39;no_rounding&#39;</span><span class="p">,</span> <span class="n">short</span><span class="o">=</span><span class="s1">&#39;nr&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">run_grp</span><span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">update_arg</span><span class="p">(</span><span class="s1">&#39;names&#39;</span><span class="p">,</span> <span class="n">short</span><span class="o">=</span><span class="s1">&#39;n&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">setup_grp</span><span class="p">,</span>
                           <span class="n">nargs</span><span class="o">=</span><span class="s1">&#39;+&#39;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s1">&#39;variable&#39;</span><span class="p">,</span>
-                          <span class="n">choices</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">cls</span><span class="o">.</span><span class="n">names</span><span class="p">))</span>
+                          <span class="n">choices</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">names</span><span class="p">))</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">update_arg</span><span class="p">(</span><span class="s1">&#39;transform_wind&#39;</span><span class="p">,</span> <span class="n">short</span><span class="o">=</span><span class="s1">&#39;tw&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">setup_grp</span><span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">pop_arg</span><span class="p">(</span><span class="s1">&#39;nc_output&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">pop_arg</span><span class="p">(</span><span class="s1">&#39;project_output&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
@@ -900,7 +900,7 @@
     <span class="n">has_run</span> <span class="o">=</span> <span class="bp">True</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_modify_parser</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_modify_parser</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s1">&#39;-q&#39;</span><span class="p">,</span> <span class="s1">&#39;--quantiles&#39;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s1">&#39;q1[,q1[,q2[,...]]]&#39;</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The quantiles to use for the quality analysis&quot;</span><span class="p">,</span>

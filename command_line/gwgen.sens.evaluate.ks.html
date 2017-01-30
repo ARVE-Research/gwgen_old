@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>gwgen sens evaluate ks &mdash; gwgen 0.2.0.dev0 documentation</title>
+    <title>gwgen sens evaluate ks &mdash; gwgen 1.0.0 documentation</title>
     
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.2.0.dev0',
+        VERSION:     '1.0.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <link rel="top" title="gwgen 0.2.0.dev0 documentation" href="../index.html" />
+    <link rel="top" title="gwgen 1.0.0 documentation" href="../index.html" />
     <link rel="up" title="gwgen sens evaluate" href="gwgen.sens.evaluate.html" />
     <link rel="next" title="gwgen sens evaluate quality" href="gwgen.sens.evaluate.quality.html" />
     <link rel="prev" title="gwgen sens evaluate" href="gwgen.sens.evaluate.html" />
@@ -52,7 +52,7 @@
 </pre></div>
 </div>
 <dl class="docutils">
-<dt>Options:</dt>
+<dt>optional arguments</dt>
 <dd><table class="first last docutils option-list" frame="void" rules="none">
 <col class="option" />
 <col class="description" />
@@ -61,12 +61,19 @@
 <kbd><span class="option">-ido</span>, <span class="option">--other_id</span></kbd></td>
 </tr>
 <tr><td>&nbsp;</td><td>    Use the configuration from another experiment</td></tr>
+</tbody>
+</table>
+</dd>
+<dt>Setup arguments</dt>
+<dd><table class="first last docutils option-list" frame="void" rules="none">
+<col class="option" />
+<col class="description" />
+<tbody valign="top">
 <tr><td class="option-group" colspan="2">
-<kbd><span class="option">-nr=False</span>, <span class="option">--no-rounding=False</span></kbd></td>
+<kbd><span class="option">-ido</span>, <span class="option">--other_id</span></kbd></td>
 </tr>
-<tr><td>&nbsp;</td><td>    Do not round the simulation to the infered precision of the
-    reference. The inferred precision is the minimum difference between
-    two values with in the entire data</td></tr>
+<tr><td>&nbsp;</td><td><p class="first last">    Use the configuration from another experiment</p>
+</td></tr>
 <tr><td class="option-group">
 <kbd><span class="option">-n</span>, <span class="option">--names</span></kbd></td>
 <td><p class="first">    The list of variables use for calculation. If None, all variables will be
@@ -104,6 +111,66 @@
 <kbd><span class="option">-rm=False</span>, <span class="option">--remove=False</span></kbd></td>
 </tr>
 <tr><td>&nbsp;</td><td>    If True and the old data file already exists, remove before writing to it</td></tr>
+</tbody>
+</table>
+</dd>
+<dt>Run arguments</dt>
+<dd><table class="first last docutils option-list" frame="void" rules="none">
+<col class="option" />
+<col class="description" />
+<tbody valign="top">
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-ido</span>, <span class="option">--other_id</span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td><p class="first last">    Use the configuration from another experiment</p>
+</td></tr>
+<tr><td class="option-group">
+<kbd><span class="option">-n</span>, <span class="option">--names</span></kbd></td>
+<td><p class="first">    The list of variables use for calculation. If None, all variables will be
+    used</p>
+<p class="last">Possible choices: prcp, tmin, tmax, mean_cloud, wind</p>
+</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-tw=False</span>, <span class="option">--transform-wind=False</span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td><p class="first last">    If True, the square root of the wind is evaluated (as this is also
+    simulated in the weather generator)</p>
+</td></tr>
+<tr><td class="option-group">
+<kbd><span class="option">-f</span>, <span class="option">--from</span></kbd></td>
+<td><p class="first">    The method how to setup the instance either from
+
+    ``&#8217;scratch&#8217;``
+        To set up the task from the raw data
+    ``&#8217;file&#8217;``
+        Set up the task from an existing file
+    ``&#8217;db&#8217;``
+        Set up the task from a database
+    ``None``
+        If the file name of this this task exists, use this one,
+        otherwise a database is provided, use this one, otherwise go
+        from scratch</p>
+<p class="last">Possible choices: scratch, file, db</p>
+</td></tr>
+<tr><td class="option-group">
+<kbd><span class="option">-to-csv=False</span></kbd></td>
+<td><p class="first last">    If True, the data at setup will be written to a csv file</p>
+</td></tr>
+<tr><td class="option-group">
+<kbd><span class="option">-to-db=False</span></kbd></td>
+<td><p class="first last">    If True, the data at setup will be written to into a database</p>
+</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-rm=False</span>, <span class="option">--remove=False</span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td><p class="first last">    If True and the old data file already exists, remove before writing to it</p>
+</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-nr=False</span>, <span class="option">--no-rounding=False</span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>    Do not round the simulation to the infered precision of the
+    reference. The inferred precision is the minimum difference between
+    two values with in the entire data</td></tr>
 <tr><td class="option-group" colspan="2">
 <kbd><span class="option">-o</span>, <span class="option">--plot-output</span></kbd></td>
 </tr>
