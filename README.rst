@@ -48,13 +48,21 @@ weather generator inspired by the original WGEN weather generator of
 Authors
 -------
 This package has been developped by `Philipp S. Sommer`_ and `Jed O. Kaplan`_.
-We also want to acknowledge `Dr. Shawn Koppenhoefer`_ for his help in the
-beginning of the project, as well as the Swiss National Fund (SNF) and the
-European Research Council (ERC) for their funding.
+
+
+Acknowledgements
+----------------
+This work was supported by the European Research Council (COEVOLVE, 313797) and
+the Swiss National Science Foundation (ACACIA, CR10I2\_146314). We thank Shawn
+Koppenhoefer_ for assistance compiling and querying the weather databases and
+Alexis Berne and Grégoire Mariéthoz for helpful suggestions on the analyses. We
+are grateful to NOAA NCDC and the University of Washingtion for providing free
+of charge the GHCN-Daily and EECRA databases, respectively.
 
 .. _Philipp S. Sommer: https://github.com/Chilipp
 .. _Jed O. Kaplan: https://github.com/jedokaplan
-.. _Dr. Shawn Koppenhoefer: http://arve.unil.ch/people/shawn-koppenhoefer/
+.. _Shawn Koppenhoefer: http://arve.unil.ch/people/shawn-koppenhoefer/
+
 
 References
 ----------
