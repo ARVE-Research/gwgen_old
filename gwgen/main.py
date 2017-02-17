@@ -502,6 +502,7 @@ class GWGENOrganizer(ModelOrganizer):
                 res = pool.map_async(self._parallel_select, args)
                 best = pd.concat(res.get())
                 pool.close()
+                pool.join()
                 pool.terminate()
             else:
                 best = self._select_best_df(

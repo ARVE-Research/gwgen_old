@@ -105,7 +105,6 @@ class SensitivityAnalysis(object):
             configuration is set)
         """
         import multiprocessing as mp
-#        from distributed import Client
         experiments = experiments or self.experiments
         if len(experiments) == 1 and osp.exists(experiments[0]):
             with open(experiments[0]) as f:
@@ -125,16 +124,12 @@ class SensitivityAnalysis(object):
             self.logger.debug('Starting %i processes', nprocs)
             pool = mp.Pool(nprocs)
             res = pool.map_async(self, all_kws)
-#            args = (config['scheduler'], ) if config.get('scheduler') else ()
-#            client = Client(*args)
-#            res = client.map(self, all_kws, pure=False)
-#            for (organizer, ns), experiment in zip(client.gather(res),
-#                                                   experiments):
             for (organizer, ns), experiment in zip(res.get(), experiments):
                 changed = organizer.config.experiments[experiment]
                 self.organizer.config.experiments[experiment] = changed
             config['serial'] = False
             pool.close()
+            pool.join()
             pool.terminate()
         else:
             for experiment in experiments or self.experiments:

@@ -1703,6 +1703,7 @@ class TaskManager(object):
                     res = pool.map_async(self, args)
                     tasks = res.get()
                     pool.close()
+                    pool.join()
                     pool.terminate()
                 tasks = [
                     task.setup_from_instances(
