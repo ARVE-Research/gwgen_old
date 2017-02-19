@@ -86,13 +86,15 @@ new virtual environment via
 2. Installation including conda
 *******************************
 With every new ``gwgen`` release, we also provide executables to install
-conda and the above mentioned requirements in our releases_ page. After
+conda and gwgen on our releases_ page. After
 selecting the right file for your operating system (MacOS or Linux), you can
 simply install it via
 
 .. code-block:: bash
 
     bash <downloaded-file.sh>
+
+and follow the instructions.
 
 .. _model-organization: http://model-organization.readthedocs.io/en/latest/
 .. _psyplot: http://psyplot.readthedocs.io/en/latest/
