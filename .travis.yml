@@ -66,7 +66,7 @@ install:
           conda install -n root constructor conda-build;
           sed -i "s/PYTHON_VERSION/${PYTHON_VERSION}*/" ci/gwgen_conda/construct.yaml;
       fi
-    - conda create -n test python="$PYTHON_VERSION" dask seaborn scipy numpy statsmodels matplotlib=1.5 xarray
+    - conda create -n test python="$PYTHON_VERSION" dask seaborn scipy numpy statsmodels matplotlib=1.5 xarray six
     - source activate test
     - conda install -c conda-forge cartopy
     - pip install model-organization
