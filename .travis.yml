@@ -76,7 +76,7 @@ install:
     - git clone "https://github.com/Chilipp/psyplot.git" -b dev
     - cd psyplot && python setup.py install
     - if [[ "$TRAVIS_TAG" != "" ]]; then
-          sed -i "s#PSYPLOT_FILE#`bash ../ci/build_conda_from_setup.py.sh . | tail -n 1`#" ci/gwgen_conda/construct.yaml;
+          sed -i "s#PSYPLOT_FILE#`bash ../ci/build_conda_from_setup.py.sh . | tail -n 1`#" ../ci/gwgen_conda/construct.yaml;
       fi
     - cd .. && rm -rf psyplot
     # END PSYPLOT install
