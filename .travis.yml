@@ -63,7 +63,7 @@ install:
     - conda info -a
     # install the conda constructor for releases
     - if [[ "$TRAVIS_TAG" != "" ]]; then
-          conda install -n root constructor;
+          conda install -n root constructor conda-build;
           sed -i "s/PYTHON_VERSION/${PYTHON_VERSION}*/" ci/gwgen_conda/construct.yaml;
       fi
     - conda create -n test python="$PYTHON_VERSION" dask seaborn scipy numpy statsmodels matplotlib=1.5 xarray
