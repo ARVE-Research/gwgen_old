@@ -64,7 +64,7 @@ install:
     # install the conda constructor for releases
     - if [[ "$TRAVIS_TAG" != "" ]]; then
           conda install -n root constructor;
-          sed -i "s/PYTHON_VERSION/${PYTHON_VERSION}*/" gwgen_conda/construct.yaml;
+          sed -i "s/PYTHON_VERSION/${PYTHON_VERSION}*/" ci/gwgen_conda/construct.yaml;
       fi
     - conda create -n test python="$PYTHON_VERSION" dask seaborn scipy numpy statsmodels matplotlib=1.5 xarray
     - source activate test
@@ -74,7 +74,12 @@ install:
     # use latest development version
     # NOTE: Remove this when psyplot is stable enough
     - git clone "https://github.com/Chilipp/psyplot.git" -b dev
-    - cd psyplot && python setup.py install && cd .. && rm -rf psyplot
+    - cd psyplot && python setup.py install
+    - if [[ "$TRAVIS_TAG" != "" ]]; then
+          sed -i "s#PSYPLOT_FILE#`bash ci/build_conda_from_setup.py.sh . | tail -n 1`#" ci/gwgen_conda/construct.yaml;
+      fi
+    - cd .. && rm -rf psyplot
+    # END PSYPLOT install
     - python setup.py install
     # install necessary module for the documentation and clone the existing
     # gh-pages for this repo into the *deploy* folder and clear everything
@@ -106,7 +111,8 @@ script:
       fi
     # construct conda environment for releases
     - if [[ "$TRAVIS_TAG" != "" ]]; then
-          constructor gwgen_conda;
+          sed -i "s#GWGEN_FILE#`bash ci/build_conda_from_setup.py.sh . | tail -n 1`#" ci/gwgen_conda/construct.yaml;
+          constructor ci/gwgen_conda;
       fi
     - if [[ "$TRAVIS_TAG" != "" && "$BUILD_DOCS" == "true" ]]; then
           cd deploy && zip -r "../gwgen_docs_${TRAVIS_TAG}.zip" . -x *.git* && cd ..;
@@ -116,11 +122,11 @@ after_success:
     - coverage combine && coveralls
     # upload the documentation on master branch
     - if [[ "$BUILD_DOCS" == "true" && "$TRAVIS_TAG" == "" ]]; then
-          ./deploy.sh;
+          bash ci/deploy.sh;
       fi
 
 before_deploy:
-    - ORIG_FILE=$(ls gwgen_conda-*.sh)
+    - ORIG_FILE=$(ls ci/gwgen_conda-*.sh)
     - export FINAL_FILE="${ORIG_FILE/.sh/}_${PYTHON_VERSION}.sh"
     - mv "$ORIG_FILE" "$FINAL_FILE"
 

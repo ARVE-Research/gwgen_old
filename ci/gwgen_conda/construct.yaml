@@ -9,7 +9,7 @@ channels:
 specs:
     - python PYTHON_VERSION
     - scipy
-    - matplotlib
+    - matplotlib <1.5
     - dask
     - xarray
     - netcdf4
@@ -17,6 +17,9 @@ specs:
     - seaborn
     - bottleneck
     - statsmodels
-    - psyplot
+
+packages:
+    - file://PSYPLOT_FILE
+    - file://GWGEN_FILE
 
 license_file: EULA.txt
