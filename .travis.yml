@@ -157,4 +157,4 @@ deploy:
       script: ci/deploy.sh
       on:
           branch: master
-          condition: "$BUILD_DOCS" == "true"
+          condition: "$BUILD_DOCS == true"
