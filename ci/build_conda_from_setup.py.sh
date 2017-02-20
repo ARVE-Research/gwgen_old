@@ -1,6 +1,9 @@
 #!/bin/bash
 
-DIR=$1
+ENV=$1
+DIR=$2
+
+source activate $ENV
 
 cd $DIR
 # build the tarball
