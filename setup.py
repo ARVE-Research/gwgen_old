@@ -1,8 +1,19 @@
-from setuptools import find_packages, setup
+from setuptools import find_packages
 from setuptools.command.test import test as TestCommand
 from numpy.distutils.core import Extension
 import sys
+import os
 import os.path as osp
+
+
+# conda skeleton applies a patch that is not realised by
+# numpy.distutils.core.setup. Therefore we give the user the possibility to
+# choose to use the setuptools. Note that conda skeleton not actually installs
+# the package but just saves the information from the setup call
+if os.getenv('RUNNING_SKELETON', None):
+    from setuptools import setup
+else:
+    from numpy.distutils.core import setup
 
 parseghcnrow = Extension(
     name='gwgen._parseghcnrow', sources=[
