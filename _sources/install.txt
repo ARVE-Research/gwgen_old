@@ -86,9 +86,11 @@ new virtual environment via
 2. Installation including conda
 *******************************
 With every new ``gwgen`` release, we also provide executables to install
-conda and gwgen on our releases_ page. After
-selecting the right file for your operating system (MacOS or Linux), you can
-simply install it via
+conda and gwgen on our releases_ page. This is probably the easiest way to
+install it.
+
+After selecting the right file for your operating system (MacOS or Linux), you
+can simply install it via
 
 .. code-block:: bash
 
