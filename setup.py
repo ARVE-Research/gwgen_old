@@ -1,8 +1,7 @@
-from setuptools import find_packages
+from setuptools import find_packages, setup
 from setuptools.command.test import test as TestCommand
-from numpy.distutils.core import Extension, setup
+from numpy.distutils.core import Extension
 import sys
-import six
 import os.path as osp
 
 parseghcnrow = Extension(
@@ -53,7 +52,7 @@ install_requires = ['f90nml', 'psyplot', 'scipy', 'sqlalchemy', 'psycopg2',
                     'statsmodels', 'docrep', 'model-organization', 'xarray',
                     'six']
 
-if six.PY2:
+if sys.version_info[0] == 2:
     install_requires.append('argparse')
 
 
