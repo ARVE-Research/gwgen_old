@@ -1,5 +1,5 @@
 name: gwgen_conda
-version: 0.2.0.dev0
+version: 1.0.0
 
 channels:
   - http://repo.continuum.io/pkgs/free/
