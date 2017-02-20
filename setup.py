@@ -50,7 +50,8 @@ def configuration(parent_package='', top_path=None):
     return config
 
 install_requires = ['f90nml', 'psyplot', 'scipy', 'sqlalchemy', 'psycopg2',
-                    'statsmodels', 'docrep', 'model-organization', 'xarray']
+                    'statsmodels', 'docrep', 'model-organization', 'xarray',
+                    'six']
 
 if six.PY2:
     install_requires.append('argparse')
