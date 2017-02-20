@@ -51,6 +51,8 @@ install:
           export BUILD_DOCS="false";
       fi
     - echo "$BUILD_DOCS"
+    # load the build_conda function
+    - source ci/build_conda_from_setup.py.sh
     # make sure we use an 'innocent' default matplotlib environment
     - touch matplotlibrc
     - bash miniconda.sh -b -p $HOME/miniconda
@@ -77,7 +79,8 @@ install:
     - git clone "https://github.com/Chilipp/psyplot.git" -b dev
     - cd psyplot && python setup.py install
     - if [[ "$TRAVIS_TAG" != "" ]]; then
-          sed -i "s#PSYPLOT_FILE#`bash ../ci/build_conda_from_setup.py.sh . | tail -n 1`#" ../ci/gwgen_conda/construct.yaml;
+          build_conda . &&
+          sed -i "s#PSYPLOT_FILE#${BUILD_FNAME}#" ../ci/gwgen_conda/construct.yaml;
       fi
     - cd .. && rm -rf psyplot
     # END PSYPLOT install
@@ -112,7 +115,8 @@ script:
       fi
     # construct conda environment for releases
     - if [[ "$TRAVIS_TAG" != "" ]]; then
-          sed -i "s#GWGEN_FILE#`bash ci/build_conda_from_setup.py.sh . | tail -n 1`#" ci/gwgen_conda/construct.yaml &&
+          build_conda .
+          sed -i "s#GWGEN_FILE#${BUILD_FNAME}#" ci/gwgen_conda/construct.yaml &&
           cat ci/gwgen_conda/construct.yaml &&
           constructor ci/gwgen_conda;
       fi
