@@ -50,6 +50,7 @@ install:
       else
           export BUILD_DOCS="false";
       fi
+    - export BUILD_DOCS="false"
     - echo "$BUILD_DOCS"
     # load the build_conda function
     - source ci/build_conda_from_setup.py.sh
