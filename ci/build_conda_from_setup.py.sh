@@ -1,9 +1,6 @@
 #!/bin/bash
 
-ENV=$1
-DIR=$2
-
-source activate $ENV
+DIR=$1
 
 cd $DIR
 # build the tarball
@@ -14,8 +11,8 @@ mkdir tmp
 conda skeleton pypi --output-dir tmp --manual-url file://`pwd`/${FNAME}
 # build
 cd tmp
-conda build `ls .`
+conda build --python ${PYTHON_VERSION} `ls .`
 # print the output
-conda build `ls .` --output
+conda build --python ${PYTHON_VERSION} `ls .` --output
 cd ../
 rm -rf tmp
