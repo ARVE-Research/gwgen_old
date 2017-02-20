@@ -39,11 +39,12 @@ install:
       fi
     # We do this conditionally because it saves us some downloading if the
     # version is the same.
-    - if [[ "$PYTHON_VERSION" == "2.7" ]]; then
-          wget https://repo.continuum.io/miniconda/Miniconda2-latest-"${OS_NAME}"-x86_64.sh -O miniconda.sh;
-      else
-          wget https://repo.continuum.io/miniconda/Miniconda3-latest-"${OS_NAME}"-x86_64.sh -O miniconda.sh;
-      fi
+#    - if [[ "$PYTHON_VERSION" == "2.7" ]]; then
+#          wget https://repo.continuum.io/miniconda/Miniconda2-latest-"${OS_NAME}"-x86_64.sh -O miniconda.sh;
+#      else
+#
+#      fi
+    - wget https://repo.continuum.io/miniconda/Miniconda3-latest-"${OS_NAME}"-x86_64.sh -O miniconda.sh;
     # set build_docs to the real value
     - if [[  "$BUILD_DOCS" == "true" && "$TRAVIS_PULL_REQUEST" == "false" && ("$TRAVIS_BRANCH" == "master" || "$TRAVIS_TAG" != "") ]]; then
           export BUILD_DOCS="true";
