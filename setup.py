@@ -63,9 +63,6 @@ install_requires = ['f90nml', 'psyplot', 'scipy', 'sqlalchemy', 'psycopg2',
                     'statsmodels', 'docrep', 'model-organization', 'xarray',
                     'six']
 
-if sys.version_info[0] == 2:
-    install_requires.append('argparse')
-
 
 setup(name='gwgen',
       version='1.0.0',
