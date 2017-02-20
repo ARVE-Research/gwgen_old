@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -xe
 
 DIR=$1
 
@@ -15,6 +15,8 @@ RUNNING_SKELETON=1 conda skeleton pypi --output-dir tmp --python-version ${PYTHO
 cd tmp
 conda build --python ${PYTHON_VERSION} `ls .`
 # print the output
-conda build --python ${PYTHON_VERSION} `ls .` --output
+FNAME=$(conda build --python ${PYTHON_VERSION} `ls .` --output)
 cd ../
 rm -rf tmp
+
+echo $FNAME

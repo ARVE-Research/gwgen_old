@@ -113,6 +113,7 @@ script:
     # construct conda environment for releases
     - if [[ "$TRAVIS_TAG" != "" ]]; then
           sed -i "s#GWGEN_FILE#`bash ci/build_conda_from_setup.py.sh . | tail -n 1`#" ci/gwgen_conda/construct.yaml &&
+          cat ci/gwgen_conda/construct.yaml &&
           constructor ci/gwgen_conda;
       fi
     - if [[ "$TRAVIS_TAG" != "" && "$BUILD_DOCS" == "true" ]]; then
