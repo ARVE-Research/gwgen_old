@@ -719,9 +719,15 @@ class KSEvaluation(QuantileEvaluation):
             logger.debug('Done. Stations without significant difference:')
             for name, val in info.items():
                 logger.debug('    %s: %6.3f %%' % (name, val))
-
-        self.plot_map()
-        info['plot_file'] = self.pdf_file
+        try:
+            import cartopy.crs as ccrs
+        except ImportError:
+            self.logger.warn(
+                "Cartopy is not installed, skipping plot of %s task",
+                self.name)
+        else:
+            self.plot_map()
+            info['plot_file'] = self.pdf_file
 
     def plot_map(self):
         from matplotlib.backends.backend_pdf import PdfPages
