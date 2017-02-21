@@ -99,9 +99,9 @@ install:
     # on osx, we have to unset LDFLAGS in the build script
     # https://groups.google.com/a/continuum.io/forum/#!topic/conda/1COIyu1ch2c
     - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-          alias insert_into_build="sed -i '2 i\unset LDFLAGS' tmp/gwgen/build.sh";
+          export INSERT_INTO_BUILD="sed -i '2 i\unset LDFLAGS' tmp/gwgen/build.sh";
       else
-          alias insert_into_build="echo Nothing to insert on linux";
+          export INSERT_INTO_BUILD="echo Nothing to insert on linux";
       fi
     # export the environment for debugging
     - conda env export -n test
@@ -122,7 +122,7 @@ script:
       fi
     # construct conda environment for releases
     - if [[ "$TRAVIS_TAG" != "" ]]; then
-          pypi_skeleton . tmp && insert_into_build && build_conda tmp/gwgen && rm -rf tmp &&
+          pypi_skeleton . tmp && $(echo "$INSERT_INTO_BUILD") && build_conda tmp/gwgen && rm -rf tmp &&
           export GWGEN_FILE="${BUILD_FNAME}" &&
           bash ci/setup_constructor_files.sh &&
           cat ci/gwgen_conda/construct.yaml &&
