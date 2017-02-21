@@ -3,10 +3,13 @@
 # script that is called after the installation of gwgen_conda to ask whether
 # an alias for gwgen shall be created
 
-if [[ $BATCH == 0 ]] # interactive mode
+if [[ $NO_GWGEN_ALIAS == "" ]] # interactive mode
 then
     BASH_RC=$HOME/'<<<BASH_RC>>>'
     DEFAULT=yes
+    echo -e "\x1b[31mShall I add an alias to $BASH_RC\x1b[0m"
+    echo '(This question might be disabled by setting the NO_GWGEN_ALIAS
+environent variable to any value, e.g. `export NO_GWGEN_ALIAS=1`)'
     echo -n "Do you wish to create an alias for gwgen in your $BASH_RC ? [yes|no]
 [$DEFAULT] >>> "
     read ans
