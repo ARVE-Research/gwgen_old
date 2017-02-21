@@ -131,7 +131,7 @@ script:
           echo "Testing executable" &&
           NO_GWGEN_ALIAS=1 bash `ls gwgen_conda-*.sh` -b -p $HOME/gwgen_conda &&
           $HOME/gwgen_conda/bin/gwgen -h &&
-          echo "Build succeeded"
+          echo "Build succeeded";
       fi
     - if [[ "$TRAVIS_TAG" != "" && "$BUILD_DOCS" == "true" ]]; then
           cd deploy && zip -r "../gwgen_docs_${TRAVIS_TAG}.zip" . -x *.git* && cd ..;
