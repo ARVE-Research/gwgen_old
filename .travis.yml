@@ -129,7 +129,7 @@ script:
           echo "Creating executable" &&
           constructor ci/gwgen_conda &&
           echo "Testing executable" &&
-          NO_GWGEN_ALIAS bash `ls gwgen_conda-*.sh` -b -p $HOME/gwgen_conda &&
+          NO_GWGEN_ALIAS=1 bash `ls gwgen_conda-*.sh` -b -p $HOME/gwgen_conda &&
           $HOME/gwgen_conda/bin/gwgen -h &&
           echo "Build succeeded"
       fi
