@@ -122,7 +122,7 @@ script:
       fi
     # construct conda environment for releases
     - if [[ "$TRAVIS_TAG" != "" ]]; then
-          pypi_skeleton . tmp && $(echo "$INSERT_INTO_BUILD") && build_conda tmp/gwgen && rm -rf tmp &&
+          pypi_skeleton . tmp && bash -c "$INSERT_INTO_BUILD" && build_conda tmp/gwgen && rm -rf tmp &&
           export GWGEN_FILE="${BUILD_FNAME}" &&
           bash ci/setup_constructor_files.sh &&
           cat ci/gwgen_conda/construct.yaml &&
