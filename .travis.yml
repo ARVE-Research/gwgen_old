@@ -170,6 +170,7 @@ deploy:
     # upload the documentation on master branch
     - provider: script
       script: ci/deploy.sh
+      skip_cleanup: true
       on:
           branch: master
           condition: "$BUILD_DOCS == true"
