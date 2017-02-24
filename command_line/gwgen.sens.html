@@ -68,7 +68,7 @@
 </pre></div>
 </div>
 <dl class="last docutils">
-<dt>optional arguments</dt>
+<dt>Optional Arguments</dt>
 <dd><table class="first last docutils option-list" frame="void" rules="none">
 <col class="option" />
 <col class="description" />
@@ -115,7 +115,7 @@
 </pre></div>
 </div>
 <dl class="last docutils">
-<dt>optional arguments</dt>
+<dt>Optional Arguments</dt>
 <dd><table class="first last docutils option-list" frame="void" rules="none">
 <col class="option" />
 <col class="description" />
@@ -167,7 +167,7 @@ parameterization.</td></tr>
 </pre></div>
 </div>
 <dl class="last docutils">
-<dt>optional arguments</dt>
+<dt>Optional Arguments</dt>
 <dd><table class="first last docutils option-list" frame="void" rules="none">
 <col class="option" />
 <col class="description" />
@@ -195,7 +195,7 @@ parameterization.</td></tr>
 </pre></div>
 </div>
 <dl class="last docutils">
-<dt>optional arguments</dt>
+<dt>Optional Arguments</dt>
 <dd><table class="first last docutils option-list" frame="void" rules="none">
 <col class="option" />
 <col class="description" />
@@ -248,72 +248,6 @@ parameterization.</td></tr>
 </tbody>
 </table>
 </dd>
-<dt>Tasks</dt>
-<dd><table class="first last docutils option-list" frame="void" rules="none">
-<col class="option" />
-<col class="description" />
-<tbody valign="top">
-<tr><td class="option-group" colspan="2">
-<kbd><span class="option">-ids</span>, <span class="option">--experiments</span></kbd></td>
-</tr>
-<tr><td>&nbsp;</td><td><p class="first last">    The experiments to use. If None, all experiments are used</p>
-</td></tr>
-<tr><td class="option-group" colspan="2">
-<kbd><span class="option">-loop=False</span>, <span class="option">--loop-exps=False</span></kbd></td>
-</tr>
-<tr><td>&nbsp;</td><td><p class="first last">    If True the experiments of the sensitivity analysis are called
-    one after each other. Otherwise they are called in parallel, each
-    on a single core (unless the the serial option in the global
-    configuration is set)</p>
-</td></tr>
-<tr><td class="option-group">
-<kbd><span class="option">-s</span>, <span class="option">--stations</span></kbd></td>
-<td><p class="first last">    either a list of stations to use or a filename containing a
-    1-row table with stations</p>
-</td></tr>
-<tr><td class="option-group" colspan="2">
-<kbd><span class="option">-ido</span>, <span class="option">--other_id</span></kbd></td>
-</tr>
-<tr><td>&nbsp;</td><td><p class="first last">    Use the configuration from another experiment</p>
-</td></tr>
-<tr><td class="option-group">
-<kbd><span class="option">-f</span>, <span class="option">--from</span></kbd></td>
-<td><p class="first last">    Determine where to get the data from. If `scratch`, the
-    data will be calculated from the raw data. If `file`,
-    the data will be loaded from a file, if `db`, the data
-    will be loaded from a postgres database (Note that the
-    `database` argument must be provided!).</p>
-</td></tr>
-<tr><td class="option-group">
-<kbd><span class="option">-to-db</span></kbd></td>
-<td><p class="first last">    Save the data into a postgresql database (Note that the
-    `database` argument must be provided!)</p>
-</td></tr>
-<tr><td class="option-group">
-<kbd><span class="option">-to-csv</span></kbd></td>
-<td><p class="first last">    Save the data into a csv file</p>
-</td></tr>
-<tr><td class="option-group" colspan="2">
-<kbd><span class="option">-db</span>, <span class="option">--database</span></kbd></td>
-</tr>
-<tr><td>&nbsp;</td><td><p class="first last">    The name of a postgres data base to write the data to</p>
-</td></tr>
-<tr><td class="option-group" colspan="2">
-<kbd><span class="option">-nr=False</span>, <span class="option">--norun=False</span></kbd></td>
-</tr>
-<tr><td>&nbsp;</td><td><p class="first last">If set without value or &#8220;all&#8221; or a number different from 0, the data is set up and the configuration of the experiment is not affected. Otherwise it can be a comma separated list of parameterization tasks for which to only setup the data</p>
-</td></tr>
-<tr><td class="option-group" colspan="2">
-<kbd><span class="option">-complete=False</span></kbd></td>
-</tr>
-<tr><td>&nbsp;</td><td><p class="first last">    If True, setup and run all possible tasks</p>
-</td></tr>
-<tr><td class="option-group">
-<kbd></kbd></td>
-<td>Possible choices: ks, quality, quants</td></tr>
-</tbody>
-</table>
-</dd>
 <dt>Sub-commands:</dt>
 <dd><dl class="first last docutils">
 <dt><strong>ks</strong></dt>
@@ -325,7 +259,7 @@ parameterization.</td></tr>
 </pre></div>
 </div>
 <dl class="last docutils">
-<dt>optional arguments</dt>
+<dt>Optional Arguments</dt>
 <dd><table class="first last docutils option-list" frame="void" rules="none">
 <col class="option" />
 <col class="description" />
@@ -342,11 +276,6 @@ parameterization.</td></tr>
 <col class="option" />
 <col class="description" />
 <tbody valign="top">
-<tr><td class="option-group" colspan="2">
-<kbd><span class="option">-ido</span>, <span class="option">--other_id</span></kbd></td>
-</tr>
-<tr><td>&nbsp;</td><td><p class="first last">    Use the configuration from another experiment</p>
-</td></tr>
 <tr><td class="option-group">
 <kbd><span class="option">-n</span>, <span class="option">--names</span></kbd></td>
 <td><p class="first">    The list of variables use for calculation. If None, all variables will be
@@ -393,52 +322,6 @@ parameterization.</td></tr>
 <col class="description" />
 <tbody valign="top">
 <tr><td class="option-group" colspan="2">
-<kbd><span class="option">-ido</span>, <span class="option">--other_id</span></kbd></td>
-</tr>
-<tr><td>&nbsp;</td><td><p class="first last">    Use the configuration from another experiment</p>
-</td></tr>
-<tr><td class="option-group">
-<kbd><span class="option">-n</span>, <span class="option">--names</span></kbd></td>
-<td><p class="first">    The list of variables use for calculation. If None, all variables will be
-    used</p>
-<p class="last">Possible choices: prcp, tmin, tmax, mean_cloud, wind</p>
-</td></tr>
-<tr><td class="option-group" colspan="2">
-<kbd><span class="option">-tw=False</span>, <span class="option">--transform-wind=False</span></kbd></td>
-</tr>
-<tr><td>&nbsp;</td><td><p class="first last">    If True, the square root of the wind is evaluated (as this is also
-    simulated in the weather generator)</p>
-</td></tr>
-<tr><td class="option-group">
-<kbd><span class="option">-f</span>, <span class="option">--from</span></kbd></td>
-<td><p class="first">    The method how to setup the instance either from
-
-    ``&#8217;scratch&#8217;``
-        To set up the task from the raw data
-    ``&#8217;file&#8217;``
-        Set up the task from an existing file
-    ``&#8217;db&#8217;``
-        Set up the task from a database
-    ``None``
-        If the file name of this this task exists, use this one,
-        otherwise a database is provided, use this one, otherwise go
-        from scratch</p>
-<p class="last">Possible choices: scratch, file, db</p>
-</td></tr>
-<tr><td class="option-group">
-<kbd><span class="option">-to-csv=False</span></kbd></td>
-<td><p class="first last">    If True, the data at setup will be written to a csv file</p>
-</td></tr>
-<tr><td class="option-group">
-<kbd><span class="option">-to-db=False</span></kbd></td>
-<td><p class="first last">    If True, the data at setup will be written to into a database</p>
-</td></tr>
-<tr><td class="option-group" colspan="2">
-<kbd><span class="option">-rm=False</span>, <span class="option">--remove=False</span></kbd></td>
-</tr>
-<tr><td>&nbsp;</td><td><p class="first last">    If True and the old data file already exists, remove before writing to it</p>
-</td></tr>
-<tr><td class="option-group" colspan="2">
 <kbd><span class="option">-nr=False</span>, <span class="option">--no-rounding=False</span></kbd></td>
 </tr>
 <tr><td>&nbsp;</td><td>    Do not round the simulation to the infered precision of the
@@ -459,7 +342,7 @@ parameterization.</td></tr>
 </pre></div>
 </div>
 <dl class="last docutils">
-<dt>optional arguments</dt>
+<dt>Optional Arguments</dt>
 <dd><table class="first last docutils option-list" frame="void" rules="none">
 <col class="option" />
 <col class="description" />
@@ -489,7 +372,7 @@ parameterization.</td></tr>
 </pre></div>
 </div>
 <dl class="last docutils">
-<dt>optional arguments</dt>
+<dt>Optional Arguments</dt>
 <dd><table class="first last docutils option-list" frame="void" rules="none">
 <col class="option" />
 <col class="description" />
@@ -506,11 +389,6 @@ parameterization.</td></tr>
 <col class="option" />
 <col class="description" />
 <tbody valign="top">
-<tr><td class="option-group" colspan="2">
-<kbd><span class="option">-ido</span>, <span class="option">--other_id</span></kbd></td>
-</tr>
-<tr><td>&nbsp;</td><td><p class="first last">    Use the configuration from another experiment</p>
-</td></tr>
 <tr><td class="option-group">
 <kbd><span class="option">-n</span>, <span class="option">--names</span></kbd></td>
 <td><p class="first">    The list of variables use for calculation. If None, all variables will be
@@ -556,52 +434,6 @@ parameterization.</td></tr>
 <col class="option" />
 <col class="description" />
 <tbody valign="top">
-<tr><td class="option-group" colspan="2">
-<kbd><span class="option">-ido</span>, <span class="option">--other_id</span></kbd></td>
-</tr>
-<tr><td>&nbsp;</td><td><p class="first last">    Use the configuration from another experiment</p>
-</td></tr>
-<tr><td class="option-group">
-<kbd><span class="option">-n</span>, <span class="option">--names</span></kbd></td>
-<td><p class="first">    The list of variables use for calculation. If None, all variables will be
-    used</p>
-<p class="last">Possible choices: prcp, tmin, tmax, mean_cloud, wind</p>
-</td></tr>
-<tr><td class="option-group" colspan="2">
-<kbd><span class="option">-tw=False</span>, <span class="option">--transform-wind=False</span></kbd></td>
-</tr>
-<tr><td>&nbsp;</td><td><p class="first last">    If True, the square root of the wind is evaluated (as this is also
-    simulated in the weather generator)</p>
-</td></tr>
-<tr><td class="option-group">
-<kbd><span class="option">-f</span>, <span class="option">--from</span></kbd></td>
-<td><p class="first">    The method how to setup the instance either from
-
-    ``&#8217;scratch&#8217;``
-        To set up the task from the raw data
-    ``&#8217;file&#8217;``
-        Set up the task from an existing file
-    ``&#8217;db&#8217;``
-        Set up the task from a database
-    ``None``
-        If the file name of this this task exists, use this one,
-        otherwise a database is provided, use this one, otherwise go
-        from scratch</p>
-<p class="last">Possible choices: scratch, file, db</p>
-</td></tr>
-<tr><td class="option-group">
-<kbd><span class="option">-to-csv=False</span></kbd></td>
-<td><p class="first last">    If True, the data at setup will be written to a csv file</p>
-</td></tr>
-<tr><td class="option-group">
-<kbd><span class="option">-to-db=False</span></kbd></td>
-<td><p class="first last">    If True, the data at setup will be written to into a database</p>
-</td></tr>
-<tr><td class="option-group" colspan="2">
-<kbd><span class="option">-rm=False</span>, <span class="option">--remove=False</span></kbd></td>
-</tr>
-<tr><td>&nbsp;</td><td><p class="first last">    If True and the old data file already exists, remove before writing to it</p>
-</td></tr>
 <tr><td class="option-group" colspan="2">
 <kbd><span class="option">-nr=False</span>, <span class="option">--no-rounding=False</span></kbd></td>
 </tr>
@@ -656,7 +488,7 @@ parameterization.</td></tr>
 </pre></div>
 </div>
 <dl class="last docutils">
-<dt>optional arguments</dt>
+<dt>Optional Arguments</dt>
 <dd><table class="first last docutils option-list" frame="void" rules="none">
 <col class="option" />
 <col class="description" />
@@ -724,35 +556,6 @@ parameterization.</td></tr>
 <col class="option" />
 <col class="description" />
 <tbody valign="top">
-<tr><td class="option-group">
-<kbd><span class="option">-f</span>, <span class="option">--from</span></kbd></td>
-<td><p class="first">    The method how to setup the instance either from
-
-    ``&#8217;scratch&#8217;``
-        To set up the task from the raw data
-    ``&#8217;file&#8217;``
-        Set up the task from an existing file
-    ``&#8217;db&#8217;``
-        Set up the task from a database
-    ``None``
-        If the file name of this this task exists, use this one,
-        otherwise a database is provided, use this one, otherwise go
-        from scratch</p>
-<p class="last">Possible choices: scratch, file, db</p>
-</td></tr>
-<tr><td class="option-group">
-<kbd><span class="option">-to-csv=False</span></kbd></td>
-<td><p class="first last">    If True, the data at setup will be written to a csv file</p>
-</td></tr>
-<tr><td class="option-group">
-<kbd><span class="option">-to-db=False</span></kbd></td>
-<td><p class="first last">    If True, the data at setup will be written to into a database</p>
-</td></tr>
-<tr><td class="option-group" colspan="2">
-<kbd><span class="option">-rm=False</span>, <span class="option">--remove=False</span></kbd></td>
-</tr>
-<tr><td>&nbsp;</td><td><p class="first last">    If True and the old data file already exists, remove before writing to it</p>
-</td></tr>
 <tr><td class="option-group" colspan="2">
 <kbd><span class="option">-o</span>, <span class="option">--plot-output</span></kbd></td>
 </tr>
@@ -826,35 +629,6 @@ parameterization.</td></tr>
 <col class="option" />
 <col class="description" />
 <tbody valign="top">
-<tr><td class="option-group">
-<kbd><span class="option">-f</span>, <span class="option">--from</span></kbd></td>
-<td><p class="first">    The method how to setup the instance either from
-
-    ``&#8217;scratch&#8217;``
-        To set up the task from the raw data
-    ``&#8217;file&#8217;``
-        Set up the task from an existing file
-    ``&#8217;db&#8217;``
-        Set up the task from a database
-    ``None``
-        If the file name of this this task exists, use this one,
-        otherwise a database is provided, use this one, otherwise go
-        from scratch</p>
-<p class="last">Possible choices: scratch, file, db</p>
-</td></tr>
-<tr><td class="option-group">
-<kbd><span class="option">-to-csv=False</span></kbd></td>
-<td><p class="first last">    If True, the data at setup will be written to a csv file</p>
-</td></tr>
-<tr><td class="option-group">
-<kbd><span class="option">-to-db=False</span></kbd></td>
-<td><p class="first last">    If True, the data at setup will be written to into a database</p>
-</td></tr>
-<tr><td class="option-group" colspan="2">
-<kbd><span class="option">-rm=False</span>, <span class="option">--remove=False</span></kbd></td>
-</tr>
-<tr><td>&nbsp;</td><td><p class="first last">    If True and the old data file already exists, remove before writing to it</p>
-</td></tr>
 <tr><td class="option-group" colspan="2">
 <kbd><span class="option">-o</span>, <span class="option">--plot-output</span></kbd></td>
 </tr>
@@ -891,7 +665,7 @@ parameterization.</td></tr>
 </pre></div>
 </div>
 <dl class="last docutils">
-<dt>optional arguments</dt>
+<dt>Optional Arguments</dt>
 <dd><table class="first last docutils option-list" frame="void" rules="none">
 <col class="option" />
 <col class="description" />
