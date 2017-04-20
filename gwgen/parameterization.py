@@ -527,7 +527,9 @@ class PrcpDistParams(Parameterizer):
 
     def setup_from_file(self, *args, **kwargs):
         kwargs['index_col'] = ['id', 'month', 'thresh']
-        return super(PrcpDistParams, self).setup_from_file(*args, **kwargs)
+        ret = super(PrcpDistParams, self).setup_from_file(*args, **kwargs)
+        self.data['n'] = self.data['n'].astype(np.int64)
+        return ret
 
     def setup_from_db(self, *args, **kwargs):
         kwargs['index_col'] = ['id', 'month', 'thresh']
