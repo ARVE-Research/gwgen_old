@@ -774,7 +774,7 @@ class SensitivityPlot2D(SensitivityPlot):
     def run(self, info):
         import psyplot.data as psyd
         import matplotlib.pyplot as plt
-        import psyplot.plotter.simple as psyps
+        import psy_simple.plotters as psyps
         import matplotlib.colors as mcol
         import seaborn as sns
         from matplotlib.backends.backend_pdf import PdfPages
