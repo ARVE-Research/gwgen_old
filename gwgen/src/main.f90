@@ -300,8 +300,8 @@ program gwgen
                     pdaydiff1 = pdaydiff
                     precdiff1 = precdiff
 
-                else if (i_count > 10000) then
-                    write (*,*) "No good solution found after 10000 iterations at line", i_linecount
+                else if (i_count > 1000000) then
+                    write (*,*) "No good solution found after 1000000 iterations at line", i_linecount
                     stop 1
 
                 end if
