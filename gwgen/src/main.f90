@@ -60,6 +60,7 @@ program gwgen
 
     type(metvars_in)  :: met_in
     type(metvars_out) :: met_out
+    type(metvars_out) :: met_out_save
 
     integer :: ndm(n_tot) = 0
 
@@ -137,13 +138,6 @@ program gwgen
         nullify(mwind_curr)
 
         i_linecount = i_linecount + 1
-
-        !initialize weather residuals and other variables that carry over from one day to the next
-        !these and the random state below should be reset once per station
-
-        met_out%pday(1) = .false.
-        met_out%pday(2) = .false.
-        met_out%resid = 0.
 
         !read in one month of summary weather station data from a text file
         if (use_geohash) then
@@ -237,9 +231,22 @@ program gwgen
         met_in%wetd = real(mwet(n_curr))
         met_in%wetf = real(mwet(n_curr)) / real(ndm(n_curr))
 
+        !initialize weather residuals and other variables that carry over from one day to the next
+        !these and the random state below should be reset once per station
+
+        if (i_consecutives(n_curr - 1) == 0) then
+            met_out%pday(1) = .false.
+            met_out%pday(2) = .false.
+            met_out%resid = 0.
+            i_count = 1
+        else
+            i_count = 2
+        end if
+
         prec_t = max(0.5,0.05 * mprec(n_curr))  !set quality threshold for preciptation amount
 
-        i_count = 1
+        ! save the current state of the residuals and pday
+        met_out_save = met_out
 
         do
 
@@ -254,8 +261,8 @@ program gwgen
                 met_in%tmax  = mtmax_curr(d)
                 met_in%cldf  = real(mcloud_curr(d))
                 met_in%wind  = real(mwind_curr(d))
-                met_in%pday  = met_out%pday
-                met_in%resid = met_out%resid
+                met_in%pday  = met_out_save%pday
+                met_in%resid = met_out_save%resid
 
                 call weathergen(met_in,met_out)
 
