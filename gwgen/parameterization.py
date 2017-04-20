@@ -481,7 +481,7 @@ class PrcpDistParams(Parameterizer):
     has_run = True
 
     #: default formatoptions for the
-    #: :class:`psyplot.plotter.linreg.DensityRegPlotter` plotter
+    #: :class:`psy_reg.plotters.DensityRegPlotter` plotter
     fmt = kwargs = dict(
         legend={'loc': 'upper left'},
         cmap='w_Reds',
