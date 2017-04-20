@@ -36,7 +36,8 @@ def read_ghcn_file(ifile):
     variables = variables[:j].astype(np.float64)
     flags = flags[:j].astype(np.str_)
     flags = np.core.defchararray.replace(flags, ' ', '')
-    variables[variables == -9999] = np.nan
+    variables[np.isclose(variables, -9999.) |
+              np.isclose(variables, -999.9)] = np.nan
     vlst = ['tmin', 'tmax', 'prcp']
     df = pd.DataFrame.from_dict(dict(chain(
         [('id', np.repeat(np.array([stationid]).astype(np.str_), j))],

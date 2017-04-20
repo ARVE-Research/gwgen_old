@@ -42,7 +42,7 @@ integer :: start
 integer :: lastmonth
 integer :: lastyear
 
-real, parameter :: missing = -99990.
+real, parameter :: missing = -9999.
 
 
 !----
@@ -91,16 +91,6 @@ do !read one month of one variable per row
 
   if (year /= lastyear .or. month /= lastmonth) then
 
-    !apply the scale factor
-
-    tmin = 0.1 * tmin
-    tmax = 0.1 * tmax
-    prcp = 0.1 * prcp
-
-    !where (tmin_flags == '') tmin_flags = '|'
-    !where (tmax_flags == '') tmax_flags = '|'
-    !where (prcp_flags == '') prcp_flags = '|'
-
     !write out the data
 
     do d = 1,ndaymon(lastmonth)
@@ -140,6 +130,9 @@ do !read one month of one variable per row
     if (variable == 'TMAX') then
 
       read(values(start:start+4),*)tmax(d)
+      !apply the scale factor
+      tmax(d) = tmax(d) * 0.1
+      ! Set values smaller than -100 degC to NaN
       if (tmax(d) < -100.0) tmax(d) = missing
 
       tmax_flags(d,1) = values(start+5:start+5)
@@ -149,6 +142,9 @@ do !read one month of one variable per row
     else if (variable == 'TMIN') then
 
       read(values(start:start+4),*)tmin(d)
+      !apply the scale factor
+      tmin(d) = tmin(d) * 0.1
+      ! Set values smaller than -100 degC to NaN
       if (tmin(d) < -100.0) tmin(d) = missing
 
       tmin_flags(d,1) = values(start+5:start+5)
@@ -158,6 +154,8 @@ do !read one month of one variable per row
     else if (variable == 'PRCP') then
 
       read(values(start:start+4),*)prcp(d)
+      !apply the scale factor
+      prcp(d) = prcp(d) * 0.1
       if (prcp(d) < 0.0) prcp(d) = missing
 
       prcp_flags(d,1) = values(start+5:start+5)
@@ -191,11 +189,7 @@ logical function leapyear(year)
 
 integer, intent(in) :: year
 
-real :: yr
-
-yr = real(year)
-
-if ((mod(yr,4.) == 0. .and. mod(yr,100.) /= 0.) .or. mod(yr,400.) == 0.) then
+if ((mod(year,4) == 0 .and. mod(year,100) /= 0) .or. mod(year,400) == 0) then
 
   leapyear = .true.
 
