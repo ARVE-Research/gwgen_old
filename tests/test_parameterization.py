@@ -132,8 +132,10 @@ class _ParameterizerTestMixin(object):
                 df_ref = no_duplicates(df_ref)
                 mask = (df != df_ref).values.any(axis=1)
                 self.assertIsNone(df_equals(df, df_ref),
-                                  msg=df_diff_msg % (df.ix[mask],
-                                                     df_ref.ix[mask]))
+                                  msg=df_diff_msg % (df.dtypes,
+                                                     df_ref.dtypes))
+#                                  msg=df_diff_msg % (df.ix[mask],
+#                                                     df_ref.ix[mask]))
         # check setup from file
         if setup_from_db:
             for fname in filter(None, safe_list(task.datafile)):
