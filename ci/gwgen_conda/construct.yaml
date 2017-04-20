@@ -25,6 +25,8 @@ specs:
 
 packages:
     - file://PSYPLOT_FILE
+    - file://PSY_SIMPLE_FILE
+    - file://PSY_REG_FILE
     - file://GWGEN_FILE
 
 license_file: EULA.txt

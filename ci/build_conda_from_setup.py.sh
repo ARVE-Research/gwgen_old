@@ -25,7 +25,7 @@ function build_conda() {
     DIR=$1
 
     # build
-    conda build --python ${PYTHON_VERSION} $DIR
+    conda build --python ${PYTHON_VERSION} $DIR --no-test
     # print the output
     BUILD_FNAME=$(conda build --python ${PYTHON_VERSION} $DIR --output)
 
