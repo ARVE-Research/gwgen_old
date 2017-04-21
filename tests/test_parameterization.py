@@ -23,7 +23,7 @@ df_diff_msg = (
     'Reference\n%s{0}').format('-' * 80)
 
 
-def df_equals(df, df_ref):
+def df_equals(df, df_ref, *args, **kwargs):
     """Simple wrapper around assert_frame_equal to use unittests assertion
 
     Parameters
@@ -38,7 +38,7 @@ def df_equals(df, df_ref):
     None or Exception
         Either None if everything went fine, otherwise the raised Exception"""
     try:
-        assert_frame_equal(df, df_ref)
+        assert_frame_equal(df, df_ref, *args, **kwargs)
     except Exception as e:
         return e
 
@@ -132,11 +132,9 @@ class _ParameterizerTestMixin(object):
                 df_ref = no_duplicates(df_ref)
                 mask = (df != df_ref).values.any(axis=1)
                 self.assertIsNone(df_equals(df, df_ref),
-                                  msg=df_diff_msg % (df.dtypes,
-                                                     df_ref.dtypes))
-#                                  msg=df_diff_msg % (df.ix[mask],
-#                                                     df_ref.ix[mask]))
-        # check setup from file
+                                  msg=df_diff_msg % (df.ix[mask],
+                                                     df_ref.ix[mask]))
+        # check setup from db
         if setup_from_db:
             for fname in filter(None, safe_list(task.datafile)):
                 os.remove(fname)
@@ -156,11 +154,9 @@ class _ParameterizerTestMixin(object):
                 df = no_duplicates(df)
                 df_ref = no_duplicates(df_ref)
                 mask = (df != df_ref).values.any(axis=1)
-                self.assertIsNone(df_equals(df, df_ref),
-                                  msg=df_diff_msg % (df.dtypes,
-                                                     df_ref.dtypes))
-#                                  msg=df_diff_msg % (df.ix[mask],
-#                                                     df_ref.ix[mask]))
+                self.assertIsNone(df_equals(df, df_ref, check_dtype=False),
+                                  msg=df_diff_msg % (df.ix[mask],
+                                                     df_ref.ix[mask]))
         return manager
 
 # the usage of distributed is not supported at the moment
