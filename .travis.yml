@@ -1,4 +1,7 @@
 language: generic
+branches:
+    except:
+        - arve2
 env:
     global:
         - ENCRYPTION_LABEL: "56bf8f63e969"
