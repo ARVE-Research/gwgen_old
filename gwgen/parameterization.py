@@ -981,7 +981,7 @@ class TemperatureParameterizer(Parameterizer):
             'tmax_wet': arr_tmax_wet.mean(),
             'tminstddev_wet': arr_tmin_wet.std(),
             'tmaxstddev_wet': arr_tmax_wet.std(),
-            'trange_wet': (arr_tmax_wet - arr_tmax_wet).mean(),
+            'trange_wet': (arr_tmax_wet - arr_tmin_wet).mean(),
             'trangestddev_wet': (arr_tmax_wet - arr_tmin_wet).std(),
             # dry values
             'tmin_dry': arr_tmin_dry.mean(),
