@@ -131,7 +131,7 @@ class _ParameterizerTestMixin(object):
                 df = no_duplicates(df)
                 df_ref = no_duplicates(df_ref)
                 mask = (df != df_ref).values.any(axis=1)
-                self.assertIsNone(df_equals(df, df_ref),
+                self.assertIsNone(df_equals(df, df_ref, check_dtype=False),
                                   msg=df_diff_msg % (df.ix[mask],
                                                      df_ref.ix[mask]))
         # check setup from db
