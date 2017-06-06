@@ -2189,12 +2189,12 @@ class CrossCorrelation(Parameterizer):
         # m0
         self.data = final = ddf[cols].corr().compute(get=get, **kws)
         final.index.name = 'variable'
-        # make sure that the index is ignored
-        shifted = df.copy()
-        shifted.iloc[1:, :] = shifted.iloc[:-1].values
-        # set last day of year to NaN
-        shifted.iloc[(shifted.index.month == 12) &
-                     (shifted.index.day == 31)] = np.nan
+        # shift the data by one row (day)
+        shifted = df.shift(1)
+        # set first day of each year to NaN because it might not come from the
+        # previous year
+        shifted.iloc[(shifted.index.month == 1) &
+                     (shifted.index.day == 1)] = np.nan
         dshifted = dd.from_pandas(shifted, chunksize=chunksize)
         # m1
         for col in cols:
