@@ -53,10 +53,10 @@ program gwgen
     real(sp) :: mprec_sim
 
     integer :: pdaydiff
-    integer :: pdaydiff1 = 31
 
     real(sp) :: precdiff
-    real(sp) :: precdiff1 = 1000.
+
+    real(sp) :: tmindiff, tmin_acc
 
     type(metvars_in)  :: met_in
     type(metvars_out) :: met_out
@@ -127,7 +127,9 @@ program gwgen
     dailyfile = trim(output)
 
     open(30,file=dailyfile,status='unknown')
-    write(30,'(a)') "id,year,month,day,tmin,tmax,mean_cloud,wind,prcp,wet_day"
+    write(30,'(a)', advance='no') "id,year,month,day,tmin,tmax,mean_cloud,wind,prcp,wet_day,"
+    write(30,'(a)', advance='no') "tmin_bias,tmin_mn,tmin_sd,resid_tmin,resid_tmax,resid_cloud,resid_wind,"
+    write(30, '(a)') "unorm_tmin,unorm_tmax,unorm_cloud,unorm_wind"
 
     do  !read the input file until the end
 
@@ -234,15 +236,12 @@ program gwgen
         !initialize weather residuals and other variables that carry over from one day to the next
         !these and the random state below should be reset once per station
 
+        met_out%resid = 0.
         if (i_consecutives(n_curr - 1) == 0) then
             met_out%pday(1) = .false.
             met_out%pday(2) = .false.
-            met_out%resid = 0.
-            i_count = 1
-        else
-            i_count = 2
         end if
-
+        i_count = 1
         prec_t = max(0.5,0.05 * mprec(n_curr))  !set quality threshold for preciptation amount
 
         ! save the current state of the residuals and pday
@@ -252,6 +251,7 @@ program gwgen
 
             mwetd_sim = 0
             mprec_sim = 0.
+            tmin_acc = 0.0
 
             !start day loop
 
@@ -262,7 +262,7 @@ program gwgen
                 met_in%cldf  = real(mcloud_curr(d))
                 met_in%wind  = real(mwind_curr(d))
                 met_in%pday  = met_out_save%pday
-                met_in%resid = met_out_save%resid
+                met_in%resid = met_out%resid
 
                 call weathergen(met_in,met_out)
 
@@ -274,12 +274,15 @@ program gwgen
                     mwetd_sim = mwetd_sim + 1
                     mprec_sim = mprec_sim + met_out%prec
                 end if
+                tmin_acc = tmin_acc + met_out%tmin
 
             end do
 
             !end of month
+            ! NOTE: THIS HAS TO BE ENABLED IF NECESSARY
+            tmindiff = 1000000.0  !abs(mtmin(n_curr) - tmin_acc / ndm(n_curr))
 
-            if (mprec(n_curr) == 0.) then
+            if (mprec(n_curr) <= 0.1 .and. tmindiff < 2.5) then
 
                 pdaydiff = 0
                 precdiff = 0.
@@ -292,16 +295,11 @@ program gwgen
                 precdiff = abs(mprec(n_curr) - mprec_sim)
 
                 ! restrict simulated total monthly precip to +/-5% or 0.5 mm of observed value
-                if (pdaydiff <= 1 .and. precdiff <= prec_t) then
+                if (pdaydiff <= 1 .and. precdiff <= prec_t .and. tmindiff < 2.5) then
                     exit
 
-                else if (pdaydiff < pdaydiff1 .and. precdiff < precdiff1) then
-                    !save the values you have in a buffer in case you have to leave the loop
-                    pdaydiff1 = pdaydiff
-                    precdiff1 = precdiff
-
-                else if (i_count > 1000000) then
-                    write (*,*) "No good solution found after 1000000 iterations at line", i_linecount
+                else if (i_count > 10000000) then
+                    write (*,*) "No good solution found after 10000000 iterations at line", i_linecount
                     stop 1
 
                 end if
@@ -329,7 +327,18 @@ program gwgen
             call csv_write(30,month_met(d)%cldf,advance=.false.)
             call csv_write(30,month_met(d)%wind,advance=.false.)
             call csv_write(30,month_met(d)%prec,advance=.false.)
-            call csv_write(30,wet_day,advance=.true.)
+            call csv_write(30,wet_day,advance=.false.)
+            call csv_write(30,month_met(d)%tmin_bias,advance=.false.)
+            call csv_write(30,month_met(d)%tmin_mn,advance=.false.)
+            call csv_write(30,month_met(d)%tmin_sd,advance=.false.)
+            call csv_write(30,month_met(d)%resid(1),advance=.false.)
+            call csv_write(30,month_met(d)%resid(2),advance=.false.)
+            call csv_write(30,month_met(d)%resid(3),advance=.false.)
+            call csv_write(30,month_met(d)%resid(4),advance=.false.)
+            call csv_write(30,month_met(d)%unorm(1),advance=.false.)
+            call csv_write(30,month_met(d)%unorm(2),advance=.false.)
+            call csv_write(30,month_met(d)%unorm(3),advance=.false.)
+            call csv_write(30,month_met(d)%unorm(4),advance=.true.)
         end do
 
         ! set boundary conditions for next timestep

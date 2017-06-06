@@ -57,6 +57,9 @@ module weathergenmod
         logical, dimension(2)  :: pday    !precipitation state
         type(randomstate)      :: rndst   !state of the random number generator, 15 elements
         real(sp), dimension(4) :: resid   !previous day's weather residuals
+        real(sp) :: tmin_bias
+        real(sp) :: tmin_mn, tmin_sd
+        real(sp), dimension(4) :: unorm
 
     end type metvars_out
 
@@ -476,6 +479,10 @@ module weathergenmod
         met_out%pday  = pday
         met_out%rndst = rndst
         met_out%resid = resid
+        met_out%tmin_bias = tmin_bias
+        met_out%tmin_mn = tmin_mn
+        met_out%tmin_sd = tmin_sd
+        met_out%unorm = unorm
 
     10 format(2i4,l4,f8.3,8f9.2,3f9.5)
 
@@ -532,9 +539,10 @@ module weathergenmod
 
             dm%cldf_mn = cldf_w1 / (cldf_w2 * cld + cldf_w3) + cldf_w4
 
-            dm%tmin_sd = tmin_sd_w1 + tmin_sd_w2 * dm%tmin_mn
-
-            dm%tmax_sd = tmax_sd_w1 + tmax_sd_w2 * dm%tmax_mn
+!            dm%tmin_sd = tmin_sd_w1 + tmin_sd_w2 * dm%tmin_mn
+!
+!            dm%tmax_sd = tmax_sd_w1 + tmax_sd_w2 * dm%tmax_mn
+            call temp_sd(pday, dm)
 
             dm%wind_sd = wind_sd_w1 + wind_sd_w2 * dm%wind_mn
 
@@ -550,9 +558,10 @@ module weathergenmod
 
             dm%cldf_mn = cldf_d1 / (cldf_d2 * cld + cldf_d3) + cldf_d4
 
-            dm%tmin_sd = tmin_sd_d1 + tmin_sd_d2 * dm%tmin_mn
-
-            dm%tmax_sd = tmax_sd_d1 + tmax_sd_d2 * dm%tmax_mn
+!            dm%tmin_sd = tmin_sd_d1 + tmin_sd_d2 * dm%tmin_mn
+!
+!            dm%tmax_sd = tmax_sd_d1 + tmax_sd_d2 * dm%tmax_mn
+            call temp_sd(pday, dm)
 
             dm%wind_sd = wind_sd_d1 + wind_sd_d2 * dm%wind_mn
 
@@ -689,5 +698,73 @@ module weathergenmod
         cldf_sd_d = cldf_sd_d * cldf_sd_d
 
     end subroutine calc_cloud_params
+
+    subroutine temp_sd(pday, dm)
+
+        logical,          intent(in)  :: pday    ! precipitation status (mm/day)
+        type(daymetvars), intent(inout) :: dm
+
+        if (pday) then
+            ! --------------------------------------------------------------------------------
+            ! Minimum temperature on wet days
+            ! --------------------------------------------------------------------------------
+            if (dm%tmin_mn <= -40.0000) then
+                dm%tmin_sd = 8.5128e+00  + 7.2690e-02 * dm%tmin_mn
+            else if (dm%tmin_mn > -40.0000 .and. dm%tmin_mn <= 0.0000) then
+                dm%tmin_sd = 2.9644e+00 -2.5549e-01 * dm%tmin_mn  + 8.6488e-03 * dm%tmin_mn ** 2  &
+                    + 1.1134e-03 * dm%tmin_mn ** 3  + 2.9231e-05 * dm%tmin_mn ** 4  + 2.4430e-07 * dm%tmin_mn ** 5
+            else if (dm%tmin_mn > 0.0000 .and. dm%tmin_mn <= 25.0000) then
+                dm%tmin_sd = 3.1890e+00 -4.7037e-02 * dm%tmin_mn  + 2.1412e-02 * dm%tmin_mn ** 2 &
+                    -2.6698e-03 * dm%tmin_mn ** 3  + 9.8972e-05 * dm%tmin_mn ** 4 -1.1490e-06 * dm%tmin_mn ** 5
+            else if (dm%tmin_mn > 25.0000) then
+                dm%tmin_sd = 1.1058e+00  + 3.4112e-03 * dm%tmin_mn
+            end if
+            ! --------------------------------------------------------------------------------
+            ! Maximum temperature on dry days
+            ! --------------------------------------------------------------------------------
+            if (dm%tmax_mn <= -30.0000) then
+                dm%tmax_sd = 7.2888e+00  + 1.6786e-02 * dm%tmax_mn
+            else if (dm%tmax_mn > -30.0000 .and. dm%tmax_mn <= 0.0000) then
+                dm%tmax_sd = 4.4758e+00 -3.2513e-01 * dm%tmax_mn -1.3493e-02 * dm%tmax_mn ** 2 &
+                    -1.8153e-05 * dm%tmax_mn ** 3  + 9.1110e-06 * dm%tmax_mn ** 4  + 1.3485e-07 * dm%tmax_mn ** 5
+            else if (dm%tmax_mn > 0.0000 .and. dm%tmax_mn <= 35.0000) then
+                dm%tmax_sd = 4.5747e+00 -6.3377e-02 * dm%tmax_mn  + 1.7879e-02 * dm%tmax_mn ** 2 &
+                    -1.2822e-03 * dm%tmax_mn ** 3  + 3.0241e-05 * dm%tmax_mn ** 4 -2.3140e-07 * dm%tmax_mn ** 5
+            else if (dm%tmax_mn > 35.0000) then
+                dm%tmax_sd = 3.2556e+00 -2.1791e-02 * dm%tmax_mn
+            end if
+
+        else
+            ! --------------------------------------------------------------------------------
+            ! Minimum temperature on dry days
+            ! --------------------------------------------------------------------------------
+            if (dm%tmin_mn <= -40.0000) then
+                dm%tmin_sd = 1.1350e+01  + 1.3830e-01 * dm%tmin_mn
+            else if (dm%tmin_mn > -40.0000 .and. dm%tmin_mn <= 0.0000) then
+                dm%tmin_sd = 3.4653e+00 -1.5660e-01 * dm%tmin_mn  + 2.2968e-02 * dm%tmin_mn ** 2  &
+                    + 1.6714e-03 * dm%tmin_mn ** 3  + 3.6453e-05 * dm%tmin_mn ** 4  + 2.6574e-07 * dm%tmin_mn ** 5
+            else if (dm%tmin_mn > 0.0000 .and. dm%tmin_mn <= 25.0000) then
+                dm%tmin_sd = 3.7458e+00  + 2.8803e-02 * dm%tmin_mn -1.4357e-02 * dm%tmin_mn ** 2 &
+                    + 1.9092e-03 * dm%tmin_mn ** 3 -1.1565e-04 * dm%tmin_mn ** 4  + 2.1705e-06 * dm%tmin_mn ** 5
+            else if (dm%tmin_mn > 25.0000) then
+                dm%tmin_sd = -4.6194e+00  + 2.2606e-01 * dm%tmin_mn
+            end if
+            ! --------------------------------------------------------------------------------
+            ! Maximum temperature on wet days
+            ! --------------------------------------------------------------------------------
+            if (dm%tmax_mn <= -30.0000) then
+                dm%tmax_sd = 6.7204e+00  + 3.7954e-02 * dm%tmax_mn
+            else if (dm%tmax_mn > -30.0000 .and. dm%tmax_mn <= 0.0000) then
+                dm%tmax_sd = 3.6961e+00 -2.8543e-01 * dm%tmax_mn -7.0816e-03 * dm%tmax_mn ** 2 &
+                    + 5.9477e-04 * dm%tmax_mn ** 3  + 3.1244e-05 * dm%tmax_mn ** 4  + 3.9847e-07 * dm%tmax_mn ** 5
+            else if (dm%tmax_mn > 0.0000 .and. dm%tmax_mn <= 35.0000) then
+                dm%tmax_sd = 3.6795e+00 -2.4738e-02 * dm%tmax_mn  + 1.5510e-02 * dm%tmax_mn ** 2 &
+                    -1.1505e-03 * dm%tmax_mn ** 3  + 2.7384e-05 * dm%tmax_mn ** 4 -2.1816e-07 * dm%tmax_mn ** 5
+            else if (dm%tmax_mn > 35.0000) then
+                dm%tmax_sd = 5.4324e+00 -9.4096e-02 * dm%tmax_mn
+            end if
+        end if
+
+    end subroutine temp_sd
 
 end module weathergenmod
