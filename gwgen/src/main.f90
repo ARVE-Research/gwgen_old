@@ -280,7 +280,7 @@ program gwgen
 
             !end of month
             ! NOTE: THIS HAS TO BE ENABLED IF NECESSARY
-            tmindiff = 1000000.0  !abs(mtmin(n_curr) - tmin_acc / ndm(n_curr))
+            tmindiff = 1.0  !abs(mtmin(n_curr) - tmin_acc / ndm(n_curr))
 
             if (mprec(n_curr) <= 0.1 .and. tmindiff < 2.5) then
 
