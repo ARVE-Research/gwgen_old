@@ -127,7 +127,7 @@ def str_ranges(s):
         else:
             import numpy as np
             return np.arange(*nums)
-    return list(chain(*map(get_numbers, s.split(','))))
+    return list(chain.from_iterable(map(get_numbers, s.split(','))))
 
 
 def unique_everseen(iterable, key=None):
