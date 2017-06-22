@@ -261,6 +261,12 @@ class Test_TemperatureParameterizer(bt.BaseTest, _ParameterizerTestMixin):
 
     param_cls = param.TemperatureParameterizer
 
+    def test_param(self, **kwargs):
+        return super(Test_TemperatureParameterizer, self).test_param(
+            temp=dict(cutoff=0,
+                      tmin_range1=(-40, -5), tmin_range2=(5, 20),
+                      tmax_range1=(-40, -5), tmax_range2=(5, 20)), **kwargs)
+
 
 class _CloudTestMixin(object):
     """A base class defining a test for using eecra stations directly"""

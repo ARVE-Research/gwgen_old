@@ -17,6 +17,7 @@ import calendar
 import gwgen.utils as utils
 from gwgen.utils import docstrings
 from psyplot.compat.pycompat import OrderedDict, filterfalse
+import psyplot.data as psyd
 
 
 def _requirement_property(requirement):
@@ -883,6 +884,66 @@ class MarkovChain(Parameterizer):
             nml[name + '_2'] = float(plotter.plot_data[1].attrs.get('slope'))
 
 
+_TempConfig = namedtuple('_TempConfig',
+                         ['cutoff',
+                          'tmin_range1', 'tmin_range2',
+                          'tmax_range1', 'tmax_range2'])
+
+_TempConfig = utils.append_doc(_TempConfig, docstrings.get_sections("""
+Parameters
+----------
+cutoff: int
+    The minimum number of values that is required for fitting the standard
+    deviation
+tmin_range1: list of floats with length 2
+    The ranges ``[vmin, vmax]`` to use for the extrapolation of minimum
+    temperatures standard deviation below 0. The fit will be used for all
+    points below the given ``vmax``
+tmin_range2: list of floats with length 2
+    The ranges ``[vmin, vmax]`` to use for the extrapolation of minimum
+    temperatures standard deviation above 0. The fit will be used for all
+    points above the given ``vmin``
+tmax_range1: list of floats with length 2
+    The ranges ``[vmin, vmax]`` to use for the extrapolation of maximum
+    temperatures standard deviation  below 0. The fit will be used for all
+    points below the given ``vmax``
+tmax_range2: list of floats with length 2
+    The ranges ``[vmin, vmax]`` to use for the extrapolation of maximum
+    temperatures standard deviation above 0. The fit will be used for all
+    points above the given ``vmin``
+""", '_TempConfig'))
+
+
+TempConfig = utils.enhanced_config(_TempConfig, 'TempConfig')
+
+
+@docstrings.dedent
+def default_temp_config(
+        cutoff=10,
+        tmin_range1=[-50, -40], tmin_range2=[25, 30],
+        tmax_range1=[-40, -30], tmax_range2=[35, 45],
+        *args, **kwargs):
+    """
+    The default configuration for :class:`TemperatureParameterizer` instances.
+    See also the :attr:`PrcpDistParams.default_config` attribute
+
+    Parameters
+    ----------
+    %(TempConfig.parameters)s"""
+    return TempConfig(cutoff, tmin_range1, tmin_range2, tmax_range1,
+                      tmax_range2, *utils.default_config(*args, **kwargs))
+
+
+def _range_label(vmin, vmax):
+    if vmin is None:
+        return '$%%(symbol)s \\leq %1.4g ^\\circ C$' % vmax
+    elif vmax is None:
+        return '$%1.4g ^\\circ C < %%(symbol)s$' % vmin
+    else:
+        return '$%1.4g ^\\circ C < %%(symbol)s \\leq %1.4g ^\\circ C$' % (
+            vmin, vmax)
+
+
 class TemperatureParameterizer(Parameterizer):
     """Parameterizer to correlate the monthly mean and standard deviation on
     wet and dry days with the montly mean"""
@@ -904,32 +965,59 @@ class TemperatureParameterizer(Parameterizer):
         'tmin_w2': 'tmin_wet.slope',
         'tmin_d1': 'tmin_dry.intercept',
         'tmin_d2': 'tmin_dry.slope',
-        'tmin_sd_w1': 'tminstddev_wet.intercept',
-        'tmin_sd_w2': 'tminstddev_wet.slope',
-        'tmin_sd_d1': 'tminstddev_dry.intercept',
-        'tmin_sd_d2': 'tminstddev_dry.slope',
+        'tmin_sd_w': 'tminstddev_wet.coeffs',
+        'tmin_sd_d': 'tminstddev_dry.coeffs',
+        'tmin_sd_breaks': 'tminstddev.breaks',
         'tmax_w1': 'tmax_wet.intercept',
         'tmax_w2': 'tmax_wet.slope',
         'tmax_d1': 'tmax_dry.intercept',
         'tmax_d2': 'tmax_dry.slope',
-        'tmax_sd_w1': 'tmaxstddev_wet.intercept',
-        'tmax_sd_w2': 'tmaxstddev_wet.slope',
-        'tmax_sd_d1': 'tmaxstddev_dry.intercept',
-        'tmax_sd_d2': 'tmaxstddev_dry.slope'}
+        'tmax_sd_w': 'tmaxstddev_wet.coeffs',
+        'tmax_sd_d': 'tmaxstddev_dry.coeffs',
+        'tmax_sd_breaks': 'tmaxstddev.breaks',
+        }
 
     fmt = dict(
-        legend={'loc': 'upper left'},
         cmap='w_Reds',
         precision=0.1,
-        xrange=(0, ['rounded', 95]),
-        yrange=(0, ['rounded', 95]),
+        xrange=(['rounded', 5], ['rounded', 95]),
+        yrange=(['rounded', 5], ['rounded', 95]),
+        bounds=['minmax', 11, 0, 99],
+        cbar='',
+        bins=10,
+        legend={'loc': 'upper left'},
         legendlabels=[
             '$%(symbol)s$ = %(intercept)1.4f + %(slope)1.4f * $%(xsymbol)s$'],
+        xlabel='on %(state)s days',
+        )
+
+    sd_hist_fmt = dict(
+        cmap='w_Reds',
+        precision=0.1,
+        xrange=(['rounded', 5], ['rounded', 95]),
+        yrange=(0, ['rounded', 95]),
         bounds=['minmax', 11, 0, 99],
         cbar='',
         bins=10,
         xlabel='on %(state)s days'
         )
+
+    sd_fit_fmt = dict(
+        legend={'loc': 'upper left'},
+        xlabel='on %(state)s days',
+        )
+
+    @classmethod
+    def _modify_parser(cls, parser):
+        parser.setup_args(default_temp_config)
+        parser, setup_grp, run_grp = super(
+            TemperatureParameterizer, cls)._modify_parser(parser)
+        for arg in ['tmin_range1', 'tmin_range2', 'tmax_range1',
+                    'tmax_range2']:
+            parser.update_arg(arg, nargs=2)
+            parser.append2help(arg, '. Default: %(default)s')
+        parser.append2help('cutoff', '. Default: %(default)s')
+        return parser, setup_grp, run_grp
 
     @property
     def sql_dtypes(self):
@@ -940,13 +1028,24 @@ class TemperatureParameterizer(Parameterizer):
         return ret
 
     @property
+    def default_config(self):
+        return default_temp_config()._replace(
+            **super(TemperatureParameterizer, self).default_config._asdict())
+
+    @property
     def ds(self):
         """The dataframe of this parameterization task converted to a dataset
         """
         import xarray as xr
-        cols = [col for col in self.data.columns if (
+        df = self.data
+        cols = [col for col in df.columns if (
                    col.startswith('tmin') or col.startswith('tmax'))]
-        ds = xr.Dataset.from_dataframe(self.data[cols].reset_index())
+        ds = xr.Dataset.from_dataframe(df[cols].reset_index())
+
+        temp_bins = np.arange(-100., 100., 0.1)
+        ds['temp_bins'] = xr.Variable('temp_bins',
+                                      (temp_bins[1:] + temp_bins[:-1]) * 0.5)
+
         for v, t, state in product(['tmin', 'tmax'], ['stddev', ''],
                                    ['', 'wet', 'dry']):
             vname = v + t + (('_' + state) if state else '')
@@ -958,6 +1057,22 @@ class TemperatureParameterizer(Parameterizer):
             varo.attrs['symbol'] = 't_\mathrm{{%s%s%s}}' % (
                 what, ', sd' if t else '', (', ' + state) if state else '')
             varo.attrs['state'] = state or 'all'
+            # calculate the source for the bars
+            cutoff = self.task_config.cutoff
+            if state and t:
+                g = df.groupby(pd.cut(df[v + '_' + state], temp_bins))
+                df_v = v + t + '_' + state  #: The variable name in df
+                counts = g[df_v].count().values
+                ds[vname + '_counts'] = xr.Variable(
+                    ('temp_bins', ), counts, attrs=varo.attrs.copy())
+                means = g[df_v].mean().values
+                means[counts <= cutoff] = np.nan
+                ds[vname + '_mean'] = xr.Variable(
+                    ('temp_bins', ), means, attrs=varo.attrs.copy())
+                std = g[df_v].std().values
+                std[counts <= cutoff] = np.nan
+                ds[vname + '_sd'] = xr.Variable(
+                    ('temp_bins', ), std, attrs=varo.attrs.copy())
         return ds
 
     @staticmethod
@@ -1017,18 +1132,18 @@ class TemperatureParameterizer(Parameterizer):
         return g.apply(cls.calc_monthly_props).mean()
 
     def setup_from_file(self, *args, **kwargs):
-        kwargs['index_col'] = ['id', 'month']
+        kwargs['index_col'] = ['id', 'year', 'month']
         return super(TemperatureParameterizer, self).setup_from_file(
             *args, **kwargs)
 
     def setup_from_db(self, *args, **kwargs):
-        kwargs['index_col'] = ['id', 'month']
+        kwargs['index_col'] = ['id', 'year', 'month']
         return super(TemperatureParameterizer, self).setup_from_db(
             *args, **kwargs)
 
     def setup_from_scratch(self):
-        self.data = self.cday.data.groupby(level=['id', 'month']).apply(
-            self.calculate_probabilities)
+        self.data = self.cday.data.groupby(
+            level=['id', 'year', 'month']).apply(self.calculate_probabilities)
 
     def create_project(self, ds):
         """
@@ -1049,19 +1164,92 @@ class TemperatureParameterizer(Parameterizer):
             axes[0].get_position().x0 + axes[1].get_position().x1) / 2.
         axes = iter(axes)
         variables = ['tmin', 'tmax']
-        types = ['', 'stddev']
-        for v, t in product(variables, types):
-            base = '%s%s' % (v, t)
+        # mean fits
+        for v in variables:
             psy.plot.densityreg(
-                ds, name=base + '_wet', ax=next(axes),
-                coord=v if not t else v + '_wet',
+                ds, name=v + '_wet', ax=next(axes),
+                coord=v,
                 ylabel='%(long_name)s [$^\circ$C]\non %(state)s days',
                 text=[(middle, 0.03, '%(xlong_name)s [$^\circ$C]', 'fig', dict(
                      weight='bold', ha='center'))], fmt=self.fmt)
             psy.plot.densityreg(
-                ds, name=base + '_dry', ax=next(axes),
-                coord=v if not t else v + '_dry',
+                ds, name=v + '_dry', ax=next(axes),
+                coord=v,
                 ylabel='on %(state)s days', fmt=self.fmt)
+        # sd fits
+        for v in variables:
+            ax = next(axes)
+            base = v + 'stddev'
+            # ---- wet days----
+            # density plot
+            psy.plot.density(
+                ds, name=base + '_wet', ax=ax,
+                coord=v + '_wet',
+                ylabel='%(long_name)s [$^\circ$C]\non %(state)s days',
+                text=[(middle, 0.03, '%(xlong_name)s [$^\circ$C]', 'fig', dict(
+                     weight='bold', ha='center'))], fmt=self.sd_hist_fmt)
+            # bars
+            psy.plot.barplot(ds, name=base + '_wet_mean', ax=ax,
+                             color='k', alpha=0.5, widths='data')
+            limits = ax.get_xlim()
+            r1 = getattr(self.task_config, v + '_range1')
+            r2 = getattr(self.task_config, v + '_range2')
+            psy.plot.linreg(ds, name=base + '_wet_mean', ax=ax,
+                            temp_bins=[
+                                slice(*r1),        # extrapolation < 0
+                                slice(None, 0.0),  # polynomial < 0
+                                slice(0.0, None),  # polynomial > 0
+                                slice(*r2),        # extrapolation > 0
+                                ],
+                            line_xlim=[
+                                [limits[0], r1[1]],
+                                [r1[1], 0.],
+                                [0., r2[0]],
+                                [r2[0], limits[1]],
+                            ],
+                            fit=['poly1', 'poly5', 'poly5', 'poly1'],
+                            legendlabels=[
+                                _range_label(None, r1[1]),
+                                _range_label(r1[1], 0.0),
+                                _range_label(0.0, r2[0]),
+                                _range_label(r2[0], None),
+                                ],
+                            fmt=self.sd_fit_fmt, method='sel')
+            psy.gcp(True)(ax=ax).share(keys=['xlim', 'ylim'])
+            # ---- dry days ----
+            ax = next(axes)
+            psy.plot.density(
+                ds, name=base + '_dry', ax=ax,
+                coord=v + '_dry',
+                ylabel='%(long_name)s [$^\circ$C]\non %(state)s days',
+                text=[(middle, 0.03, '%(xlong_name)s [$^\circ$C]', 'fig', dict(
+                     weight='bold', ha='center'))], fmt=self.sd_hist_fmt)
+            # bars
+            psy.plot.barplot(ds, name=base + '_dry_mean', ax=ax,
+                             color='k', alpha=0.5, widths='data')
+            limits = ax.get_xlim()
+            psy.plot.linreg(ds, name=base + '_dry_mean', ax=ax,
+                            temp_bins=[
+                                slice(*r1),        # extrapolation < 0
+                                slice(None, 0.0),  # polynomial < 0
+                                slice(0.0, None),  # polynomial > 0
+                                slice(*r2),        # extrapolation > 0
+                                ],
+                            line_xlim=[
+                                [limits[0], r1[1]],
+                                [r1[1], 0.],
+                                [0., r2[0]],
+                                [r2[0], limits[1]],
+                            ],
+                            fit=['poly1', 'poly5', 'poly5', 'poly1'],
+                            legendlabels=[
+                                _range_label(None, r1[1]),
+                                _range_label(r1[1], 0.0),
+                                _range_label(0.0, r2[0]),
+                                _range_label(r2[0], None),
+                                ],
+                            fmt=self.sd_fit_fmt, method='sel')
+            psy.gcp(True)(ax=ax).share(keys=['xlim', 'ylim'])
         return psy.gcp(True)[:]
 
     @docstrings.dedent
@@ -1076,11 +1264,12 @@ class TemperatureParameterizer(Parameterizer):
         """
         variables = ['tmin', 'tmax']
         states = ['wet', 'dry']
-        types = ['', 'stddev']
         nml = full_nml.setdefault('weathergen_ctl', OrderedDict())
-        for v, t, state in product(variables, types, states):
-            vname = '%s%s_%s' % (v, t, state)
-            nml_name = v + ('_sd' if t else '') + '_' + state[0]
+        tc = self.task_config
+        for v, state in product(variables, states):
+            # means
+            vname = '%s_%s' % (v, state)
+            nml_name = v + '_' + state[0]
             vinfo = info.setdefault(vname, {})
             plotter = sp(name=vname).plotters[0]
             for key in ['rsquared', 'slope', 'intercept']:
@@ -1089,7 +1278,18 @@ class TemperatureParameterizer(Parameterizer):
                 plotter.plot_data[1].attrs.get('intercept', 0))
             nml[nml_name + '2'] = float(
                 plotter.plot_data[1].attrs.get('slope'))
-
+            # standard deviation
+            vname = v + 'stddev' + '_' + state
+            nml[v + '_sd_breaks'] = [getattr(tc, v + '_range1')[1], 0.0,
+                                     getattr(tc, v + '_range2')[0]]
+            sd_coeffs = np.zeros((6, 4))
+            base = v + 'stddev'
+            for i, arr in enumerate(
+                    sp.linreg(name='_'.join(
+                        [base, state, 'mean'])).plotters[0].plot_data):
+                for j in range(6):
+                    sd_coeffs[j, i] = arr.attrs.get('c%i' % j, 0.0)
+            nml[v + '_sd_' + state[0]] = sd_coeffs.tolist()
 
 _CloudConfig = namedtuple('_CloudConfig', ['args_type'])
 
@@ -1885,6 +2085,11 @@ class YearlyCompleteMonthlyWind(YearlyCompleteMonthlyCloud):
         return self.cmonthly_wind
 
 
+def wind_sd_func(x, c1, c2, c3):
+    # Degree 3 polynomial that goes through 0
+    return c1 * x + c2 * x * x + c3 * x * x * x
+
+
 class WindParameterizer(CompleteMonthlyWind):
     """Parameterizer to extract the months with complete clouds"""
 
@@ -1921,23 +2126,9 @@ class WindParameterizer(CompleteMonthlyWind):
         'wind_w2': 'wind_wet.slope',
         'wind_d1': 'wind_dry.intercept',
         'wind_d2': 'wind_dry.slope',
-        'wind_sd_w1': 'sd_wind_wet.intercept',
-        'wind_sd_w2': 'sd_wind_wet.slope',
-        'wind_sd_d1': 'sd_wind_dry.intercept',
-        'wind_sd_d2': 'sd_wind_dry.slope',
+        'wind_sd_w': 'sd_wind_wet',
+        'wind_sd_d': 'sd_wind_dry',
         }
-
-#    namelist_keys = {
-#        'cldf_w': 'mean_cloud_wet.a',
-#        'cldf_d': 'mean_cloud_dry.a',
-#        'cldf_sd_w': 'sd_cloud_wet.a',
-#        'cldf_sd_d': 'sd_cloud_dry.a'}
-#
-#    error_keys = {
-#        'cldf_w': 'mean_cloud_wet.a_err',
-#        'cldf_d': 'mean_cloud_dry.a_err',
-#        'cldf_sd_w': 'sd_cloud_wet.a_err',
-#        'cldf_sd_d': 'sd_cloud_dry.a_err'}
 
     @property
     def sql_dtypes(self):
@@ -2008,17 +2199,18 @@ class WindParameterizer(CompleteMonthlyWind):
             axes[0].get_position().x0 + axes[1].get_position().x1) / 2.
         axes = iter(axes)
         for t in types:
+            kws = {'fit': wind_sd_func} if t == 'sd_' else {}
             psy.plot.densityreg(
                 ds, name='%swind_wet' % (t), ax=next(axes),
                 ylabel='%(long_name)s [%(units)s]\non %(state)s days',
                 text=[(middle, 0.03,
                        'square root of %(xlong_name)s [%(xunits)s]', 'fig',
                        dict(weight='bold', ha='center'))], fmt=self.fmt,
-                coord='wind' + ('_wet' if t == 'sd_' else ''))
+                coord='wind' + ('_wet' if t == 'sd_' else ''), **kws)
             psy.plot.densityreg(
                 ds, name='%swind_dry' % (t), ax=next(axes),
                 ylabel='on %(state)s days', fmt=self.fmt,
-                coord='wind' + ('_dry' if t == 'sd_' else ''))
+                coord='wind' + ('_dry' if t == 'sd_' else ''), **kws)
         return psy.gcp(True)[:]
 
     @docstrings.dedent
@@ -2032,8 +2224,9 @@ class WindParameterizer(CompleteMonthlyWind):
         """
         nml = full_nml.setdefault('weathergen_ctl', OrderedDict())
         states = ['wet', 'dry']
-        types = ['', 'sd_']
-        for t, state in product(types, states):
+        for state in states:
+            # linear fits of means
+            t = ''
             vname = '%swind_%s' % (t, state)
             nml_name = 'wind%s_%s' % ("_sd" if t == 'sd_' else '', state[:1])
             info[vname] = vinfo = {}
@@ -2044,6 +2237,18 @@ class WindParameterizer(CompleteMonthlyWind):
                 plotter.plot_data[1].attrs.get('intercept', 0))
             nml[nml_name + '2'] = float(
                 plotter.plot_data[1].attrs.get('slope'))
+            # polynomial fits of std
+            t = 'sd_'
+            vname = '%swind_%s' % (t, state)
+            nml_name = 'wind%s_%s' % ("_sd" if t == 'sd_' else '', state[:1])
+            info[vname] = vinfo = {}
+            plotter = sp(name=vname).plotters[0]
+            da = plotter.plot_data[1]
+            arr = np.zeros(6)
+            for i in range(1, 4):
+                arr[1] = da.attrs['c%i' % i]
+            arr = arr.tolist()
+            vinfo['params'] = nml[nml_name] = arr
 
 
 class CompleteDailyCloud(DailyCloud):

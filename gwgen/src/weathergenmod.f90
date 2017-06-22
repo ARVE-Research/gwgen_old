@@ -115,22 +115,32 @@ module weathergenmod
     ! minimum temperature regression results
     real(sp) :: tmin_w1 = 1.164653        ! intercept of best line fit of tmin on wet days (see :f:subr:`meansd`)
     real(sp) :: tmin_w2 = 0.955787        ! slope of best line fit of tmin on wet days (see :f:subr:`meansd`)
-    real(sp) :: tmin_sd_w1 = 3.038786     ! intercept of best line fit of std. dev. of tmin on wet days (see :f:subr:`meansd`)
-    real(sp) :: tmin_sd_w2 = -0.050466    ! slope of best line fit of std. dev. of tmin on wet days (see :f:subr:`meansd`)
     real(sp) :: tmin_d1 = -0.528308       ! intercept of best line fit of tmin on dry days (see :f:subr:`meansd`)
     real(sp) :: tmin_d2 = 1.020964        ! slope of best line fit of tmin on dry days (see :f:subr:`meansd`)
-    real(sp) :: tmin_sd_d1 = 3.544901     ! intercept of best line fit of std. dev. of tmin on dry days (see :f:subr:`meansd`)
-    real(sp) :: tmin_sd_d2 = -0.042829    ! slope of best line fit of tmin on dry days (see :f:subr:`meansd`)
+    real(sp), dimension(4, 6) :: tmin_sd_w = 0  ! polynomial coefficients for correlating tmin sd on wet days
+    real(sp), dimension(4, 6) :: tmin_sd_d = 0  ! polynomial coefficients for correlating tmin sd on dry days
+    real(sp), dimension(3) :: tmin_sd_breaks = 0  ! polynomial coefficients for the breaks of tmin sd correlation
+    ! DEPRECEATED tmin parameters
+    real(sp) :: tmin_sd_w1 = -9999.    ! DEPRECEATED. intercept of best line fit of std. dev. of tmin on wet days
+    real(sp) :: tmin_sd_w2 = -9999.    ! DEPRECEATED. slope of best line fit of std. dev. of tmin on wet days
+    real(sp) :: tmin_sd_d1 = -9999.    ! DEPRECEATED. intercept of best line fit of std. dev. of tmin on dry days
+    real(sp) :: tmin_sd_d2 = -9999.    ! DEPRECEATED. slope of best line fit of tmin on dry days
+
 
     ! maximum temperature regression results
     real(sp) :: tmax_w1 = -0.586296       ! intercept of best line fit of tmax on wet days (see :f:subr:`meansd`)
     real(sp) :: tmax_w2 = 0.948669        ! slope of best line fit of tmax on wet days (see :f:subr:`meansd`)
-    real(sp) :: tmax_sd_w1 = 3.91589      ! intercept of best line fit of std. dev. of tmax on wet days (see :f:subr:`meansd`)
-    real(sp) :: tmax_sd_w2 = -0.029385    ! slope of best line fit of std. dev. of tmax on wet days (see :f:subr:`meansd`)
     real(sp) :: tmax_d1 = 0.386508        ! intercept of best line fit of tmax on dry days (see :f:subr:`meansd`)
     real(sp) :: tmax_d2 = 1.0061          ! slope of best line fit of tmax on dry days (see :f:subr:`meansd`)
-    real(sp) :: tmax_sd_d1 = 4.470039     ! intercept of best line fit of std. dev. of tmax on dry days (see :f:subr:`meansd`)
-    real(sp) :: tmax_sd_d2 = -0.038717    ! slope of best line fit of tmax on dry days (see :f:subr:`meansd`)
+    real(sp), dimension(4, 6) :: tmax_sd_w = 0  ! polynomial coefficients for correlating tmax sd on wet days
+    real(sp), dimension(4, 6) :: tmax_sd_d = 0  ! polynomial coefficients for correlating tmax sd on dry days
+    real(sp), dimension(3) :: tmax_sd_breaks = 0  ! polynomial coefficients for the breaks of tmax sd correlation
+    ! DEPRECEATED tmax parameters
+    real(sp) :: tmax_sd_w1 = -9999.    ! DEPRECEATED. intercept of best line fit of std. dev. of tmax on wet days
+    real(sp) :: tmax_sd_w2 = -9999.    ! DEPRECEATED. slope of best line fit of std. dev. of tmax on wet days
+    real(sp) :: tmax_sd_d1 = -9999.    ! DEPRECEATED. intercept of best line fit of std. dev. of tmax on dry days
+    real(sp) :: tmax_sd_d2 = -9999.    ! DEPRECEATED. slope of best line fit of tmax on dry days
+
 
     ! cloud regression results
     real(sp) :: cldf_w = -0.738271    ! *a* parameter for cloud fit on wet days (see :f:subr:`meansd`)
@@ -143,10 +153,13 @@ module weathergenmod
     real(sp) :: wind_w2 = 1.092938      ! slope of best line fit of wind on wet days (see :f:subr:`meansd`)
     real(sp) :: wind_d1 = 0.0           ! intercept of best line fit of wind on dry days (see :f:subr:`meansd`)
     real(sp) :: wind_d2 = 0.945229      ! slope of best line fit of wind on wet days (see :f:subr:`meansd`)
-    real(sp) :: wind_sd_w1 = 0.0        ! intercept of best line fit of std. dev. of wind on wet days (see :f:subr:`meansd`)
-    real(sp) :: wind_sd_w2 = 0.440435   ! slope of best line fit of std. dev. of wind on wet days (see :f:subr:`meansd`)
-    real(sp) :: wind_sd_d1 = 0.0        ! intercept of best line fit of std. dev. wind on dry days (see :f:subr:`meansd`)
-    real(sp) :: wind_sd_d2 = 0.512037   ! slope of best line fit of std. dev. wind on dry days (see :f:subr:`meansd`)
+    real(sp), dimension(6) :: wind_sd_w = 0.0  ! polygon coefficients for wind standard deviation on wet days
+    real(sp), dimension(6) :: wind_sd_d = 0.0  ! polygon coefficients for wind standard deviation on dry days
+    ! DEPRECEATED wind parameters
+    real(sp) :: wind_sd_w1 = -9999.    ! DEPRECEATED. intercept of best line fit of std. dev. of wind on wet days
+    real(sp) :: wind_sd_w2 = -9999.    ! DEPRECEATED. slope of best line fit of std. dev. of wind on wet days
+    real(sp) :: wind_sd_d1 = -9999.    ! DEPRECEATED. intercept of best line fit of std. dev. wind on dry days
+    real(sp) :: wind_sd_d2 = -9999.    ! DEPRECEATED. slope of best line fit of std. dev. wind on dry days
 
     ! wind bias correction (Note: Default is no correction)
     ! parameters of the slope - unorm best fit line
@@ -191,19 +204,21 @@ module weathergenmod
             A, B, &
             ! transition parameters
             p11_1, p11_2, p101_1, p101_2, p001_1, p001_2, &
+            ! break points for tmin and tmax correlation
+            tmin_sd_breaks, tmax_sd_breaks, &
             ! correlation parameters for wet days
-            tmin_w1, tmin_w2, tmax_w1, tmax_w2, cldf_w, tmin_sd_w1, tmin_sd_w2, &
-            tmax_sd_w1, tmax_sd_w2, cldf_sd_w, wind_w1, wind_w2, wind_sd_w1, &
-            wind_sd_w2, &
+            tmin_w1, tmin_w2, tmin_sd_w, tmax_w1, tmax_w2, tmax_sd_w, &
+            cldf_w, cldf_sd_w, wind_w1, wind_w2, wind_sd_w, &
             ! correlation parameters for dry days
-            tmin_d1, tmin_d2, tmax_d1, tmax_d2, cldf_d, tmin_sd_d1, tmin_sd_d2, &
-            tmax_sd_d1, tmax_sd_d2, cldf_sd_d, wind_d1, wind_d2, wind_sd_d1, &
-            wind_sd_d2, &
+            tmin_d1, tmin_d2, tmin_sd_d, tmax_d1, tmax_d2, tmax_sd_d, cldf_d, &
+            cldf_sd_d, wind_d1, wind_d2, wind_sd_d, &
             ! wind bias correction (Note: Default is no correction)
             wind_slope_bias_L, wind_slope_bias_k, wind_slope_bias_x0, &
             ! min. temperature bias correction (Note: Default is no correction)
-            tmin_bias_coeffs, tmin_bias_min, tmin_bias_max
-
+            tmin_bias_coeffs, tmin_bias_min, tmin_bias_max, &
+            ! depreceated parameters
+            tmin_sd_w1, tmin_sd_w2, tmax_sd_w1, tmax_sd_w2, wind_sd_w1, wind_sd_w2, &
+            tmin_sd_d1, tmin_sd_d2, tmax_sd_d1, tmax_sd_d2,  wind_sd_d1, wind_sd_d2
         if (.not. present(f_unit)) then
             open(f_unit2, file='weathergen.nml', status='old')
         else
@@ -215,13 +230,62 @@ module weathergenmod
         ! calculate cloud parameters
         call calc_cloud_params
 
+        ! handle depreceated namelist parameters
+        ! --------------------------------------
+        ! tmin on wet days
+        if (any(abs((/ tmin_sd_w1, tmin_sd_w2 /) + 9999.) < 1e-7)) then
+            write (0, *) 'WARNING: Using depreceated tmin_sd_w1 and tmin_sd_w2 parameters! Use tmin_sd_w!'
+            tmin_sd_w(:, :) = 0.
+            tmin_sd_breaks(:) = 9999.
+            tmin_sd_w(1, 1) = tmin_sd_w1
+            tmin_sd_w(1, 2) = tmin_sd_w2
+        end if
+        ! tmin on dry days
+        if (any(abs((/ tmin_sd_d1, tmin_sd_d2 /) + 9999.) < 1e-7)) then
+            write (0, *) 'WARNING: Using depreceated tmin_sd_d1 and tmin_sd_d2 parameters! Use tmin_sd_d!'
+            tmin_sd_d(:, :) = 0.
+            tmin_sd_breaks(:) = 9999.
+            tmin_sd_d(1, 1) = tmin_sd_d1
+            tmin_sd_d(1, 2) = tmin_sd_d2
+        end if
+        ! tmax on wet days
+        if (any(abs((/ tmax_sd_w1, tmax_sd_w2 /) + 9999.) < 1e-7)) then
+            write (0, *) 'WARNING: Using depreceated tmax_sd_w1 and tmax_sd_w2 parameters! Use tmax_sd_w!'
+            tmax_sd_w(:, :) = 0.
+            tmax_sd_breaks(:) = 9999.
+            tmax_sd_w(1, 1) = tmax_sd_w1
+            tmax_sd_w(1, 2) = tmax_sd_w2
+        end if
+        ! tmax on dry days
+        if (any(abs((/ tmax_sd_d1, tmax_sd_d2 /) + 9999.) < 1e-7)) then
+            write (0, *) 'WARNING: Using depreceated tmax_sd_d1 and tmax_sd_d2 parameters! Use tmax_sd_d!'
+            tmax_sd_d(:, :) = 0.
+            tmax_sd_breaks(:) = 9999.
+            tmax_sd_d(1, 1) = tmax_sd_d1
+            tmax_sd_d(1, 2) = tmax_sd_d2
+        end if
+        ! wind on wet days
+        if (any(abs((/ wind_sd_w1, wind_sd_w2 /) + 9999.) < 1e-7)) then
+            write (0, *) 'WARNING: Using depreceated wind_sd_w1 and wind_sd_w2 parameters! Use wind_sd_w!'
+            wind_sd_w(:) = 0.
+            wind_sd_w(1) = wind_sd_w1
+            wind_sd_w(2) = wind_sd_w2
+        end if
+        ! wind on dry days
+        if (any(abs((/ wind_sd_d1, wind_sd_d2 /) + 9999.) < 1e-7)) then
+            write (0, *) 'WARNING: Using depreceated wind_sd_d1 and wind_sd_d2 parameters! Use wind_sd_d!'
+            wind_sd_d(:) = 0.
+            wind_sd_d(1) = wind_sd_d1
+            wind_sd_d(2) = wind_sd_d2
+        end if
+
     end subroutine init_weathergen
 
     !------------------------------------------------------------------------------------------------------------
 
     subroutine weathergen(met_in,met_out)
 
-        use parametersmod, only : sp,dp,i4,ndaymonth,tfreeze
+        use parametersmod, only : sp,dp,tfreeze
         use randomdistmod, only : ranur,ran_normal,ran_gamma_gp,ran_gamma, &
                                   gamma_cdf, gamma_pdf, gamma_cdf_inv
 
@@ -258,8 +322,6 @@ module weathergenmod
         type(randomstate) :: rndst       ! integer state of the random number generator
         logical,  dimension(2) :: pday   ! element for yesterday and the day before yesterday
         real(sp), dimension(4) :: resid  ! previous day's weather residuals
-
-        real(sp) :: trange
 
         real(sp) :: prec
         real(sp) :: tmin
@@ -484,8 +546,6 @@ module weathergenmod
         met_out%tmin_sd = tmin_sd
         met_out%unorm = unorm
 
-    10 format(2i4,l4,f8.3,8f9.2,3f9.5)
-
     end subroutine weathergen
 
     !------------------------------------------------------------------------------------------------------------
@@ -539,12 +599,7 @@ module weathergenmod
 
             dm%cldf_mn = cldf_w1 / (cldf_w2 * cld + cldf_w3) + cldf_w4
 
-!            dm%tmin_sd = tmin_sd_w1 + tmin_sd_w2 * dm%tmin_mn
-!
-!            dm%tmax_sd = tmax_sd_w1 + tmax_sd_w2 * dm%tmax_mn
-            call temp_sd(pday, dm)
-
-            dm%wind_sd = wind_sd_w1 + wind_sd_w2 * dm%wind_mn
+            dm%wind_sd = sum(wind_sd_w * (dm%wind_mn ** (/ 0, 1, 2, 3, 4, 5 /)))
 
             dm%cldf_sd = cldf_sd_w * dm%cldf_mn * (1. - dm%cldf_mn)
 
@@ -558,16 +613,13 @@ module weathergenmod
 
             dm%cldf_mn = cldf_d1 / (cldf_d2 * cld + cldf_d3) + cldf_d4
 
-!            dm%tmin_sd = tmin_sd_d1 + tmin_sd_d2 * dm%tmin_mn
-!
-!            dm%tmax_sd = tmax_sd_d1 + tmax_sd_d2 * dm%tmax_mn
-            call temp_sd(pday, dm)
-
-            dm%wind_sd = wind_sd_d1 + wind_sd_d2 * dm%wind_mn
+            dm%wind_sd = sum(wind_sd_d * (dm%wind_mn ** (/ 0, 1, 2, 3, 4, 5 /)))
 
             dm%cldf_sd = cldf_sd_d * dm%cldf_mn * (1. - dm%cldf_mn)
 
         end if
+
+        call temp_sd(pday, dm)
 
     end subroutine meansd
 
@@ -577,7 +629,7 @@ module weathergenmod
         ! Iterative, mean preserving method to smoothly interpolate mean data to pseudo-sub-timestep values
         ! From Rymes, M.D. and D.R. Myers, 2001. Solar Energy (71) 4, 225-231
 
-        use parametersmod, only : sp,dp
+        use parametersmod, only : sp
 
         implicit none
 
@@ -703,67 +755,28 @@ module weathergenmod
 
         logical,          intent(in)  :: pday    ! precipitation status (mm/day)
         type(daymetvars), intent(inout) :: dm
+        integer :: i
 
-        if (pday) then
-            ! --------------------------------------------------------------------------------
-            ! Minimum temperature on wet days
-            ! --------------------------------------------------------------------------------
-            if (dm%tmin_mn <= -40.0000) then
-                dm%tmin_sd = 8.5128e+00  + 7.2690e-02 * dm%tmin_mn
-            else if (dm%tmin_mn > -40.0000 .and. dm%tmin_mn <= 0.0000) then
-                dm%tmin_sd = 2.9644e+00 -2.5549e-01 * dm%tmin_mn  + 8.6488e-03 * dm%tmin_mn ** 2  &
-                    + 1.1134e-03 * dm%tmin_mn ** 3  + 2.9231e-05 * dm%tmin_mn ** 4  + 2.4430e-07 * dm%tmin_mn ** 5
-            else if (dm%tmin_mn > 0.0000 .and. dm%tmin_mn <= 25.0000) then
-                dm%tmin_sd = 3.1890e+00 -4.7037e-02 * dm%tmin_mn  + 2.1412e-02 * dm%tmin_mn ** 2 &
-                    -2.6698e-03 * dm%tmin_mn ** 3  + 9.8972e-05 * dm%tmin_mn ** 4 -1.1490e-06 * dm%tmin_mn ** 5
-            else if (dm%tmin_mn > 25.0000) then
-                dm%tmin_sd = 1.1058e+00  + 3.4112e-03 * dm%tmin_mn
-            end if
-            ! --------------------------------------------------------------------------------
-            ! Maximum temperature on dry days
-            ! --------------------------------------------------------------------------------
-            if (dm%tmax_mn <= -30.0000) then
-                dm%tmax_sd = 7.2888e+00  + 1.6786e-02 * dm%tmax_mn
-            else if (dm%tmax_mn > -30.0000 .and. dm%tmax_mn <= 0.0000) then
-                dm%tmax_sd = 4.4758e+00 -3.2513e-01 * dm%tmax_mn -1.3493e-02 * dm%tmax_mn ** 2 &
-                    -1.8153e-05 * dm%tmax_mn ** 3  + 9.1110e-06 * dm%tmax_mn ** 4  + 1.3485e-07 * dm%tmax_mn ** 5
-            else if (dm%tmax_mn > 0.0000 .and. dm%tmax_mn <= 35.0000) then
-                dm%tmax_sd = 4.5747e+00 -6.3377e-02 * dm%tmax_mn  + 1.7879e-02 * dm%tmax_mn ** 2 &
-                    -1.2822e-03 * dm%tmax_mn ** 3  + 3.0241e-05 * dm%tmax_mn ** 4 -2.3140e-07 * dm%tmax_mn ** 5
-            else if (dm%tmax_mn > 35.0000) then
-                dm%tmax_sd = 3.2556e+00 -2.1791e-02 * dm%tmax_mn
-            end if
-
-        else
-            ! --------------------------------------------------------------------------------
-            ! Minimum temperature on dry days
-            ! --------------------------------------------------------------------------------
-            if (dm%tmin_mn <= -40.0000) then
-                dm%tmin_sd = 1.1350e+01  + 1.3830e-01 * dm%tmin_mn
-            else if (dm%tmin_mn > -40.0000 .and. dm%tmin_mn <= 0.0000) then
-                dm%tmin_sd = 3.4653e+00 -1.5660e-01 * dm%tmin_mn  + 2.2968e-02 * dm%tmin_mn ** 2  &
-                    + 1.6714e-03 * dm%tmin_mn ** 3  + 3.6453e-05 * dm%tmin_mn ** 4  + 2.6574e-07 * dm%tmin_mn ** 5
-            else if (dm%tmin_mn > 0.0000 .and. dm%tmin_mn <= 25.0000) then
-                dm%tmin_sd = 3.7458e+00  + 2.8803e-02 * dm%tmin_mn -1.4357e-02 * dm%tmin_mn ** 2 &
-                    + 1.9092e-03 * dm%tmin_mn ** 3 -1.1565e-04 * dm%tmin_mn ** 4  + 2.1705e-06 * dm%tmin_mn ** 5
-            else if (dm%tmin_mn > 25.0000) then
-                dm%tmin_sd = -4.6194e+00  + 2.2606e-01 * dm%tmin_mn
-            end if
-            ! --------------------------------------------------------------------------------
-            ! Maximum temperature on wet days
-            ! --------------------------------------------------------------------------------
-            if (dm%tmax_mn <= -30.0000) then
-                dm%tmax_sd = 6.7204e+00  + 3.7954e-02 * dm%tmax_mn
-            else if (dm%tmax_mn > -30.0000 .and. dm%tmax_mn <= 0.0000) then
-                dm%tmax_sd = 3.6961e+00 -2.8543e-01 * dm%tmax_mn -7.0816e-03 * dm%tmax_mn ** 2 &
-                    + 5.9477e-04 * dm%tmax_mn ** 3  + 3.1244e-05 * dm%tmax_mn ** 4  + 3.9847e-07 * dm%tmax_mn ** 5
-            else if (dm%tmax_mn > 0.0000 .and. dm%tmax_mn <= 35.0000) then
-                dm%tmax_sd = 3.6795e+00 -2.4738e-02 * dm%tmax_mn  + 1.5510e-02 * dm%tmax_mn ** 2 &
-                    -1.1505e-03 * dm%tmax_mn ** 3  + 2.7384e-05 * dm%tmax_mn ** 4 -2.1816e-07 * dm%tmax_mn ** 5
-            else if (dm%tmax_mn > 35.0000) then
-                dm%tmax_sd = 5.4324e+00 -9.4096e-02 * dm%tmax_mn
-            end if
-        end if
+        do i=1,4
+            if (i == 4 .or. dm%tmin_mn <= tmin_sd_breaks(i)) then
+                if (pday) then
+                    dm%tmin_sd = sum(tmin_sd_w(i, :) * (dm%tmin_mn ** (/ 0, 1, 2, 3, 4, 5 /)))
+                else
+                    dm%tmin_sd = sum(tmin_sd_d(i, :) * (dm%tmin_mn ** (/ 0, 1, 2, 3, 4, 5 /)))
+                end if
+                exit
+            endif
+        end do
+        do i=1,4
+            if (i == 4 .or. dm%tmax_mn <= tmax_sd_breaks(i)) then
+                if (pday) then
+                    dm%tmax_sd = sum(tmax_sd_w(i, :) * (dm%tmax_mn ** (/ 0, 1, 2, 3, 4, 5 /)))
+                else
+                    dm%tmax_sd = sum(tmax_sd_d(i, :) * (dm%tmax_mn ** (/ 0, 1, 2, 3, 4, 5 /)))
+                end if
+                exit
+            endif
+        end do
 
     end subroutine temp_sd
 
