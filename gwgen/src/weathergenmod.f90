@@ -57,8 +57,8 @@ module weathergenmod
         logical, dimension(2)  :: pday    !precipitation state
         type(randomstate)      :: rndst   !state of the random number generator, 15 elements
         real(sp), dimension(4) :: resid   !previous day's weather residuals
-        real(sp) :: tmin_bias
-        real(sp) :: tmin_mn, tmin_sd
+        real(sp) :: tmin_bias, wind_bias, wind_intercept_bias
+        real(sp) :: tmin_mn, tmin_sd, wind_mn, wind_sd
         real(sp), dimension(4) :: unorm
 
     end type metvars_out
@@ -162,10 +162,19 @@ module weathergenmod
     real(sp) :: wind_sd_d2 = -9999.    ! DEPRECEATED. slope of best line fit of std. dev. wind on dry days
 
     ! wind bias correction (Note: Default is no correction)
+    ! min. and max range for bias correction (1st and 99th percentile)
+    real(sp) :: wind_bias_min = -2.3263478740, wind_bias_max = 2.3263478740 ! min. and max range for bias correction
+    ! parameters for the exponential intercept correction
+    real(sp) :: wind_intercept_bias_a = -9999.  ! slope in the exponent
+    real(sp) :: wind_intercept_bias_b = -9999.  ! intercept in the exponent
     ! parameters of the slope - unorm best fit line
-    real(sp) :: wind_slope_bias_L = 0.0   ! maximum value of logistic function of wind bias correction
-    real(sp) :: wind_slope_bias_k = 0.0   ! steepness of logistic function of wind bias correction
-    real(sp) :: wind_slope_bias_x0 = 0.0  ! x-value of sigmoid's midpoint of logistic function of wind bias correction
+    ! coefficients for the bias correction of wind speed
+    real(sp), dimension(6) :: wind_bias_coeffs = (/ 1.0, 0.0, 0.0, 0.0, 0.0, 0.0 /)
+    real(sp), dimension(6) :: wind_intercept_bias_coeffs = 0.0
+    ! Alternative slope bias correction using a logistic function
+    real(sp) :: wind_slope_bias_L = -9999.   ! maximum value of logistic function of wind bias correction
+    real(sp) :: wind_slope_bias_k = -9999.   ! steepness of logistic function of wind bias correction
+    real(sp) :: wind_slope_bias_x0 = -9999.  ! x-value of sigmoid's midpoint of logistic function of wind bias correction
 
     ! coefficients for the bias correction of minimum temperature
     ! (Note: Default is no correction)
@@ -213,7 +222,9 @@ module weathergenmod
             tmin_d1, tmin_d2, tmin_sd_d, tmax_d1, tmax_d2, tmax_sd_d, cldf_d, &
             cldf_sd_d, wind_d1, wind_d2, wind_sd_d, &
             ! wind bias correction (Note: Default is no correction)
+            wind_bias_coeffs, wind_intercept_bias_coeffs, wind_bias_min, wind_bias_max, &
             wind_slope_bias_L, wind_slope_bias_k, wind_slope_bias_x0, &
+            wind_intercept_bias_a, wind_intercept_bias_b, &
             ! min. temperature bias correction (Note: Default is no correction)
             tmin_bias_coeffs, tmin_bias_min, tmin_bias_max, &
             ! depreceated parameters
@@ -233,7 +244,7 @@ module weathergenmod
         ! handle depreceated namelist parameters
         ! --------------------------------------
         ! tmin on wet days
-        if (any(abs((/ tmin_sd_w1, tmin_sd_w2 /) + 9999.) < 1e-7)) then
+        if (any(abs((/ tmin_sd_w1, tmin_sd_w2 /) + 9999.) > 1e-7)) then
             write (0, *) 'WARNING: Using depreceated tmin_sd_w1 and tmin_sd_w2 parameters! Use tmin_sd_w!'
             tmin_sd_w(:, :) = 0.
             tmin_sd_breaks(:) = 9999.
@@ -241,7 +252,7 @@ module weathergenmod
             tmin_sd_w(1, 2) = tmin_sd_w2
         end if
         ! tmin on dry days
-        if (any(abs((/ tmin_sd_d1, tmin_sd_d2 /) + 9999.) < 1e-7)) then
+        if (any(abs((/ tmin_sd_d1, tmin_sd_d2 /) + 9999.) > 1e-7)) then
             write (0, *) 'WARNING: Using depreceated tmin_sd_d1 and tmin_sd_d2 parameters! Use tmin_sd_d!'
             tmin_sd_d(:, :) = 0.
             tmin_sd_breaks(:) = 9999.
@@ -249,7 +260,7 @@ module weathergenmod
             tmin_sd_d(1, 2) = tmin_sd_d2
         end if
         ! tmax on wet days
-        if (any(abs((/ tmax_sd_w1, tmax_sd_w2 /) + 9999.) < 1e-7)) then
+        if (any(abs((/ tmax_sd_w1, tmax_sd_w2 /) + 9999.) > 1e-7)) then
             write (0, *) 'WARNING: Using depreceated tmax_sd_w1 and tmax_sd_w2 parameters! Use tmax_sd_w!'
             tmax_sd_w(:, :) = 0.
             tmax_sd_breaks(:) = 9999.
@@ -257,7 +268,7 @@ module weathergenmod
             tmax_sd_w(1, 2) = tmax_sd_w2
         end if
         ! tmax on dry days
-        if (any(abs((/ tmax_sd_d1, tmax_sd_d2 /) + 9999.) < 1e-7)) then
+        if (any(abs((/ tmax_sd_d1, tmax_sd_d2 /) + 9999.) > 1e-7)) then
             write (0, *) 'WARNING: Using depreceated tmax_sd_d1 and tmax_sd_d2 parameters! Use tmax_sd_d!'
             tmax_sd_d(:, :) = 0.
             tmax_sd_breaks(:) = 9999.
@@ -265,20 +276,19 @@ module weathergenmod
             tmax_sd_d(1, 2) = tmax_sd_d2
         end if
         ! wind on wet days
-        if (any(abs((/ wind_sd_w1, wind_sd_w2 /) + 9999.) < 1e-7)) then
+        if (any(abs((/ wind_sd_w1, wind_sd_w2 /) + 9999.) > 1e-7)) then
             write (0, *) 'WARNING: Using depreceated wind_sd_w1 and wind_sd_w2 parameters! Use wind_sd_w!'
             wind_sd_w(:) = 0.
             wind_sd_w(1) = wind_sd_w1
             wind_sd_w(2) = wind_sd_w2
         end if
         ! wind on dry days
-        if (any(abs((/ wind_sd_d1, wind_sd_d2 /) + 9999.) < 1e-7)) then
+        if (any(abs((/ wind_sd_d1, wind_sd_d2 /) + 9999.) > 1e-7)) then
             write (0, *) 'WARNING: Using depreceated wind_sd_d1 and wind_sd_d2 parameters! Use wind_sd_d!'
             wind_sd_d(:) = 0.
             wind_sd_d(1) = wind_sd_d1
             wind_sd_d(2) = wind_sd_d2
         end if
-
     end subroutine init_weathergen
 
     !------------------------------------------------------------------------------------------------------------
@@ -340,6 +350,7 @@ module weathergenmod
 
         ! bias correction
         real(sp) :: slopecorr      ! slope correction for wind
+        real(sp) :: intercept_corr ! intercept correction for wind
         real(sp) :: tmin_bias      ! intercept correction for tmin
 
         real(kind=8) :: cdf_thresh  ! gamma cdf at the threshold
@@ -443,7 +454,7 @@ module weathergenmod
 
                 gp_scale = (1.0 - cdf_thresh)/ pdf_thresh
 
-                do  !enforce positive precipitation
+                do  i=1,1000!enforce positive precipitation
 
                     !today's precipitation
 
@@ -451,7 +462,12 @@ module weathergenmod
 
                     prec = roundto(prec,1)    !simulated precipitation should have no more precision than the input (0.1mm)
 
-                    if (prec > 0.) exit
+                    if (prec > 0. .and. prec <= 1.05 * pre) exit
+
+                    if (i == 1000) then
+                        write (0, *) 'Could not find good precipitation with ', pre, ' mm and ', wetd, ' wet days'
+                        stop 1
+                    end if
 
                 end do
 
@@ -493,15 +509,26 @@ module weathergenmod
 
         wind = max(0.0, resid(4) * sqrt(max(0.0, wind_sd)) + sqrt(max(0.0, wind_mn)))
 
+        wind = roundto(wind * wind, 1)
+
         ! ---- wind bias correction
-        if (wind_slope_bias_L > 0) then
+        if (wind_slope_bias_L > 0.0) then
             slopecorr = wind_slope_bias_L / ( 1 + exp( - wind_slope_bias_k * ( &
                 resid(4) - wind_slope_bias_x0)))
-
-            wind = wind / slopecorr
+        else
+            slopecorr = sum(wind_bias_coeffs(:) * ( &
+                max(wind_bias_min, min(wind_bias_max, resid(4))) ** (/ 0, 1, 2, 3, 4, 5 /)))
         end if
 
-        wind = roundto(wind * wind, 1)
+        if (abs(wind_intercept_bias_a + 9999.) > 1e-7) then
+            intercept_corr = exp(wind_intercept_bias_b + &
+                wind_intercept_bias_a * max(wind_bias_min, min(wind_bias_max, resid(4))))
+        else
+            intercept_corr = sum(wind_intercept_bias_coeffs(:) * ( &
+                max(wind_bias_min, min(wind_bias_max, resid(4))) ** (/ 0, 1, 2, 3, 4, 5 /)))
+        end if
+
+        wind = (wind - intercept_corr) / max(slopecorr, 9e-4)
 
         ! ----- tmin bias correction
         tmin_bias = sum(tmin_bias_coeffs(:) * ( &
@@ -544,6 +571,10 @@ module weathergenmod
         met_out%tmin_bias = tmin_bias
         met_out%tmin_mn = tmin_mn
         met_out%tmin_sd = tmin_sd
+        met_out%wind_bias = slopecorr
+        met_out%wind_intercept_bias = intercept_corr
+        met_out%wind_mn = wind_mn
+        met_out%wind_sd = wind_sd
         met_out%unorm = unorm
 
     end subroutine weathergen

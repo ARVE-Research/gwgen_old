@@ -788,6 +788,7 @@ class GWGENOrganizer(ModelOrganizer):
         import subprocess as spr
         import stat
         import f90nml
+        from copy import deepcopy
         self.app_main(**kwargs)
         logger = self.logger
         exp_config = self.fix_paths(self.exp_config)
@@ -837,6 +838,13 @@ class GWGENOrganizer(ModelOrganizer):
         shutil.copyfile(f, target)
         os.chmod(target, stat.S_IWUSR | stat.S_IXUSR | stat.S_IRUSR)
         logger.debug('    Name list: %s', ordered_yaml_dump(nml))
+        nml = deepcopy(nml)
+        # transpose multidimensional arrays because they get transposed by
+        # f90nml. Otherwise you get errors using functions like matmul
+        for key, sub_nml in nml.items():
+            for key2, val in sub_nml.items():
+                if np.ndim(val) >= 2:
+                    sub_nml[key2] = np.round(np.transpose(val), 8).tolist()
         with open(osp.join(work_dir, 'weathergen.nml'), 'w') as f:
             f90nml.write(nml, f)
 
@@ -966,7 +974,7 @@ class GWGENOrganizer(ModelOrganizer):
         if not osp.exists(postproc_dir):
             os.makedirs(postproc_dir)
         quants_output = osp.join(postproc_dir, 'quants_bias')
-        kwargs['quants'] = {'quantiles': quantiles, 'transform_wind': True,
+        kwargs['quants'] = {'quantiles': quantiles, 'transform_wind': False,
                             'new_project': new_project,
                             'names': list(bias_kws),
                             'project_output': quants_output + '.pkl',
@@ -1010,6 +1018,7 @@ class GWGENOrganizer(ModelOrganizer):
 
         # -- wind
         sp = sps.add_parser('wind')
+        sp.setup_args(self.wind_bias_correction_logistic)
         sp.setup_args(self.wind_bias_correction)
         sp.update_arg('new_project', short='np')
         sp.update_arg('plot_output', short='po')
@@ -1018,15 +1027,20 @@ class GWGENOrganizer(ModelOrganizer):
 
         # -- tmin
         sp = sps.add_parser('tmin')
+        sp.setup_args(self.poly_bias_correction)
+        sp.pop_arg('vname')
+        sp.pop_arg('what')
+        sp.pop_arg('ds')
         sp.setup_args(self.tmin_bias_correction)
         sp.update_arg('new_project', short='np')
         sp.update_arg('plot_output', short='po')
         sp.pop_arg('info')
         sp.pop_arg('close')
 
+    @docstrings.get_sectionsf('GWGENOrganizer.wind_bias_correction_logistic')
     @docstrings.dedent
-    def wind_bias_correction(self, info, new_project=False, plot_output=None,
-                             close=True):
+    def wind_bias_correction_logistic(
+            self, info, new_project=False, plot_output=None, close=True):
         """
         Perform a bias correction for the data
 
@@ -1041,16 +1055,7 @@ class GWGENOrganizer(ModelOrganizer):
             The name of the output file. If not specified, it defaults to
             `<exp_dir>/postproc/<vname>_bias_correction.pdf`
         close: bool
-            If True, close the project at the end
-
-        Returns
-        -------
-        object
-            The statsmodel fit object for the slope ~ unorm fit
-        np.ndarray
-            The optimal fit parameters for the intercept fit
-        np.ndarray
-            The covriance matrix of the intercept fit"""
+            If True, close the project at the end"""
         import pandas as pd
         from scipy import stats
         import xarray as xr
@@ -1063,7 +1068,7 @@ class GWGENOrganizer(ModelOrganizer):
         postproc_dir = self.exp_config.setdefault(
             'postprocdir', osp.join(self.exp_config['expdir'], 'postproc'))
 
-        df = pd.DataFrame(info[vname]).T
+        df = pd.DataFrame.from_dict(info[vname], 'index')
         try:
             # drop all percentiles
             df.drop('All', inplace=True)
@@ -1093,31 +1098,69 @@ class GWGENOrganizer(ModelOrganizer):
         # --- slope bias correction
         if osp.exists(project_output) and not new_project:
             mp = psy.Project.load_project(project_output, datasets=[ds])
-            sp2 = mp.linreg
+            sp2 = mp.linreg(name='slope')
         else:
             import seaborn as sns
             sns.set_style('white')
             sp1 = psy.plot.lineplot(ds, name='slope', coord='unorm',
                                     linewidth=0, marker='o', legend=False)
             sp2 = psy.plot.linreg(
-                 ds, name='slope', ax=sp1[0].ax,
+                 ds, name='slope', ax=sp1[0].psy.ax,
                  coord='unorm', fit=logistic_function,
-                 ylabel=('$\\sqrt{{\\mathrm{{Simulated}} / '
-                         '\\mathrm{{Observed}}\\, \\mathrm{{wind}}}}$'),
+                 ylabel=('$\\mathrm{{Simulated}}\\, \\mathrm{{%s}} / '
+                         '\\mathrm{{Observed}}\\, \\mathrm{{%s}}$') % (
+                            vname, vname),
                  legendlabels=(
-                     '$\\sqrt{{'
-                     '\\frac{{\\mathrm{{Simulated}}\\, \\mathrm{{wind}}}}'
-                     '{{\\mathrm{{Observed}}\\, \\mathrm{{wind}}}}}} = '
+                     '$\\frac{{\\mathrm{{Simulated}}}}'
+                     '{{\\mathrm{{Observed}}}} = '
                      '\\frac{{%(L)4.3f}}{{1 + \\mathrm{{e}}^{{'
-                     '%(k)4.3f\\cdot(x - %(x0)4.3f)}}}}$'),
+                     '%(k)4.3f\\cdot(x %(x0)+4.3f)}}}}$'),
                  legend={'fontsize': 'x-large', 'loc': 'upper left'},
-                 xlabel='Random number from normal distribution')
+                 xlabel='Random number $x$ from normal distribution')
             sp2.share(sp1[0], ['color', 'xlim', 'ylim'])
         arr = sp2.plotters[0].plot_data[0]
         nml = self.exp_config['namelist']['weathergen_ctl']
-        for letter in ['L', 'k', 'x0']:
-            nml[vname + '_slope_bias_' + letter] = float(arr.attrs[letter])
+        if 'L' in arr.attrs:
+            nml.pop(vname + '_bias_coeffs', None)
+            for letter in ['L', 'k', 'x0']:
+                nml[vname + '_slope_bias_' + letter] = float(arr.attrs[letter])
+        else:  # polynomial fit
+            for letter in ['L', 'k', 'x0']:
+                nml.pop(vname + '_slope_bias_' + letter, None)
+            nml[vname + '_bias_coeffs'] = [
+                    float(arr.attrs.get('c%i' % i, 0.0)) for i in range(6)]
 
+        # --- intercept bias correction
+        if osp.exists(project_output) and not new_project:
+            sp2 = mp.linreg(name='intercept')
+        else:
+            sp1 = psy.plot.lineplot(ds, name='intercept', coord='unorm',
+                                    linewidth=0, marker='o', legend=False)
+            sp2 = psy.plot.linreg(
+                 ds, name='intercept', ax=sp1[0].psy.ax,
+                 coord='unorm', fit=exponential_function,
+                 ylabel=(
+                    '$\\mathrm{{Simulated}}\\, \\mathrm{{%s}} - '
+                    '\\mathrm{{Observed}}\\, \\mathrm{{%s}}$ [m/s]') % (
+                        vname, vname),
+                 legendlabels=(
+                     '$\\mathrm{{Simulated}} - \\mathrm{{Observed}} ='
+                     'e^{{%(a)1.4f \\cdot x %(b)+1.4f}}$'),
+                 legend={'fontsize': 'medium', 'loc': 'upper left'},
+                 xlabel='Random number $x$ from normal distribution')
+        arr = sp2.plotters[0].plot_data[0]
+        if 'a' in arr.attrs:
+            nml.pop(vname + '_intercept_bias_coeffs', None)
+            for letter in ['a', 'b']:
+                nml[vname + '_intercept_bias_' + letter] = float(
+                    arr.attrs[letter])
+        else:  # polynomial fit
+            for letter in ['a', 'b']:
+                nml.pop(vname + '_intercept_bias_' + letter, None)
+            nml[vname + '_intercept_bias_coeffs'] = [
+                float(arr.attrs.get('c%i' % i, 0.0)) for i in range(6)]
+        nml[vname + '_bias_min'] = float(ds.unorm.min().values)
+        nml[vname + '_bias_max'] = float(ds.unorm.max().values)
         # --- save the data
         self.logger.info('Saving plots to %s', plot_output)
         mp = psy.gcp(True)
@@ -1128,14 +1171,21 @@ class GWGENOrganizer(ModelOrganizer):
         if close:
             psy.gcp(True).close(True, True, True)
 
+    @docstrings.get_sectionsf('GWGENOrganizer.poly_bias_correction')
     @docstrings.dedent
-    def tmin_bias_correction(self, info, new_project=False, plot_output=None,
-                             deg=3, close=True):
+    def poly_bias_correction(
+            self, vname, what, info, new_project=False, plot_output=None,
+            deg=3, close=True, ds=None):
         """
-        Perform a bias correction for the minimum temperature data
+        Perform a bias correction based on percentile and a polynomial fit
 
         Parameters
         ----------
+        vname: str
+            The variable name to use
+        what: str { 'slope' | 'intercept' }
+            Either slope or intercept. The parameter that should be used for
+            the bias correction
         info: dict
             The configuration of the quantile evaluation
         new_project: bool
@@ -1148,15 +1198,9 @@ class GWGENOrganizer(ModelOrganizer):
             The degree of the fittet polynomial
         close: bool
             If True, close the project at the end
-
-        Returns
-        -------
-        object
-            The statsmodel fit object for the slope ~ unorm fit
-        np.ndarray
-            The optimal fit parameters for the intercept fit
-        np.ndarray
-            The covriance matrix of the intercept fit"""
+        ds: xr.Dataset
+            The xarray dataset to use. Otherwise it will be created from `info`
+        """
         import pandas as pd
         from scipy import stats
         import xarray as xr
@@ -1170,24 +1214,22 @@ class GWGENOrganizer(ModelOrganizer):
             else:
                 return 'x^' + str(i)
 
-        vname = 'tmin'
-
-        self.logger.debug('Calculating tmin bias correction for experiment %s',
-                          self.experiment)
+        self.logger.debug('Calculating %s bias correction for experiment %s',
+                          vname, self.experiment)
         postproc_dir = self.exp_config.setdefault(
             'postprocdir', osp.join(self.exp_config['expdir'], 'postproc'))
-
-        df = pd.DataFrame(info[vname]).T
-        try:
-            # drop all percentiles
-            df.drop('All', inplace=True)
-        except (ValueError, KeyError) as e:
-            pass
-        df.index.name = 'pctl'
-        df.reset_index(inplace=True)
-        df['unorm'] = stats.norm.ppf(
-            df['pctl'].astype(float) / 100., 0, 1.0)
-        ds = xr.Dataset.from_dataframe(df)
+        if ds is None:
+            df = pd.DataFrame(info[vname]).T
+            try:
+                # drop all percentiles
+                df.drop('All', inplace=True)
+            except (ValueError, KeyError) as e:
+                pass
+            df.index.name = 'pctl'
+            df.reset_index(inplace=True)
+            df['unorm'] = stats.norm.ppf(
+                df['pctl'].astype(float) / 100., 0, 1.0)
+            ds = xr.Dataset.from_dataframe(df)
 
         # --- plots
         d = self.exp_config.setdefault('postproc', OrderedDict()).setdefault(
@@ -1204,6 +1246,16 @@ class GWGENOrganizer(ModelOrganizer):
         d['project_file'] = project_output
         d['nc_file'] = nc_output
 
+        if what == 'slope':
+            ylabel = 'Simulated/Observed'
+            if vname == 'wind':
+                ylabel = '$\\sqrt{{' + ylabel + '}}$'
+        else:
+            ylabel = 'Simulated - Observed'
+        diff_symbol = ylabel
+        if vname == 'tmin':
+            ylabel += ' [$^\circ$C]'
+
         # --- slope bias correction
         if osp.exists(project_output) and not new_project:
             mp = psy.Project.load_project(project_output, datasets=[ds])
@@ -1211,25 +1263,25 @@ class GWGENOrganizer(ModelOrganizer):
         else:
             import seaborn as sns
             sns.set_style('white')
-            sp1 = psy.plot.lineplot(ds, name='intercept', coord='unorm',
+            sp1 = psy.plot.lineplot(ds, name=what, coord='unorm',
                                     linewidth=0, marker='o', legend=False)
-            label = 'Simulated - Observed = $%s$' % ' + '.join(
-                '%(c{})4.3f{}'.format(i, get_symbol(i))
-                for i in range(deg + 1))
+            label = '$%s = %s$' % (diff_symbol, ' '.join(
+                '%(c{})+4.3f{}'.format(i, get_symbol(i))
+                for i in range(deg + 1)))
             sp2 = psy.plot.linreg(
-                 ds, name='intercept', ax=sp1[0].ax,
+                 ds, name=what, ax=sp1[0].ax,
                  coord='unorm', fit='poly' + str(int(deg)),
-                 ylabel='Simulated - Observed [$^\circ$C]',
+                 ylabel=ylabel,
                  legendlabels=label,
                  legend={'fontsize': 'large', 'loc': 'upper left'},
                  xlabel='Random number from normal distribution')
             sp2.share(sp1[0], ['color', 'xlim', 'ylim'])
         attrs = sp2.plotters[0].plot_data[0].attrs
         nml = self.exp_config['namelist']['weathergen_ctl']
-        nml['tmin_bias_coeffs'] = [
+        nml[vname + '_bias_coeffs'] = [
             float(attrs.get('c%i' % i, 0.0)) for i in range(6)]
-        nml['tmin_bias_min'] = float(ds.unorm.min().values)
-        nml['tmin_bias_max'] = float(ds.unorm.max().values)
+        nml[vname + '_bias_min'] = float(ds.unorm.min().values)
+        nml[vname + '_bias_max'] = float(ds.unorm.max().values)
 
         # --- save the data
         self.logger.info('Saving plots to %s', plot_output)
@@ -1240,6 +1292,29 @@ class GWGENOrganizer(ModelOrganizer):
 
         if close:
             psy.gcp(True).close(True, True, True)
+
+    docstrings.delete_params('GWGENOrganizer.poly_bias_correction.parameters',
+                             'vname', 'what')
+
+    @docstrings.dedent
+    def tmin_bias_correction(self, *args, **kwargs):
+        """
+        Perform a bias correction for the minimum temperature data
+
+        Parameters
+        ----------
+        %(GWGENOrganizer.poly_bias_correction.parameters.no_vname|what)s"""
+        return self.poly_bias_correction('tmin', 'intercept', *args, **kwargs)
+
+    @docstrings.dedent
+    def wind_bias_correction(self, *args, **kwargs):
+        """
+        Perform a bias correction for the wind speed
+
+        Parameters
+        ----------
+        %(GWGENOrganizer.wind_bias_correction_logistic.parameters)s"""
+        return self.wind_bias_correction_logistic(*args, **kwargs)
 
     # ----------------------- Sensitivity analysis ----------------------------
 
@@ -1562,6 +1637,33 @@ class GWGENOrganizer(ModelOrganizer):
             os.symlink(osp.relpath(source, osp.dirname(target)), target)
         else:
             os.symlink(osp.abspath(source), target)
+
+
+def exponential_function(x, a, b):
+    """
+    Exponential function used by :meth:`GWGENOrganizer.wind_bias_correction`
+
+    This function is defined as
+
+    .. math::
+
+        f(x) = e^{ax + b}
+
+    Parameters
+    ----------
+    x: numpy.ndarray
+        The x-data
+    a: float
+        The *a* parameter in the above equation
+    b: float
+        The *b* parameter in the above equation
+
+    Returns
+    -------
+    np.ndarray
+        The calculated :math:`f(x)`
+    """
+    return np.exp(a * x + b)
 
 
 def logistic_function(x, L, k, x0):

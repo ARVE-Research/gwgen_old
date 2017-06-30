@@ -79,12 +79,13 @@ program gwgen
     ! stationid, longitude, latitude. Otherwise longitude and latitude should be
     ! skipped
     logical :: use_geohash = .true.
+    logical :: ldebug = .false.  ! switch to output additional informations
 
     ! -----------------------------------------------------------------------------
     ! ------------------- END. Defaults for the namelist parameters ---------------
     ! -----------------------------------------------------------------------------
 
-    namelist / main_ctl / seed, use_geohash
+    namelist / main_ctl / seed, use_geohash, ldebug
 
     open(101,file='weathergen.nml',status='old')
     read(101, main_ctl)
@@ -127,9 +128,14 @@ program gwgen
     dailyfile = trim(output)
 
     open(30,file=dailyfile,status='unknown')
-    write(30,'(a)', advance='no') "id,year,month,day,tmin,tmax,mean_cloud,wind,prcp,wet_day,"
-    write(30,'(a)', advance='no') "tmin_bias,tmin_mn,tmin_sd,resid_tmin,resid_tmax,resid_cloud,resid_wind,"
-    write(30, '(a)') "unorm_tmin,unorm_tmax,unorm_cloud,unorm_wind"
+    write(30,'(a)', advance='no') "id,year,month,day,tmin,tmax,mean_cloud,wind,prcp,wet_day"
+    if (ldebug) then
+        write(30,'(a)', advance='no') ",tmin_bias,tmin_mn,tmin_sd,wind_bias,wind_intercept_bias,"
+        write(30,'(a)', advance='no') "wind_mn,wind_sd,resid_tmin,resid_tmax,resid_cloud,resid_wind,"
+        write(30, '(a)') "unorm_tmin,unorm_tmax,unorm_cloud,unorm_wind"
+    else
+        write(30, '(a)') ''
+    endif
 
     do  !read the input file until the end
 
@@ -236,12 +242,16 @@ program gwgen
         !initialize weather residuals and other variables that carry over from one day to the next
         !these and the random state below should be reset once per station
 
-        met_out%resid = 0.
         if (i_consecutives(n_curr - 1) == 0) then
             met_out%pday(1) = .false.
             met_out%pday(2) = .false.
+            met_out%resid = 0.
+            ! i_count = 1
+        else
+            ! i_count = 2
         end if
-        i_count = 1
+        i_count = 0.
+        met_out%resid = 0.
         prec_t = max(0.5,0.05 * mprec(n_curr))  !set quality threshold for preciptation amount
 
         ! save the current state of the residuals and pday
@@ -262,7 +272,7 @@ program gwgen
                 met_in%cldf  = real(mcloud_curr(d))
                 met_in%wind  = real(mwind_curr(d))
                 met_in%pday  = met_out_save%pday
-                met_in%resid = met_out%resid
+                met_in%resid = met_out_save%resid
 
                 call weathergen(met_in,met_out)
 
@@ -281,6 +291,9 @@ program gwgen
             !end of month
             ! NOTE: THIS HAS TO BE ENABLED IF NECESSARY
             tmindiff = 1.0  !abs(mtmin(n_curr) - tmin_acc / ndm(n_curr))
+
+            ! Reset met_out_save after initialization
+            if (i_count == 1) met_out_save = met_out
 
             if (mprec(n_curr) <= 0.1 .and. tmindiff < 2.5) then
 
@@ -327,18 +340,24 @@ program gwgen
             call csv_write(30,month_met(d)%cldf,advance=.false.)
             call csv_write(30,month_met(d)%wind,advance=.false.)
             call csv_write(30,month_met(d)%prec,advance=.false.)
-            call csv_write(30,wet_day,advance=.false.)
-            call csv_write(30,month_met(d)%tmin_bias,advance=.false.)
-            call csv_write(30,month_met(d)%tmin_mn,advance=.false.)
-            call csv_write(30,month_met(d)%tmin_sd,advance=.false.)
-            call csv_write(30,month_met(d)%resid(1),advance=.false.)
-            call csv_write(30,month_met(d)%resid(2),advance=.false.)
-            call csv_write(30,month_met(d)%resid(3),advance=.false.)
-            call csv_write(30,month_met(d)%resid(4),advance=.false.)
-            call csv_write(30,month_met(d)%unorm(1),advance=.false.)
-            call csv_write(30,month_met(d)%unorm(2),advance=.false.)
-            call csv_write(30,month_met(d)%unorm(3),advance=.false.)
-            call csv_write(30,month_met(d)%unorm(4),advance=.true.)
+            call csv_write(30,wet_day,advance=.not. ldebug)
+            if (ldebug) then
+                call csv_write(30,month_met(d)%tmin_bias,advance=.false.)
+                call csv_write(30,month_met(d)%tmin_mn,advance=.false.)
+                call csv_write(30,month_met(d)%tmin_sd,advance=.false.)
+                call csv_write(30,month_met(d)%wind_bias,advance=.false.)
+                call csv_write(30,month_met(d)%wind_intercept_bias,advance=.false.)
+                call csv_write(30,month_met(d)%wind_mn,advance=.false.)
+                call csv_write(30,month_met(d)%wind_sd,advance=.false.)
+                call csv_write(30,month_met(d)%resid(1),advance=.false.)
+                call csv_write(30,month_met(d)%resid(2),advance=.false.)
+                call csv_write(30,month_met(d)%resid(3),advance=.false.)
+                call csv_write(30,month_met(d)%resid(4),advance=.false.)
+                call csv_write(30,month_met(d)%unorm(1),advance=.false.)
+                call csv_write(30,month_met(d)%unorm(2),advance=.false.)
+                call csv_write(30,month_met(d)%unorm(3),advance=.false.)
+                call csv_write(30,month_met(d)%unorm(4),advance=.true.)
+            end if
         end do
 
         ! set boundary conditions for next timestep
