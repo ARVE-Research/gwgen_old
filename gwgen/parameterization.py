@@ -954,9 +954,9 @@ class TemperatureParameterizer(Parameterizer):
 
     setup_requires = ['cday']
 
-    _datafile = 'temperature.csv'
+    _datafile = ['temperature_full.csv', 'temperature.csv']
 
-    dbname = 'temperature'
+    dbname = ['temperature_full', 'temperature']
 
     has_run = True
 
@@ -1037,7 +1037,8 @@ class TemperatureParameterizer(Parameterizer):
         """The dataframe of this parameterization task converted to a dataset
         """
         import xarray as xr
-        df = self.data
+        # full data for std
+        df = self.data[0]
         cols = [col for col in df.columns if (
                    col.startswith('tmin') or col.startswith('tmax'))]
         ds = xr.Dataset.from_dataframe(df[cols].reset_index())
@@ -1045,7 +1046,6 @@ class TemperatureParameterizer(Parameterizer):
         temp_bins = np.arange(-100., 100., 0.1)
         ds['temp_bins'] = xr.Variable('temp_bins',
                                       (temp_bins[1:] + temp_bins[:-1]) * 0.5)
-
         for v, t, state in product(['tmin', 'tmax'], ['stddev', ''],
                                    ['', 'wet', 'dry']):
             vname = v + t + (('_' + state) if state else '')
@@ -1073,6 +1073,15 @@ class TemperatureParameterizer(Parameterizer):
                 std[counts <= cutoff] = np.nan
                 ds[vname + '_sd'] = xr.Variable(
                     ('temp_bins', ), std, attrs=varo.attrs.copy())
+        # means
+        df = self.data[1]
+        for v, t, state in product(['tmin', 'tmax'], ['stddev', ''],
+                                   ['', 'wet', 'dry']):
+            vname = v + t + (('_' + state) if state else '')
+            ds_vname = vname + '_means'
+            varo = ds[ds_vname] = xr.Variable(
+                ('index_mean', ),  np.asarray(df[vname]),
+                attrs=ds[vname].attrs.copy())
         return ds
 
     @staticmethod
@@ -1132,18 +1141,22 @@ class TemperatureParameterizer(Parameterizer):
         return g.apply(cls.calc_monthly_props).mean()
 
     def setup_from_file(self, *args, **kwargs):
-        kwargs['index_col'] = ['id', 'year', 'month']
+        kwargs['index_col'] = [['id', 'year', 'month'], ['id', 'month']]
         return super(TemperatureParameterizer, self).setup_from_file(
             *args, **kwargs)
 
     def setup_from_db(self, *args, **kwargs):
-        kwargs['index_col'] = ['id', 'year', 'month']
+        kwargs['index_col'] = [['id', 'year', 'month'], ['id', 'month']]
         return super(TemperatureParameterizer, self).setup_from_db(
             *args, **kwargs)
 
     def setup_from_scratch(self):
-        self.data = self.cday.data.groupby(
-            level=['id', 'year', 'month']).apply(self.calculate_probabilities)
+        self.data = [None, None]
+        self.data[0] = self.cday.data.groupby(
+            level=['id', 'year', 'month']).apply(self.calc_monthly_props)
+        if len(self.data[0]):
+            self.data[0].index = self.data[0].index.droplevel(-1)
+            self.data[1] = self.data[0].groupby(level=['id', 'month']).mean()
 
     def create_project(self, ds):
         """
@@ -1167,14 +1180,14 @@ class TemperatureParameterizer(Parameterizer):
         # mean fits
         for v in variables:
             psy.plot.densityreg(
-                ds, name=v + '_wet', ax=next(axes),
-                coord=v,
+                ds, name=v + '_wet_means', ax=next(axes),
+                coord=v + '_means',
                 ylabel='%(long_name)s [$^\circ$C]\non %(state)s days',
                 text=[(middle, 0.03, '%(xlong_name)s [$^\circ$C]', 'fig', dict(
                      weight='bold', ha='center'))], fmt=self.fmt)
             psy.plot.densityreg(
-                ds, name=v + '_dry', ax=next(axes),
-                coord=v,
+                ds, name=v + '_dry_means', ax=next(axes),
+                coord=v + '_means',
                 ylabel='on %(state)s days', fmt=self.fmt)
         # sd fits
         for v in variables:
@@ -1268,7 +1281,7 @@ class TemperatureParameterizer(Parameterizer):
         tc = self.task_config
         for v, state in product(variables, states):
             # means
-            vname = '%s_%s' % (v, state)
+            vname = '%s_%s_means' % (v, state)
             nml_name = v + '_' + state[0]
             vinfo = info.setdefault(vname, {})
             plotter = sp(name=vname).plotters[0]
@@ -1282,14 +1295,14 @@ class TemperatureParameterizer(Parameterizer):
             vname = v + 'stddev' + '_' + state
             nml[v + '_sd_breaks'] = [getattr(tc, v + '_range1')[1], 0.0,
                                      getattr(tc, v + '_range2')[0]]
-            sd_coeffs = np.zeros((6, 4))
+            sd_coeffs = np.zeros((4, 6))
             base = v + 'stddev'
             for i, arr in enumerate(
                     sp.linreg(name='_'.join(
                         [base, state, 'mean'])).plotters[0].plot_data):
                 for j in range(6):
-                    sd_coeffs[j, i] = arr.attrs.get('c%i' % j, 0.0)
-            nml[v + '_sd_' + state[0]] = sd_coeffs.tolist()
+                    sd_coeffs[i, j] = arr.attrs.get('c%i' % j, 0.0)
+            nml[v + '_sd_' + state[0]] = np.round(sd_coeffs, 8).tolist()
 
 _CloudConfig = namedtuple('_CloudConfig', ['args_type'])
 
@@ -1922,11 +1935,10 @@ class CloudParameterizer(CompleteMonthlyCloud):
     allow_files = False
 
     fmt = dict(
-        legend={'loc': 'upper left'},
         cmap='w_Reds',
         xrange=(0, 1),
         yrange=(0, 1),
-        legendlabels=['std. error of a: %(a_err)1.4f'],
+        legend=False,
         bounds=['minmax', 11, 0, 99],
         cbar='',
         bins=10,
@@ -2043,7 +2055,7 @@ class CloudParameterizer(CompleteMonthlyCloud):
             nml_name = 'cldf%s_%s' % ("_sd" if t == 'sd' else '', state[:1])
             info[vname] = vinfo = {}
             plotter = sp(name=vname).plotters[0]
-            for key in ['a', 'a_err']:
+            for key in ['a', 'a_err', 'rsquared']:
                 vinfo[key] = float(plotter.plot_data[1].attrs[key])
             nml[nml_name] = float(
                 plotter.plot_data[1].attrs.get('a', 0))
@@ -2111,10 +2123,11 @@ class WindParameterizer(CompleteMonthlyWind):
         xrange=(0, ['rounded', 95]),
         yrange=(0, ['rounded', 95]),
         legendlabels=[
-            '$%(symbol)s$ = %(intercept)1.4f + %(slope)1.4f * $%(xsymbol)s$'],
+            '$%(symbol)s = %(intercept)1.4f %(slope)+1.4f \\cdot %(xsymbol)s$'
+            ],
         bounds=['minmax', 11, 0, 99],
         cbar='',
-        bins=10,
+        bins=100,
         fix=0,
         xlabel='on %(state)s days',
         )
@@ -2150,16 +2163,27 @@ class WindParameterizer(CompleteMonthlyWind):
         """The dataframe of this parameterization task converted to a dataset
         """
         import xarray as xr
-        ds = xr.Dataset.from_dataframe(self.data.reset_index())
+        df = self.data.reset_index()
+        ds = xr.Dataset.from_dataframe(df)
+        ds['wind_bins'] = xr.Variable(
+            ('wind_bins', ), np.arange(0.05, 49.955, 0.1), attrs=dict(
+                long_name='mean wind speed', units='m/s'))
         for t, state in product(['sd_', ''], ['', 'wet', 'dry']):
             vname = t + 'wind' + (('_' + state) if state else '')
             varo = ds.variables[vname]
             label = 'std. dev. of ' if t else 'mean'
             varo.attrs['long_name'] = '%s wind speed' % (label)
             varo.attrs['units'] = 'm/s'
-            varo.attrs['symbol'] = 'w_\mathrm{{%s%s}}' % (
-                'sd' if t else '', (', ' + state) if state else '')
+            varo.attrs['symbol'] = 'w_\mathrm{{%s%s%s}}' % (
+                'sd' if t else '', ', ' if state and t else '', state)
             varo.attrs['state'] = state or 'all'
+            if t == 'sd_' and state:
+                g = df.groupby(pd.cut(df['wind_' + state],
+                                      np.arange(0.0, 50.05, 0.1)))
+                ds[vname + '_mean'] = xr.Variable(
+                    ('wind_bins', ), g[vname].mean(), attrs=ds[vname].attrs)
+                ds[vname + '_std'] = xr.Variable(
+                    ('wind_bins', ), g[vname].std(), attrs=ds[vname].attrs)
         return ds
 
     def setup_from_scratch(self):
@@ -2199,18 +2223,35 @@ class WindParameterizer(CompleteMonthlyWind):
             axes[0].get_position().x0 + axes[1].get_position().x1) / 2.
         axes = iter(axes)
         for t in types:
-            kws = {'fit': wind_sd_func} if t == 'sd_' else {}
+            if t == 'sd_':
+                kws = {'fit': wind_sd_func,
+                       'legendlabels': [
+                           '$%(symbol)s = '
+                           '%(c1)1.3f \\cdot %(xsymbol)s '
+                           '%(c2)+1.3f \\cdot %(xsymbol)s^2 '
+                           '%(c3)+1.3f \\cdot %(xsymbol)s^3$']}
+            else:
+                kws = {}
+            ax = next(axes)
+            if t == 'sd_':
+                psy.plot.barplot(ds, name='sd_wind_wet_mean',
+                                 widths='data', alpha=0.5, color='k', ax=ax)
             psy.plot.densityreg(
-                ds, name='%swind_wet' % (t), ax=next(axes),
+                ds, name='%swind_wet' % (t, ), ax=ax,
                 ylabel='%(long_name)s [%(units)s]\non %(state)s days',
                 text=[(middle, 0.03,
-                       'square root of %(xlong_name)s [%(xunits)s]', 'fig',
+                       '%(xlong_name)s [%(xunits)s]', 'fig',
                        dict(weight='bold', ha='center'))], fmt=self.fmt,
                 coord='wind' + ('_wet' if t == 'sd_' else ''), **kws)
+            ax = next(axes)
+            if t == 'sd_':
+                psy.plot.barplot(ds, name='sd_wind_dry_mean',
+                                 widths='data', alpha=0.5, color='k', ax=ax)
             psy.plot.densityreg(
-                ds, name='%swind_dry' % (t), ax=next(axes),
+                ds, name='%swind_dry' % (t, ), ax=ax,
                 ylabel='on %(state)s days', fmt=self.fmt,
-                coord='wind' + ('_dry' if t == 'sd_' else ''), **kws)
+                coord='wind' + ('_dry' if t == 'sd_' else ''),
+                **kws)
         return psy.gcp(True)[:]
 
     @docstrings.dedent
@@ -2246,9 +2287,10 @@ class WindParameterizer(CompleteMonthlyWind):
             da = plotter.plot_data[1]
             arr = np.zeros(6)
             for i in range(1, 4):
-                arr[1] = da.attrs['c%i' % i]
-            arr = arr.tolist()
+                arr[i] = da.attrs['c%i' % i]
+            arr = np.round(arr, 8).tolist()
             vinfo['params'] = nml[nml_name] = arr
+            vinfo['rsquared'] = float(da.attrs['rsquared'])
 
 
 class CompleteDailyCloud(DailyCloud):
@@ -2416,6 +2458,8 @@ class CrossCorrelation(Parameterizer):
         m0 = self.data[cols]
         m1 = self.data[lag1_cols].rename(columns=dict(zip(lag1_cols, cols)))
         m0i = np.linalg.inv(m0)
+        # a and b are transposed before given to the weathergenmod because
+        # otherwise you get wrong values with matmul
         nml['a'] = np.dot(m1, m0i).tolist()
         nml['b'] = np.linalg.cholesky(
             m0 - np.dot(np.dot(m1, m0i), m1.T)).tolist()
