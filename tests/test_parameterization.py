@@ -88,10 +88,12 @@ class _ParameterizerTestMixin(object):
                             msg='Datafile %s of %s task does not exist!' % (
                                 fname, name))
         if check_index_duplicates:
-            idx = task.data.index
-            self.assertFalse(idx.has_duplicates,
-                             msg='%s task index data has duplicates!\n%s' % (
-                                name, idx.values[idx.duplicated(keep=False)]))
+            for df in get_data(task):
+                idx = df.index
+                self.assertFalse(
+                    idx.has_duplicates,
+                    msg='%s task index data has duplicates!\n%s' % (
+                        name, idx.values[idx.duplicated(keep=False)]))
         if check_data_duplicates:
             self.assertFalse(task.data.duplicated().any(),
                              msg='%s task data has duplicates!\n%s' % (
