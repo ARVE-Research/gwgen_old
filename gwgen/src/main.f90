@@ -80,6 +80,7 @@ program gwgen
     ! skipped
     logical :: use_geohash = .true.
     logical :: ldebug = .false.  ! switch to output additional informations
+    logical :: lreset  ! switch to reset the residuals every month
 
     ! -----------------------------------------------------------------------------
     ! ------------------- END. Defaults for the namelist parameters ---------------
@@ -246,12 +247,13 @@ program gwgen
             met_out%pday(1) = .false.
             met_out%pday(2) = .false.
             met_out%resid = 0.
-            ! i_count = 1
+            i_count = 1
+        else if (lreset) then
+            met_out%resid = 0.
+            i_count = 1
         else
-            ! i_count = 2
+            i_count = 2
         end if
-        i_count = 0.
-        met_out%resid = 0.
         prec_t = max(0.5,0.05 * mprec(n_curr))  !set quality threshold for preciptation amount
 
         ! save the current state of the residuals and pday
@@ -293,7 +295,9 @@ program gwgen
             tmindiff = 1.0  !abs(mtmin(n_curr) - tmin_acc / ndm(n_curr))
 
             ! Reset met_out_save after initialization
-            if (i_count == 1) met_out_save = met_out
+            if (i_count == 1) then
+                met_out_save = met_out
+            endif
 
             if (mprec(n_curr) <= 0.1 .and. tmindiff < 2.5) then
 

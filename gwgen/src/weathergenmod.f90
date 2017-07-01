@@ -117,9 +117,28 @@ module weathergenmod
     real(sp) :: tmin_w2 = 0.955787        ! slope of best line fit of tmin on wet days (see :f:subr:`meansd`)
     real(sp) :: tmin_d1 = -0.528308       ! intercept of best line fit of tmin on dry days (see :f:subr:`meansd`)
     real(sp) :: tmin_d2 = 1.020964        ! slope of best line fit of tmin on dry days (see :f:subr:`meansd`)
-    real(sp), dimension(4, 6) :: tmin_sd_w = 0  ! polynomial coefficients for correlating tmin sd on wet days
-    real(sp), dimension(4, 6) :: tmin_sd_d = 0  ! polynomial coefficients for correlating tmin sd on dry days
-    real(sp), dimension(3) :: tmin_sd_breaks = 0  ! polynomial coefficients for the breaks of tmin sd correlation
+    real(sp), dimension(3) :: tmin_sd_breaks = (/ -40., 0.0, 25. /)  ! breaks of tmin sd correlation
+    ! polynomial coefficients for correlating tmin sd on wet days
+    real(sp), dimension(4, 6) :: tmin_sd_w = reshape((/ &
+        !   < -40       -40 - 0     0 - 25        > 25
+        9.72715668, 3.05498827, 3.21874237,  0.55707042, &
+        0.1010504, -0.21158825, -0.04507634, 0.02443123, &
+        0.0,       0.01374948,  0.02094482,  0.0, &
+        0.0,       0.00140538,  -0.00264577, 0.0, &
+        0.0,       3.686e-05,   9.818e-05,   0.0, &
+        0.0,       3.2e-07,     -1.13e-06,   0.0  &
+        /), (/ 4, 6 /))
+    ! polynomial coefficients for correlating tmin sd on dry days
+    real(sp), dimension(4, 6) :: tmin_sd_d = reshape((/ &
+        !   < -40       -40 - 0     0 - 25        > 25
+        10.89900605, 3.56755661,  3.79411755,  -4.61943457, &
+        0.12709893, -0.11544588,  0.03298697,  0.22605603, &
+        0.0,         0.02824401, -0.01504554,  0.0, &
+        0.0,         0.00195612,  0.00190346,  0.0, &
+        0.0,         4.314e-05,  -0.00011362,  0.0, &
+        0.0,         3.2e-07,     2.13e-06,    0.0 &
+        /), (/ 4, 6 /))
+
     ! DEPRECEATED tmin parameters
     real(sp) :: tmin_sd_w1 = -9999.    ! DEPRECEATED. intercept of best line fit of std. dev. of tmin on wet days
     real(sp) :: tmin_sd_w2 = -9999.    ! DEPRECEATED. slope of best line fit of std. dev. of tmin on wet days
@@ -132,9 +151,27 @@ module weathergenmod
     real(sp) :: tmax_w2 = 0.948669        ! slope of best line fit of tmax on wet days (see :f:subr:`meansd`)
     real(sp) :: tmax_d1 = 0.386508        ! intercept of best line fit of tmax on dry days (see :f:subr:`meansd`)
     real(sp) :: tmax_d2 = 1.0061          ! slope of best line fit of tmax on dry days (see :f:subr:`meansd`)
-    real(sp), dimension(4, 6) :: tmax_sd_w = 0  ! polynomial coefficients for correlating tmax sd on wet days
-    real(sp), dimension(4, 6) :: tmax_sd_d = 0  ! polynomial coefficients for correlating tmax sd on dry days
-    real(sp), dimension(3) :: tmax_sd_breaks = 0  ! polynomial coefficients for the breaks of tmax sd correlation
+    real(sp), dimension(3) :: tmax_sd_breaks = (/ -30., 0.0, 35. /)  ! polynomial coefficients for the breaks of tmax sd correlation
+    ! polynomial coefficients for correlating tmax sd on wet days
+    real(sp), dimension(4, 6) :: tmax_sd_w = reshape((/ &
+        !   < -30       -30 - 0     0 - 35        > 35
+        6.67200351,  3.86010858,  3.79193207,  5.55292835, &
+        0.03643908, -0.21861197, -0.03126021, -0.09734715, &
+        0.0,         0.00388465,  0.01611473,  0.0, &
+        0.0,         0.00146174, -0.00120298,  0.0, &
+        0.0,         6.059e-05,   2.912e-05,   0.0, &
+        0.0,         7.4e-07,    -2.4e-07,     0.0 &
+        /), (/ 4, 6 /))
+    ! polynomial coefficients for correlating tmax sd on dry days
+    real(sp), dimension(4, 6) :: tmax_sd_d = reshape((/ &
+        !   < -30       -30 - 0     0 - 35        > 35
+        7.37455165,  4.61701866,  4.74550991,  3.25541815, &
+        0.01535526, -0.33872824, -0.07609816, -0.02178605, &
+        0.0,        -0.0187566,   0.01893058,  0.0, &
+        0.0,        -0.0003185,  -0.00134943,  0.0, &
+        0.0,         3.5e-06,     3.209e-05,   0.0, &
+        0.0,         1.1e-07,    -2.5e-07,     0.0  &
+        /), (/ 4, 6 /))
     ! DEPRECEATED tmax parameters
     real(sp) :: tmax_sd_w1 = -9999.    ! DEPRECEATED. intercept of best line fit of std. dev. of tmax on wet days
     real(sp) :: tmax_sd_w2 = -9999.    ! DEPRECEATED. slope of best line fit of std. dev. of tmax on wet days
@@ -153,8 +190,10 @@ module weathergenmod
     real(sp) :: wind_w2 = 1.092938      ! slope of best line fit of wind on wet days (see :f:subr:`meansd`)
     real(sp) :: wind_d1 = 0.0           ! intercept of best line fit of wind on dry days (see :f:subr:`meansd`)
     real(sp) :: wind_d2 = 0.945229      ! slope of best line fit of wind on wet days (see :f:subr:`meansd`)
-    real(sp), dimension(6) :: wind_sd_w = 0.0  ! polygon coefficients for wind standard deviation on wet days
-    real(sp), dimension(6) :: wind_sd_d = 0.0  ! polygon coefficients for wind standard deviation on dry days
+    real(sp), dimension(6) :: wind_sd_w = (/ &  ! polygon coefficients for wind standard deviation on wet days
+        0.0, 0.81840997, -0.12633931, 0.00933591, 0.0, 0.0 /)
+    real(sp), dimension(6) :: wind_sd_d = (/ &  ! polygon coefficients for wind standard deviation on dry days
+        0.0, 1.08596114, -0.24073323, 0.02216454, 0.0, 0.0 /)
     ! DEPRECEATED wind parameters
     real(sp) :: wind_sd_w1 = -9999.    ! DEPRECEATED. intercept of best line fit of std. dev. of wind on wet days
     real(sp) :: wind_sd_w2 = -9999.    ! DEPRECEATED. slope of best line fit of std. dev. of wind on wet days
