@@ -71,9 +71,9 @@ class SensitivityAnalysisTest(bt.BaseTest):
         self.organizer.exp_config['param_stations'] = self.stations_file
         n_shape = 2
         self.organizer.parse_args(
-            ('-id {} sens init -nml thresh=10-16-5 '
+            ('-id {} sens init -nml thresh=5-8-2 '
              'gp_shape=-1err-1err-{}').format(experiment, n_shape).split())
-        threshs = np.arange(10, 16, 5)
+        threshs = np.arange(5, 8, 2)
         _, threshs = np.meshgrid(range(n_shape + 1), threshs)
         n = threshs.size
         all_exps = self.organizer.config.experiments

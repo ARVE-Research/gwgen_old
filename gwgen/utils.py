@@ -760,6 +760,12 @@ class TaskBase(object):
     def sql_dtypes(self):
         """The data types to write the data into a postgres database"""
         import sqlalchemy
+
+        def get_names(df):
+            if df is not None:
+                return chain(df.columns, df.index.names)
+            return []
+
         dtype = {
             'station_id': sqlalchemy.INTEGER, 'tmin': sqlalchemy.REAL,
             'id': sqlalchemy.TEXT, 'prcp': sqlalchemy.REAL,
@@ -768,8 +774,13 @@ class TaskBase(object):
             'year': sqlalchemy.SMALLINT, 'month': sqlalchemy.SMALLINT,
             'day': sqlalchemy.SMALLINT, 'hour': sqlalchemy.SMALLINT,
             'wind': sqlalchemy.REAL}
-        names = list(chain(self.data.columns, self.data.index.names))
-        return {key: val for key, val in dtype.items() if key in names}
+        if not isinstance(self._datafile, six.string_types):
+            names = set(chain.from_iterable(map(get_names, self.data)))
+            used_types = names.intersection(dtype)
+            return {n: [dtype[n]] * len(self.data) for n in used_types}
+        else:
+            names = list(chain(self.data.columns, self.data.index.names))
+            return {key: val for key, val in dtype.items() if key in names}
 
     _logger = None
 
@@ -1091,8 +1102,7 @@ class TaskBase(object):
         for i, dbname in enumerate(safe_list(self.dbname)):
             self._set_data(pd.read_sql_query(
                 "SELECT * FROM %s WHERE id IN (%s)" % (
-                    self.dbname, ', '.join(map(
-                        "'{0}'".format, self.stations))),
+                    dbname, ', '.join(map("'{0}'".format, self.stations))),
                 self.engine, **kwargs[i]), i)
 
     @classmethod
@@ -1177,7 +1187,7 @@ class TaskBase(object):
         pdf = sp.export(plot_output, tight=True, close_pdf=False)
         if project_output:
             self.logger.debug('    Saving project to %s', project_output)
-            if nc_output is not None:
+            if nc_output:
                 for f in safe_list(nc_output):
                     if osp.exists(f):
                         os.remove(f)
@@ -1303,20 +1313,22 @@ class TaskBase(object):
     def write2db(self, **kwargs):
         """Write the data from this task to the database given by the
         :attr:`engine` attribute"""
-        for i, (dbname, kws) in enumerate(zip(safe_list(self.dbname),
-                                              self._split_kwargs(kwargs))):
+        for i, (dbname, kws, dtype) in enumerate(zip(
+                safe_list(self.dbname), self._split_kwargs(kwargs),
+                self._split_kwargs(self.sql_dtypes))):
             data = self._get_data(i)
             if data is None or not len(data):
                 continue
             if 'id' in data.columns:
                 data = data.set_index('id')
-            dtype = self.sql_dtypes
-            missing = set(chain(data.columns, data.index.names)).difference(
-                dtype)
+            df_names = set(chain(data.columns, data.index.names))
+            missing = df_names.difference(dtype)
             if missing:
                 self.logger.warn('No data type was specified for %s', missing)
                 dtype = None
             else:
+                if len(df_names) != len(dtype):
+                    dtype = {key: dtype[key] for key in df_names}
                 kwargs.setdefault('dtype', dtype)
             lock = _db_locks.get(dbname)
             if lock:

@@ -21,9 +21,8 @@ class OrganizerTest(bt.BaseTest):
         self._test_init()
         organizer = self.organizer
         exp = organizer.experiment
-        organizer.evaluate(self.stations_file, prepare={}, to_csv=True,
-                           experiment=exp)
-        self.organizer.run()
+        self.organizer.run(ifile=osp.join(
+            bt.test_root, 'test_data', 'input.csv'))
         fname = osp.join(self.test_dir, organizer.projectname, 'experiments',
                          exp, 'outdata', exp + '.csv')
         self.assertTrue(osp.exists(fname), msg='Output file %s not found!' % (
@@ -34,11 +33,12 @@ class OrganizerTest(bt.BaseTest):
     def test_wind_bias_correction(self):
         """Test gwgen bias wind"""
         self._test_init()
-        self.organizer.parse_args(
-            ('evaluate -s %s prepare -to-csv' % self.stations_file).split())
+        self.organizer.exp_config['reference'] = osp.join(
+            bt.test_root, 'test_data', 'reference.csv')
+        self.organizer.exp_config['eval_stations'] = self.stations_file
         ifile = osp.join(bt.test_root, 'test_data', 'input.csv')
         self.organizer.parse_args(['run',  '-i', ifile])
-        self.organizer.parse_args('bias wind'.split())
+        self.organizer.parse_args('bias -q 1-100-5,99 wind'.split())
         self.organizer.fix_paths(self.organizer.exp_config)
         ofile = self.organizer.exp_config['postproc']['bias']['wind'][
             'plot_file']

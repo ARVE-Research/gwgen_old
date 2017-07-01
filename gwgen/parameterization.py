@@ -4,20 +4,18 @@ import os
 import os.path as osp
 import tempfile
 import datetime as dt
-import textwrap
 import six
 from functools import partial
 from collections import namedtuple
 import inspect
 import subprocess as spr
-from itertools import product
+from itertools import product, chain
 import pandas as pd
 import numpy as np
 import calendar
 import gwgen.utils as utils
 from gwgen.utils import docstrings
 from psyplot.compat.pycompat import OrderedDict, filterfalse
-import psyplot.data as psyd
 
 
 def _requirement_property(requirement):
@@ -1021,10 +1019,15 @@ class TemperatureParameterizer(Parameterizer):
 
     @property
     def sql_dtypes(self):
+        def get_names(df):
+            if df is not None:
+                return chain(df.columns, df.index.names)
+            return []
         import sqlalchemy
         ret = super(TemperatureParameterizer, self).sql_dtypes
-        for col in set(self.data.columns).difference(ret):
-            ret[col] = sqlalchemy.REAL
+        for col in set(chain.from_iterable(map(
+                get_names, self.data))).difference(ret):
+            ret[col] = [sqlalchemy.REAL, sqlalchemy.REAL]
         return ret
 
     @property

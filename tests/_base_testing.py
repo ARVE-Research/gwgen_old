@@ -176,7 +176,10 @@ class BaseTest(unittest.TestCase):
             np.testing.assert_allclose(actual, desired, rtol=rtol, atol=atol,
                                        err_msg=msg or '', **kwargs)
         except AssertionError as e:
-            self.fail(e.message)
+            if six.PY2:
+                self.fail(e.message)
+            else:
+                self.fail(str(e))
 
 
 # check if we are online by trying to connect to google

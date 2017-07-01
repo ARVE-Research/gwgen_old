@@ -111,8 +111,9 @@ class _ParameterizerTestMixin(object):
                         msg='Database has no table %s of %s task' % (table,
                                                                      name))
                     data = task._get_data(i)
-                    self.assertEqual(set(sql_dtypes[i]),
-                                     set(data.columns) | set(data.index.names),
+                    data_cols = set(data.columns) | set(data.index.names)
+                    self.assertEqual(set(sql_dtypes[i]) & data_cols,
+                                     data_cols,
                                      msg='Missing sql dtype for %s' % name)
 
         # check setup from file
