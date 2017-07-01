@@ -85,7 +85,7 @@ install:
       fi
     - cd .. && rm -rf psyplot
     # install psy-simple
-    - git clone "https://github.com/Chilipp/psy-simple.git"
+    - git clone "https://github.com/Chilipp/psy-simple.git" -b dev
     - cd psy-simple && python setup.py install
     - if [[ "$TRAVIS_TAG" != "" ]]; then
           pypi_skeleton . tmp && build_conda tmp/psy-simple && rm -rf tmp &&
@@ -93,7 +93,7 @@ install:
       fi
     - cd .. && rm -rf psy-simple
     # install psy-reg
-    - git clone "https://github.com/Chilipp/psy-reg.git"
+    - git clone "https://github.com/Chilipp/psy-reg.git" -b dev
     - cd psy-reg && python setup.py install
     - if [[ "$TRAVIS_TAG" != "" ]]; then
           pypi_skeleton . tmp && build_conda tmp/psy-simple && rm -rf tmp &&
