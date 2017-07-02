@@ -20,6 +20,8 @@ _eecra_test_stations = osp.join(test_root, 'eecra_test_stations.dat')
 
 setup_logging(osp.join(test_root, 'logging.yaml'))
 
+on_travis = os.getenv('TRAVIS')
+
 
 db_config = dict(
     database='travis_ci_test')
@@ -63,6 +65,8 @@ class BaseTest(unittest.TestCase):
         global_conf = self.organizer.config.global_config
         global_conf['data'] = osp.join(test_root, 'test_data')
         global_conf['use_relative_links'] = False
+        if on_travis:
+            global_conf['nprocs'] = 2
         if self.use_db:
             self._clear_db()
             global_conf.update(db_config)

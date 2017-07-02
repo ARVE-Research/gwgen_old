@@ -34,9 +34,9 @@ class OrganizerTest(bt.BaseTest):
         """Test gwgen bias wind"""
         self._test_init()
         self.organizer.exp_config['reference'] = osp.join(
-            bt.test_root, 'test_data', 'reference.csv')
+            bt.test_root, 'test_data', 'long_reference.csv')
         self.organizer.exp_config['eval_stations'] = self.stations_file
-        ifile = osp.join(bt.test_root, 'test_data', 'input.csv')
+        ifile = osp.join(bt.test_root, 'test_data', 'long_input.csv')
         self.organizer.parse_args(['run',  '-i', ifile])
         self.organizer.parse_args('bias -q 1-100-5,99 wind'.split())
         self.organizer.fix_paths(self.organizer.exp_config)
