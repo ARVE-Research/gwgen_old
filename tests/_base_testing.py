@@ -47,6 +47,7 @@ class BaseTest(unittest.TestCase):
                 cls.use_db = False
 
     def setUp(self):
+        from psyplot import rcParams
         self.test_dir = tempfile.mkdtemp(prefix='tmp_gwgentest')
         os.environ['GWGENCONFIGDIR'] = self.config_dir = osp.join(
             self.test_dir, 'config')
@@ -70,8 +71,10 @@ class BaseTest(unittest.TestCase):
         if self.use_db:
             self._clear_db()
             global_conf.update(db_config)
+        rcParams['plotter.linreg.nboot'] = 1
 
     def tearDown(self):
+        from psyplot import rcParams
         if self.remove_at_cleanup:
             if osp.exists(self.test_dir):
                 shutil.rmtree(self.test_dir)
@@ -79,6 +82,8 @@ class BaseTest(unittest.TestCase):
                 shutil.rmtree(self.config_dir)
             if self.use_db:
                 self._clear_db()
+        rcParams.update_from_defaultParams()
+
         del self.organizer
         del self.test_dir
         del self.config_dir
