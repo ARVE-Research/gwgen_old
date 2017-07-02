@@ -70,7 +70,7 @@ install:
     - if [[ "$TRAVIS_TAG" != "" ]]; then
           conda install -n root constructor conda-build six numpy;
       fi
-    - conda create -n test python="$PYTHON_VERSION" dask seaborn scipy numpy statsmodels matplotlib=1.5 xarray six
+    - conda create -n test python="$PYTHON_VERSION" pip dask seaborn scipy numpy statsmodels matplotlib xarray six
     - source activate test
     - conda install -c conda-forge cartopy
     - pip install model-organization
@@ -96,7 +96,7 @@ install:
     - git clone "https://github.com/Chilipp/psy-reg.git" -b dev
     - cd psy-reg && python setup.py install
     - if [[ "$TRAVIS_TAG" != "" ]]; then
-          pypi_skeleton . tmp && build_conda tmp/psy-simple && rm -rf tmp &&
+          pypi_skeleton . tmp && build_conda tmp/psy-reg && rm -rf tmp &&
           export PSY_REG_FILE="${BUILD_FNAME}";
       fi
     - cd .. && rm -rf psy-reg
