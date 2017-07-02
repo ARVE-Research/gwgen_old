@@ -36,7 +36,7 @@ class OrganizerTest(bt.BaseTest):
         self.organizer.exp_config['reference'] = osp.join(
             bt.test_root, 'test_data', 'long_reference.csv')
         fname, ext = osp.splitext(self.stations_file)
-        self.stations_file = fname + '_long' + ext
+        self.stations_file = osp.join(bt.test_root, 'test_stations_long.dat')
         self.organizer.exp_config['eval_stations'] = self.stations_file
         ifile = osp.join(bt.test_root, 'test_data', 'long_input.csv')
         self.organizer.parse_args(['run',  '-i', ifile])
