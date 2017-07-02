@@ -80,13 +80,13 @@ program gwgen
     ! skipped
     logical :: use_geohash = .true.
     logical :: ldebug = .false.  ! switch to output additional informations
-    logical :: lreset  ! switch to reset the residuals every month
+    logical :: lreset = .true. ! switch to reset the residuals every month
 
     ! -----------------------------------------------------------------------------
     ! ------------------- END. Defaults for the namelist parameters ---------------
     ! -----------------------------------------------------------------------------
 
-    namelist / main_ctl / seed, use_geohash, ldebug
+    namelist / main_ctl / seed, use_geohash, ldebug, lreset
 
     open(101,file='weathergen.nml',status='old')
     read(101, main_ctl)
@@ -296,7 +296,11 @@ program gwgen
 
             ! Reset met_out_save after initialization
             if (i_count == 1) then
-                met_out_save = met_out
+                if (i_consecutives(n_curr - 1) == 0) then
+                    met_out_save = met_out
+                else
+                    met_out_save%resid = met_out%resid
+                end if
             endif
 
             if (mprec(n_curr) <= 0.1 .and. tmindiff < 2.5) then
