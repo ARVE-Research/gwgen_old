@@ -128,11 +128,11 @@ install:
 script:
     # run test suite
     - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-          coverage run --parallel-mode --concurrency=multiprocessing setup.py test -a "-v -m 'not fullrun and not long' --user postgres --offline -k 'wind or Temp'";
+          coverage run --parallel-mode --concurrency=multiprocessing setup.py test -a "-v -m 'not fullrun and not long' --user postgres --offline";
       elif [[ "$ONLINE_TESTS" == "true" ]]; then
-          coverage run --parallel-mode --concurrency=multiprocessing setup.py test -a "-v -m 'not fullrun' --user postgres -k 'wind or Temp'";
+          coverage run --parallel-mode --concurrency=multiprocessing setup.py test -a "-v -m 'not fullrun' --user postgres";
       else
-          coverage run --parallel-mode --concurrency=multiprocessing setup.py test -a "-v -m 'not fullrun' --user postgres --offline -k 'wind or Temp'";
+          coverage run --parallel-mode --concurrency=multiprocessing setup.py test -a "-v -m 'not fullrun' --user postgres --offline";
       fi
     # build docs
     - if [[ "$BUILD_DOCS" == "true" ]]; then
