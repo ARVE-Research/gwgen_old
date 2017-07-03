@@ -82,7 +82,7 @@ class BaseTest(unittest.TestCase):
                 shutil.rmtree(self.config_dir)
             if self.use_db:
                 self._clear_db()
-        rcParams.update_from_defaultParams()
+        rcParams.update_from_defaultParams(plotters=False)
 
         del self.organizer
         del self.test_dir
