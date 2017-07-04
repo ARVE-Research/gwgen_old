@@ -180,6 +180,8 @@ class Test_DailyGHCNData(bt.BaseTest, _ParameterizerTestMixin):
 
     param_cls = param.DailyGHCNData
 
+    stations_type = 'short'
+
     @unittest.skipIf(not bt.online, 'Only works with internet connection')
     def test_full_source_exists(self):
         """Test whether the url of the tar ball can be downloaded"""
@@ -201,6 +203,8 @@ class Test_CompleteDailyGHCNData(bt.BaseTest, _ParameterizerTestMixin):
 
     param_cls = param.CompleteDailyGHCNData
 
+    stations_type = 'short'
+
     def test_param(self, **kwargs):
         manager = super(Test_CompleteDailyGHCNData, self).test_param(**kwargs)
         data = manager.get_task(self.name).data
@@ -221,6 +225,8 @@ class Test_YearlyCompleteDailyGHCNData(bt.BaseTest, _ParameterizerTestMixin):
     task"""
 
     param_cls = param.YearlyCompleteDailyGHCNData
+
+    stations_type = 'short'
 
     def test_param(self, **kwargs):
         import calendar
@@ -244,12 +250,16 @@ class Test_MonthlyGHCNData(bt.BaseTest, _ParameterizerTestMixin):
 
     param_cls = param.MonthlyGHCNData
 
+    stations_type = 'short'
+
 
 class Test_CompleteMonthlyGHCNData(bt.BaseTest, _ParameterizerTestMixin):
     """Test case for the
     :class:`gwgen.parameterization.CompleteMonthlyGHCNData` task"""
 
     param_cls = param.CompleteMonthlyGHCNData
+
+    stations_type = 'short'
 
 
 class Test_PrcpDistParams(bt.BaseTest, _ParameterizerTestMixin):
@@ -285,6 +295,8 @@ class Test_HourlyCloud(bt.BaseTest, _ParameterizerTestMixin, _CloudTestMixin):
     """Test case for the :class:`gwgen.parameterization.HourlyCloud` task"""
 
     param_cls = param.HourlyCloud
+
+    stations_type = 'short'
 
     @unittest.skipIf(not bt.online, 'Only works with internet connection')
     def test_source_url(self):
@@ -323,11 +335,15 @@ class Test_DailyCloud(bt.BaseTest, _ParameterizerTestMixin, _CloudTestMixin):
 
     param_cls = param.DailyCloud
 
+    stations_type = 'short'
+
 
 class Test_MonthlyCloud(bt.BaseTest, _ParameterizerTestMixin, _CloudTestMixin):
     """Test case for the :class:`gwgen.parameterization.MonthlyCloud` task"""
 
     param_cls = param.MonthlyCloud
+
+    stations_type = 'short'
 
 
 class Test_CompleteMonthlyCloud(bt.BaseTest, _ParameterizerTestMixin,
@@ -337,6 +353,8 @@ class Test_CompleteMonthlyCloud(bt.BaseTest, _ParameterizerTestMixin,
 
     param_cls = param.CompleteMonthlyCloud
 
+    stations_type = 'short'
+
 
 class Test_YearlyCompleteMonthlyCloud(bt.BaseTest, _ParameterizerTestMixin,
                                       _CloudTestMixin):
@@ -345,6 +363,8 @@ class Test_YearlyCompleteMonthlyCloud(bt.BaseTest, _ParameterizerTestMixin,
 
     param_cls = param.YearlyCompleteMonthlyCloud
 
+    stations_type = 'short'
+
 
 class Test_CompleteDailyCloud(bt.BaseTest, _ParameterizerTestMixin,
                               _CloudTestMixin):
@@ -352,6 +372,8 @@ class Test_CompleteDailyCloud(bt.BaseTest, _ParameterizerTestMixin,
     task"""
 
     param_cls = param.CompleteDailyCloud
+
+    stations_type = 'short'
 
     def test_param(self, **kwargs):
         manager = super(Test_CompleteDailyCloud, self).test_param(**kwargs)
@@ -375,6 +397,8 @@ class Test_YearlyCompleteDailyCloud(bt.BaseTest, _ParameterizerTestMixin,
     :class:`gwgen.parameterization.YearlyCompleteDailyCloud` task"""
 
     param_cls = param.YearlyCompleteDailyCloud
+
+    stations_type = 'short'
 
     def test_param(self, **kwargs):
         import calendar
@@ -407,6 +431,8 @@ class Test_CompleteMonthlyWind(bt.BaseTest, _ParameterizerTestMixin,
 
     param_cls = param.CompleteMonthlyWind
 
+    stations_type = 'short'
+
 
 class Test_YearlyCompleteMonthlyWind(bt.BaseTest, _ParameterizerTestMixin,
                                      _CloudTestMixin):
@@ -414,6 +440,8 @@ class Test_YearlyCompleteMonthlyWind(bt.BaseTest, _ParameterizerTestMixin,
     :class:`gwgen.parameterization.YearlyCompleteMonthlyWind` task"""
 
     param_cls = param.YearlyCompleteMonthlyWind
+
+    stations_type = 'short'
 
 
 class Test_WindParameterizer(bt.BaseTest, _ParameterizerTestMixin,

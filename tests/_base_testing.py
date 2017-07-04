@@ -15,7 +15,14 @@ test_root = osp.abspath(osp.dirname(__file__))
 
 _test_stations = osp.join(test_root, 'test_stations.dat')
 
+_short_test_stations = osp.join(test_root, 'test_stations_short.dat')
+
+_long_test_stations = osp.join(test_root, 'test_stations_long.dat')
+
 _eecra_test_stations = osp.join(test_root, 'eecra_test_stations.dat')
+
+_short_eecra_test_stations = osp.join(test_root,
+                                      'eecra_test_stations_short.dat')
 
 
 setup_logging(osp.join(test_root, 'logging.yaml'))
@@ -35,6 +42,19 @@ class BaseTest(unittest.TestCase):
     remove_at_cleanup = True
 
     use_db = True
+
+    stations_type = 'normal'
+
+    _station_files = {
+        'normal': _test_stations,
+        'short': _short_test_stations,
+        'long': _long_test_stations,
+        }
+
+    _eecra_station_files = {
+        'normal': _eecra_test_stations,
+        'short': _short_eecra_test_stations,
+        }
 
     @classmethod
     def setUpClass(cls):
@@ -56,12 +76,15 @@ class BaseTest(unittest.TestCase):
         if not osp.exists(self.config_dir):
             os.makedirs(self.config_dir)
         self.test_db = osp.basename(self.test_dir)
+        src_station_file = self._station_files[self.stations_type]
         self.stations_file = osp.join(self.test_dir,
-                                      osp.basename(_test_stations))
-        shutil.copyfile(_test_stations, self.stations_file)
+                                      osp.basename(src_station_file))
+        shutil.copyfile(src_station_file, self.stations_file)
+
+        src_eecra_file = self._eecra_station_files[self.stations_type]
         self.eecra_stations_file = osp.join(self.test_dir,
-                                            osp.basename(_eecra_test_stations))
-        shutil.copyfile(_eecra_test_stations, self.eecra_stations_file)
+                                            osp.basename(src_eecra_file))
+        shutil.copyfile(src_eecra_file, self.eecra_stations_file)
         self.organizer = GWGENOrganizer()
         global_conf = self.organizer.config.global_config
         global_conf['data'] = osp.join(test_root, 'test_data')
