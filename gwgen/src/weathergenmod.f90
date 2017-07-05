@@ -204,11 +204,13 @@ module weathergenmod
     ! min. and max range for bias correction (1st and 99th percentile)
     real(sp) :: wind_bias_min = -2.3263478740, wind_bias_max = 2.3263478740 ! min. and max range for bias correction
     ! parameters for the exponential intercept correction
-    real(sp) :: wind_intercept_bias_a = -9999.  ! slope in the exponent
-    real(sp) :: wind_intercept_bias_b = -9999.  ! intercept in the exponent
+    real(sp) :: wind_intercept_bias_a = 1.1582245720322826.  ! slope in the exponent
+    real(sp) :: wind_intercept_bias_b = -1.3358916953022832  ! intercept in the exponent
     ! parameters of the slope - unorm best fit line
     ! coefficients for the bias correction of wind speed
-    real(sp), dimension(6) :: wind_bias_coeffs = (/ 1.0, 0.0, 0.0, 0.0, 0.0, 0.0 /)
+    real(sp), dimension(6) :: wind_bias_coeffs = (/ &
+         0.995353879899162,   0.8507947091050573, 0.027799823700343333, &
+        -0.06710144300871658, 0.0,                0.0 /)
     real(sp), dimension(6) :: wind_intercept_bias_coeffs = 0.0
     ! Alternative slope bias correction using a logistic function
     real(sp) :: wind_slope_bias_L = -9999.   ! maximum value of logistic function of wind bias correction
