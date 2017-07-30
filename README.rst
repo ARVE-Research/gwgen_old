@@ -1,6 +1,8 @@
 GWGEN: A global weather generator for daily data
 ================================================
 
+**This is the old, depreceated GWGEN repository. Please use the actual one on** `Github <https://github.com/ARVE-Research/gwgen>`__
+
 
 .. start-badges
 
